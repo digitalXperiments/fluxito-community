@@ -1,0 +1,22 @@
+{# Shared layout for Super Admin pages: app sidebar (from base, with active='admin') +
+   admin rail (detached from settings) + the page's own admin content.
+   Each admin page does:
+     {% extends "admin/shell.html" %}
+     {% set admin_section = 'activity' %}     (drives admin rail highlight: activity | projects | settings)
+     {% block admin_main %} ...page content... {% endblock %}
+#}
+{% extends "base.html" %}
+{% set active = 'admin' %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/settings.css?v={{ asset_hash('css/settings.css') }}"/>
+<link rel="stylesheet" href="/static/css/admin.css?v={{ asset_hash('css/admin.css') }}"/>
+<div class="app-main settings-page admin-page">
+  <div class="settings-shell admin-shell">
+    {% include "partials/admin_rail.html" %}
+    <div class="settings-content admin-content">
+      {% block admin_main %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

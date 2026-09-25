@@ -1,0 +1,85 @@
+[
+  {
+    "tool": "get_knowledge",
+    "action": "compute_kpi",
+    "summary": "Execute a KPI's bound formula against its sources and return the scalar value plus a trimmed KPI summary.",
+    "group": "",
+    "params": [
+      {
+        "name": "slug",
+        "type": "string",
+        "required": true,
+        "example": "cac",
+        "doc": "Case-insensitive KPI slug. Required (stripped)."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-01",
+        "doc": "GA4 relative ('30daysAgo') or ISO 'YYYY-MM-DD'. Only affects time-sensitive inputs (GA4); BigQuery inputs apply their own filters."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-31",
+        "doc": "GA4 relative ('today') or ISO 'YYYY-MM-DD'."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "bigquery"
+    ],
+    "returns": "{ value: float|null, mode:'push_down'|'pull_up'|null, expression, inputs:{key:float}, warnings:[str], error:str|null, kpi:{slug,name,unit,format,direction,target} } (shape from compute_kpi_by_slug + attached kpi summary)",
+    "scope": "project"
+  },
+  {
+    "tool": "get_knowledge",
+    "action": "context",
+    "summary": "Returns the project's Business Context markdown doc (industry, audience, rules). No params.",
+    "group": "",
+    "params": [],
+    "returns": "{ scope: 'project', project, content: str, has_content: bool, note } | {error,error_type,message}"
+  },
+  {
+    "tool": "get_knowledge",
+    "action": "get_kpi",
+    "summary": "Full structured spec for one KPI by case-insensitive slug (identity, definition, expression, bound inputs, quality metadata).",
+    "group": "",
+    "params": [
+      {
+        "name": "slug",
+        "type": "string",
+        "required": true,
+        "example": "cac",
+        "doc": "Case-insensitive KPI slug (matched via lower(slug)==lower(arg)). Required."
+      }
+    ],
+    "returns": "{ scope:'project', project, kpi:{slug,name,aliases,status,version,is_ready,description,business_question,interpretation_guide,category,tags,expression,time_grain,unit,format,direction,target,expected_range,owner,source_of_truth_url,inputs:[{key,source,connection_id,binding}]} } | {error,...}",
+    "scope": "project"
+  },
+  {
+    "tool": "get_knowledge",
+    "action": "list_kpis",
+    "summary": "Concise KPI catalog for the active project (slug, name, aliases, status, category, unit, direction, is_ready, short_description) filtered by lifecycle status.",
+    "group": "",
+    "params": [
+      {
+        "name": "status",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "approved",
+          "draft",
+          "deprecated",
+          "all"
+        ],
+        "example": "all",
+        "doc": "Lifecycle status filter; lowercased+stripped. 'all' skips the status WHERE clause."
+      }
+    ],
+    "returns": "{ scope:'project', project, status_filter, count, kpis:[{slug,name,aliases,status,category,unit,direction,is_ready,short_description}], hint } | {error,error_type,message}",
+    "scope": "project"
+  }
+]

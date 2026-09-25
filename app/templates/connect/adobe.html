@@ -1,0 +1,84 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Adobe" %}
+{% set platform_slug = "adobe" %}
+{% set platform_desc = "Connect Adobe Analytics and/or Launch for real-time reporting and tag management." %}
+
+{% block platform_body %}
+<form id="adobeForm" onsubmit="return submitAdobe(event)">
+  {% if editing %}<input type="hidden" id="adobeEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="adobeName">Display name</label>
+    <input class="input" id="adobeName" required placeholder="e.g. Production Adobe" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="adobeOrgId">Organization ID</label>
+    <input class="input" id="adobeOrgId" required placeholder="Your Adobe Organization ID" value="{{ editing.org_id if editing else '' }}"/>
+    <div class="label-hint">Found in Adobe Developer Console → Settings</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="adobeClientId">Client ID</label>
+    <input class="input" id="adobeClientId" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.client_id_hint }} — leave blank to keep{% else %}Client ID from Developer Console{% endif %}" value=""/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="adobeClientSecret">Client Secret</label>
+    <input class="input" type="password" id="adobeClientSecret" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current secret' if editing else 'Client Secret (kept secure)' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing client secret</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="label" for="adobeCompanyId">Analytics Company ID (optional)</label>
+    <input class="input" id="adobeCompanyId" placeholder="Leave blank to auto-detect" value="{{ editing.company_id if editing else '' }}"/>
+    <div class="label-hint">Adobe Analytics <strong>globalCompanyId</strong> used in API paths — not the IMS Organization ID (the one ending in @AdobeOrg). Leave blank and Fluxito will detect it from Adobe on save.</div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="form-group">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" id="adobeAnalytics" {% if editing %}{{ 'checked' if editing.has_analytics else '' }}{% else %}checked{% endif %}/>
+      <span class="label">Enable Adobe Analytics</span>
+    </label>
+  </div>
+  <div class="form-group">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" id="adobeLaunch" {% if editing %}{{ 'checked' if editing.has_launch else '' }}{% else %}checked{% endif %}/>
+      <span class="label">Enable Launch (Tag Management)</span>
+    </label>
+  </div>
+
+  <div class="label-hint" style="margin-top:12px;">Create a project at Adobe Developer Console and add Analytics and/or Launch APIs with proper scopes.</div>
+
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Adobe' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitAdobe(e){
+  e.preventDefault();
+  const editId = document.getElementById('adobeEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('adobeName').value.trim();
+  const org_id = document.getElementById('adobeOrgId').value.trim();
+  const client_id = document.getElementById('adobeClientId').value.trim();
+  const client_secret = document.getElementById('adobeClientSecret').value.trim();
+  const company_id = document.getElementById('adobeCompanyId').value.trim() || null;
+  const has_analytics = document.getElementById('adobeAnalytics').checked;
+  const has_launch = document.getElementById('adobeLaunch').checked;
+
+  const url = isEdit ? '/api/connections/adobe/' + editId.value : '/api/connections/adobe';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, org_id, client_id, client_secret, company_id, has_analytics, has_launch})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "partials/platform_icons.html" import platform_icon %}
+{% block title %}{{ row.tool_name }} — Activity log — Fluxito{% endblock %}
+{% set active = 'audit' %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/connections.css?v={{ asset_hash('css/connections.css') }}"/>
+<main class="app-main cx-flow">
+  <a href="/activity-log" class="cx-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Activity log
+  </a>
+
+  {% set plat = (row.platform or '')|lower|replace('-', '_') %}
+  <div class="page-head">
+    <div class="axd-head">
+      <span class="cx-logo">{% if plat and plat != 'other' %}{{ platform_icon(plat, 24) }}{% else %}<img src="/static/img/fluxito-mark.svg?v=4" alt="" width="24" height="24">{% endif %}</span>
+      <div style="min-width:0">
+        <div class="eyebrow">Tool call{% if row.platform %} · {{ row.platform }}{% endif %}</div>
+        <h1 class="page-title axd-title">{{ row.tool_name }}</h1>
+        <div class="axd-flags">
+          {% if row.status == 'success' %}
+          <span class="ui-chip is-good">success</span>
+          {% elif row.status == 'denied' %}
+          <span class="ui-chip is-warn">denied</span>
+          {% else %}
+          <span class="ui-chip is-bad">{{ row.status or 'error' }}</span>
+          {% endif %}
+          {% if row.is_write %}<span class="ui-chip no-dot is-warn">write</span>{% else %}<span class="ui-chip no-dot">read</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="ui-panel">
+    <div class="axd-meta">
+      <div><span>When</span><b>{{ row.created_at[:19].replace('T',' ') if row.created_at else '—' }}</b></div>
+      <div><span>Source client</span><b>{{ row.source_client or '—' }}</b></div>
+      <div><span>Latency</span><b style="font-variant-numeric:tabular-nums">{% if row.duration_ms is not none %}{{ '{:,}'.format(row.duration_ms) }} ms{% else %}—{% endif %}</b></div>
+      <div><span>Platform</span><b>{{ row.platform or '—' }}</b></div>
+    </div>
+    {% if row.response_summary %}
+    <div class="ui-panel-b axd-summary" style="border-top:1px solid var(--line)">{{ row.response_summary }}</div>
+    {% endif %}
+  </section>
+
+  {% if row.error_message %}
+  <div class="ui-note is-warn axd-err" style="background:var(--bad-soft);color:var(--bad)">
+    <b>Error</b>
+    <pre>{{ row.error_message }}</pre>
+  </div>
+  {% endif %}
+
+  <section class="ui-panel">
+    <div class="ui-panel-h">
+      <h2>Arguments</h2>
+      <div class="ui-right">
+        <button class="ui-btn is-quiet" type="button" onclick="Fluxito.audit.copy('argsBlock', this)">Copy</button>
+      </div>
+    </div>
+    <pre class="axd-pre" id="argsBlock">{{ row.arguments | tojson(indent=2) if row.arguments else '{}' }}</pre>
+  </section>
+
+  <section class="ui-panel">
+    <div class="ui-panel-h">
+      <h2>Response</h2>
+      {% if row.response_truncated %}<span class="ui-chip no-dot is-warn">truncated</span>{% endif %}
+      {% if row.response_preview %}
+      <div class="ui-right">
+        <button class="ui-btn is-quiet" type="button" onclick="Fluxito.audit.copy('respBlock', this)">Copy</button>
+      </div>
+      {% endif %}
+    </div>
+    {% if row.response_preview %}
+    <pre class="axd-pre" id="respBlock">{{ row.response_preview }}</pre>
+    {% else %}
+    <div class="ui-empty">No response body captured.</div>
+    {% endif %}
+  </section>
+</main>
+
+<script>
+  window.Fluxito = window.Fluxito || {};
+  Fluxito.audit = {
+    copy: function(id, btn) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      navigator.clipboard.writeText(el.textContent || '').then(function() {
+        var prev = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = prev; }, 1200);
+      });
+    }
+  };
+</script>
+{% endblock %}

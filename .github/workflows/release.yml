@@ -1,0 +1,248 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - "NOTICE"
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # push tags + create releases
+  packages: write   # push to GHCR
+
+env:
+  IMAGE_APP: ghcr.io/digitalxperiments/fluxito-community
+  IMAGE_UPDATER: ghcr.io/digitalxperiments/fluxito-community-updater
+  IMAGE_NGINX: ghcr.io/digitalxperiments/fluxito-community-nginx
+
+jobs:
+  # ── 1. Compute the next version once, share it with the build/merge jobs ──
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.skipcheck.outputs.skip }}
+      full: ${{ steps.version.outputs.full }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout (full history + tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip on [skip release]
+        id: skipcheck
+        run: |
+          MSG=$(git log -1 --pretty=%B)
+          if echo "$MSG" | grep -qi '\[skip release\]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute next version
+        id: version
+        if: steps.skipcheck.outputs.skip == 'false'
+        run: |
+          TRACK=$(tr -d '[:space:]' < VERSION)
+          echo "Track: $TRACK"
+          # Highest existing patch on this track, default -1 → next becomes 0.
+          LATEST=$(git tag --list "v${TRACK}.*" \
+            | sed "s/^v${TRACK}\.//" \
+            | grep -E '^[0-9]+$' \
+            | sort -n | tail -1)
+          if [ -z "$LATEST" ]; then NEXT=0; else NEXT=$((LATEST + 1)); fi
+          FULL="${TRACK}.${NEXT}"
+          echo "Next version: $FULL"
+          echo "full=$FULL" >> "$GITHUB_OUTPUT"
+          echo "tag=v$FULL" >> "$GITHUB_OUTPUT"
+
+  # ── 2. Build each architecture on its OWN native runner (no QEMU) ──
+  #    amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm. Each pushes the
+  #    images by digest (no tag yet); the merge job stitches them into
+  #    multi-arch manifests. Native builds are far faster than emulation.
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push app (${{ matrix.arch }})
+        id: build_app
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            APP_VERSION=${{ needs.prepare.outputs.full }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.prepare.outputs.full }}
+            org.opencontainers.image.source=https://github.com/digitalXperiments/fluxito-community
+          outputs: type=image,name=${{ env.IMAGE_APP }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build + push updater (${{ matrix.arch }})
+        id: build_updater
+        uses: docker/build-push-action@v6
+        with:
+          context: ./updater
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.prepare.outputs.full }}
+            org.opencontainers.image.source=https://github.com/digitalXperiments/fluxito-community
+          outputs: type=image,name=${{ env.IMAGE_UPDATER }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build + push nginx (${{ matrix.arch }})
+        id: build_nginx
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.nginx
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.prepare.outputs.full }}
+            org.opencontainers.image.source=https://github.com/digitalXperiments/fluxito-community
+          outputs: type=image,name=${{ env.IMAGE_NGINX }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digests
+        run: |
+          mkdir -p /tmp/digests/app /tmp/digests/updater /tmp/digests/nginx
+          # Strip the "sha256:" prefix — actions/upload-artifact rejects ':' in
+          # filenames. The merge job re-adds the prefix when building refs.
+          d="${{ steps.build_app.outputs.digest }}";     touch "/tmp/digests/app/${d#sha256:}"
+          d="${{ steps.build_updater.outputs.digest }}"; touch "/tmp/digests/updater/${d#sha256:}"
+          d="${{ steps.build_nginx.outputs.digest }}";   touch "/tmp/digests/nginx/${d#sha256:}"
+
+      - name: Upload digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── 3. Merge the per-arch digests into manifests, tag, release ──
+  merge:
+    needs: [prepare, build]
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for tagging)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create + push multi-arch manifests
+        run: |
+          set -euo pipefail
+          declare -A IMAGES=(
+            [app]="${IMAGE_APP}"
+            [updater]="${IMAGE_UPDATER}"
+            [nginx]="${IMAGE_NGINX}"
+          )
+          for name in "${!IMAGES[@]}"; do
+            image="${IMAGES[$name]}"
+            refs=""
+            for f in /tmp/digests/$name/*; do
+              digest="$(basename "$f")"   # hex only (sha256: prefix stripped on upload)
+              refs="$refs ${image}@sha256:${digest}"
+            done
+            echo "Creating manifest for $image from:$refs"
+            docker buildx imagetools create \
+              -t "${image}:${{ needs.prepare.outputs.full }}" \
+              -t "${image}:latest" \
+              $refs
+            docker buildx imagetools inspect "${image}:${{ needs.prepare.outputs.full }}"
+          done
+
+      - name: Create git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ needs.prepare.outputs.tag }}" -m "Release ${{ needs.prepare.outputs.tag }}"
+          git push origin "${{ needs.prepare.outputs.tag }}"
+
+      - name: Create GitHub release (notes from CHANGELOG)
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${{ needs.prepare.outputs.full }}"
+
+          # Pull the curated notes for this release out of CHANGELOG.md. We look
+          # for a "## [VERSION]" heading first (the policy in CLAUDE.md: the
+          # section is renamed from [Unreleased] and committed before the push
+          # that triggered this release). If that section is missing — e.g. the
+          # rename was forgotten — fall back to "## [Unreleased]" so the release
+          # still ships the real changes instead of a useless placeholder.
+          extract() {
+            awk -v pfx="## [$1]" '
+              index($0, pfx) == 1 { cap = 1; next }
+              cap && /^## \[/ { exit }
+              cap { print }
+            ' CHANGELOG.md
+          }
+
+          extract "$VERSION" > /tmp/notes.md
+          if [ ! -s /tmp/notes.md ]; then
+            echo "::warning::No '## [$VERSION]' section in CHANGELOG.md; falling back to [Unreleased]. Rename the section before pushing (see CLAUDE.md)."
+            extract "Unreleased" > /tmp/notes.md
+          fi
+
+          # Never publish a release with empty notes — fail so it's visible and
+          # the changelog gets fixed, rather than silently shipping a placeholder.
+          if [ ! -s /tmp/notes.md ]; then
+            echo "::error::No release notes found for $VERSION (neither '## [$VERSION]' nor '## [Unreleased]' has content in CHANGELOG.md)."
+            exit 1
+          fi
+
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file /tmp/notes.md \
+            --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

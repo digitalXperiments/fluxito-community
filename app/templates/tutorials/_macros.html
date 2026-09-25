@@ -1,0 +1,23 @@
+{# Shared helpers for the tutorials pages. #}
+{% from "partials/platform_icons.html" import platform_icon %}
+
+{# Map a tutorial slug to a platform_icon() slug (None when it isn't a platform guide). #}
+{% macro guide_logo(slug, size=20) -%}
+{%- set m = {
+  'google-cloud-setup': 'google', 'google-analytics-4': 'ga4', 'google-tag-manager': 'gtm',
+  'google-ads': 'google_ads', 'search-console': 'search_console', 'bigquery': 'bigquery',
+  'meta-ads': 'meta', 'tiktok-ads': 'tiktok', 'linkedin-ads': 'linkedin', 'pinterest-ads': 'pinterest',
+  'x-ads': 'x', 'apple-ads': 'apple', 'snap-ads': 'snap', 'snowflake': 'snowflake', 'redshift': 'redshift',
+  'amplitude': 'amplitude', 'branch': 'branch', 'appsflyer': 'appsflyer', 'adjust': 'adjust',
+  'mixpanel': 'mixpanel', 'posthog': 'posthog', 'braze': 'braze', 'moengage': 'moengage',
+  'adobe-analytics': 'adobe', 'adobe-launch': 'adobe', 'adobe-marketo': 'marketo'
+} -%}
+{%- if m.get(slug) -%}<span class="tut-logo">{{ platform_icon(m.get(slug), size) }}</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro back_link(href='/tutorials', label='Tutorials & help') -%}
+<a href="{{ href }}" class="tut-back">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+  {{ label }}
+</a>
+{%- endmacro %}

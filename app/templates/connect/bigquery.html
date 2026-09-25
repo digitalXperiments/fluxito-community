@@ -1,0 +1,65 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "BigQuery" %}
+{% set platform_slug = "bigquery" %}
+{% set platform_desc = "Upload a Google Cloud service-account JSON key. Fluxito decrypts it on demand and queries datasets you grant access to." %}
+
+{% block platform_body %}
+<form id="bqForm" onsubmit="return submitBQ(event)">
+  {% if editing %}<input type="hidden" id="bqEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="bqName">Connection name</label>
+    <input class="input" id="bqName" required placeholder="e.g. Production warehouse" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="bqProject">GCP project ID</label>
+    <input class="input" id="bqProject" {% if not editing %}required{% endif %} placeholder="my-gcp-project" value="{{ editing.project_id if editing else '' }}" {% if editing %}readonly style="opacity:0.6;"{% endif %}/>
+    {% if editing %}<div class="label-hint">Project ID is derived from the service account key</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="label" for="bqKey">Service account JSON key</label>
+    {% if editing %}
+    <div class="ui-note is-good" style="margin-bottom:8px">
+      <span>Service account key is stored and encrypted</span>
+    </div>
+    {% endif %}
+    <textarea class="textarea mono" id="bqKey" rows="{% if editing %}4{% else %}10{% endif %}" {% if not editing %}required{% endif %} placeholder='{% if editing %}Paste new JSON here to replace the current key…{% else %}{"type":"service_account",...}{% endif %}'></textarea>
+    <div class="label-hint">
+      {% if editing %}Only paste a new key if you want to replace the existing one.{% else %}Paste the full JSON contents. Encrypted with Fernet, never logged.{% endif %}
+    </div>
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect BigQuery' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitBQ(e){
+  e.preventDefault();
+  const editId = document.getElementById('bqEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('bqName').value.trim();
+  const rawKey = document.getElementById('bqKey').value.trim();
+
+  if (rawKey) {
+    try { JSON.parse(rawKey); } catch (err) { Fluxito.toast('Invalid JSON key', 'error'); return false; }
+  } else if (!isEdit) {
+    Fluxito.toast('Service account key is required', 'error'); return false;
+  }
+
+  const url = isEdit ? '/api/connections/bigquery/' + editId.value : '/api/connections/bigquery';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, sa_json: rawKey})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

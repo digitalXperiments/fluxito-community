@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "partials/platform_icons.html" import platform_icon %}
+{% block title %}Connect {{ platform_name }} — Fluxito{% endblock %}
+{% set active = 'connect' %}
+
+{% set cx_guides = {
+  'meta': 'meta-ads', 'tiktok': 'tiktok-ads', 'linkedin': 'linkedin-ads', 'pinterest': 'pinterest-ads',
+  'x': 'x-ads', 'apple': 'apple-ads', 'snap': 'snap-ads', 'adobe': 'adobe-analytics', 'marketo': 'adobe-marketo'
+} %}
+{% set cx_guide = cx_guides.get(platform_slug) %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/connections.css?v={{ asset_hash('css/connections.css') }}"/>
+<main class="app-main cx-flow">
+  <a href="/settings/connections" class="cx-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Connections
+  </a>
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Connections · Authorize access</div>
+      <h1 class="page-title">Connect <em>{{ platform_name }}.</em></h1>
+      <p class="page-sub">{{ platform_desc }}</p>
+    </div>
+    <div class="ui-page-actions cx-handshake" aria-hidden="true">
+      <span class="cx-logo"><img src="/static/img/fluxito-mark.svg?v=4" alt="" width="24" height="24"></span>
+      <span class="cx-sep">⇄</span>
+      <span class="cx-logo">{{ platform_icon(platform_slug, 24) }}</span>
+    </div>
+  </div>
+
+  <div class="cx-flow-grid">
+    <section class="ui-panel">
+      <div class="ui-panel-h">
+        <h2>Permissions requested</h2>
+        <span class="ui-sub">You'll sign in with {{ platform_name }}, then return here.</span>
+      </div>
+      <div class="oi-perm-list">
+        {% for emoji, scope, description in permissions %}
+        <div class="cx-perm oi-perm">
+          <span class="cx-perm-ic" aria-hidden="true">{{ emoji }}</span>
+          <div>
+            <b>{{ scope }}</b>
+            <p>{{ description }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="ui-panel-b" style="border-top:1px solid var(--line)">
+        <div class="ui-note" style="margin-bottom:0">
+          <span>You'll be redirected to {{ platform_name }} to authorize access. Fluxito only requests the minimum scopes needed. You can revoke anytime from your {{ platform_name }} account settings.</span>
+        </div>
+        <div class="oi-actions">
+          <a href="{{ authorize_url }}" class="ui-btn is-primary oi-cta">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Continue with {{ platform_name }}
+          </a>
+          <a href="/settings/connections" class="ui-btn">Cancel</a>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cx-flow-aside">
+      <section class="ui-panel">
+        <div class="ui-panel-h"><h3>How Fluxito uses this</h3></div>
+        <div class="ui-panel-b">
+          <p>Fluxito requests only the scopes listed here. Write actions are scope-gated, and every call is recorded in the <a href="/activity-log">Activity log</a>.</p>
+          <p>Tokens are encrypted at rest and never sent to your AI or to hosted dashboards.</p>
+        </div>
+        {% if cx_guide %}
+        <a href="/tutorials/{{ cx_guide }}" class="cx-aside-link">Setup guide for {{ platform_name }} <span>→</span></a>
+        {% endif %}
+        <a href="/settings/connections" class="cx-aside-link">All connections <span>→</span></a>
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}

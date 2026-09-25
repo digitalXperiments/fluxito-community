@@ -1,0 +1,1024 @@
+[
+  {
+    "tool": "tagmanager_write",
+    "action": "add_resources_to_library",
+    "summary": "Attach resources (rule/data-element/extension revisions) to an Adobe Launch library. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "library_id": "LB1234abcd",
+          "resources": [
+            {
+              "id": "RR1234",
+              "type": "resources"
+            }
+          ]
+        },
+        "doc": "config.library_id and config.resources (non-empty array) are required. resources is an array of resource-revision reference objects."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...library } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "build_library",
+    "summary": "Build an Adobe Launch library (compiles the library into a deployable build). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "library_id": "LB1234abcd"
+        },
+        "doc": "config.library_id is required."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...build } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_data_element",
+    "summary": "Create an Adobe Launch data element on a property. Automatically resolves and attaches extension relationship and stringifies settings. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "property_id": "PR1234abcd",
+          "name": "Page Name",
+          "delegate_descriptor_id": "core::dataElements::javascript-variable",
+          "settings": {
+            "path": "document.title"
+          }
+        },
+        "doc": "Required keys: property_id, name, delegate_descriptor_id. Optional: settings (dict or JSON string), extension_id (auto-resolved if omitted), clean_text, force_lower_case, default_value, storage_duration, enabled."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...data_element } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_library",
+    "summary": "Create an Adobe Launch library on a property bound to an environment. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "property_id": "PR1234abcd",
+          "name": "Release June",
+          "environment_id": "EN1234abcd"
+        },
+        "doc": "Required keys: property_id, name, environment_id."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...library } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_property",
+    "summary": "Create an Adobe Launch property. Requires platform=adobe_launch and a connected Launch-enabled Adobe account.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch; route does not inject it."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "name": "My Site",
+          "company_id": "CO1234abcd",
+          "platform": "web",
+          "domains": [
+            "example.com"
+          ]
+        },
+        "doc": "config.name and config.company_id are required. config.platform defaults to 'web'; config.domains optional."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...property } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (only u.has_adobe_launch connection presence; NO write/publish scope check on the Launch branch)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_rule",
+    "summary": "Create an Adobe Launch rule on a property, optionally attaching components (events, conditions, actions). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "property_id": "PR1234abcd",
+          "name": "Page Bottom - GA",
+          "components": [
+            {
+              "name": "Page Top Event",
+              "delegate_descriptor_id": "core::events::page-top",
+              "settings": {}
+            }
+          ]
+        },
+        "doc": "Required keys: property_id, name. Optional: components (array of component objects with name, delegate_descriptor_id, settings, etc.)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...rule } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_rule_component",
+    "summary": "Create an Adobe Launch rule component (event, condition, or action) and attach it to a rule. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "property_id": "PR1234abcd",
+          "rule_id": "RL1234abcd",
+          "name": "Set AA Variables",
+          "delegate_descriptor_id": "adobe-analytics::actions::set-variables",
+          "settings": {
+            "eVar1": "%Page Name%"
+          }
+        },
+        "doc": "Required keys: property_id, rule_id, name, delegate_descriptor_id. Optional: settings (dict or JSON string), extension_id (auto-resolved if omitted), rule_order, order, negate, timeout, delay_next."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...rule_component } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "update_rule",
+    "summary": "Update an existing Adobe Launch rule's name or enabled status. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rule_id": "RL1234abcd",
+          "name": "Updated Rule Name",
+          "enabled": true
+        },
+        "doc": "Required keys: rule_id. Optional: name, enabled."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...rule } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "delete_rule",
+    "summary": "Delete an Adobe Launch rule by ID. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rule_id": "RL1234abcd"
+        },
+        "doc": "config.rule_id is required."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ success: true, rule_id, message } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": false
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "update_rule_component",
+    "summary": "Update an existing Adobe Launch rule component. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rule_component_id": "RC1234abcd",
+          "name": "Updated Component Name"
+        },
+        "doc": "Required keys: rule_component_id. Optional: name, settings, delegate_descriptor_id, rule_order, order, negate, timeout, delay_next."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...rule_component } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "delete_rule_component",
+    "summary": "Delete an Adobe Launch rule component by ID. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rule_component_id": "RC1234abcd"
+        },
+        "doc": "config.rule_component_id is required."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ success: true, rule_component_id, message } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": false
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "update_data_element",
+    "summary": "Update an existing Adobe Launch data element. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "data_element_id": "DE1234abcd",
+          "name": "New Element Name"
+        },
+        "doc": "config.data_element_id is required. Optional: name, settings, delegate_descriptor_id, enabled, clean_text, force_lower_case, default_value, storage_duration."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...data_element } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "delete_data_element",
+    "summary": "Delete an Adobe Launch data element by ID. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "data_element_id": "DE1234abcd"
+        },
+        "doc": "config.data_element_id is required."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ success: true, data_element_id, message } | no_adobe_launch_response | {error,message}",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": false
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_tag",
+    "summary": "Create a GTM tag in a workspace. Requires GTM edit.containers scope.",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "example": "GA4 - Purchase",
+        "doc": "Tag name (NOT validated at tool level; required by GTM API)."
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "required": true,
+        "example": "gaawe",
+        "doc": "GTM tag type code, e.g. gaawe (GA4 event), googtag, html, awct (NOT validated at tool level)."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID. NOTE: write tool default is None (not '0'); a None workspace_id builds an invalid GTM path '.../workspaces/None/...'."
+      },
+      {
+        "name": "parameters",
+        "type": "array",
+        "required": false,
+        "item_type": "object",
+        "example": [
+          {
+            "key": "eventName",
+            "value": "purchase"
+          },
+          {
+            "key": "measurementIdOverride",
+            "value": "G-XXXX"
+          }
+        ],
+        "doc": "array of GTM parameter objects ({key, type?, value|list}); defaults to []."
+      },
+      {
+        "name": "firing_trigger_ids",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "123",
+          "2147479553"
+        ],
+        "doc": "array of trigger ID strings; defaults to []. Doc says required but code passes [] when omitted (tag would never fire)."
+      },
+      {
+        "name": "blocking_trigger_ids",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "456"
+        ],
+        "doc": "array of blocking trigger ID strings; defaults to [] in connector."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ tag_id, tag_name, tag_type, workspace_id } | scope error | wrapped GTM API error",
+    "scope": "tagmanager.edit.containers",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_trigger",
+    "summary": "Create a GTM trigger in a workspace. Requires GTM edit.containers scope.",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "example": "Purchase Click",
+        "doc": "Trigger name (NOT validated at tool level)."
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "required": true,
+        "example": "customEvent",
+        "doc": "GTM trigger type, e.g. customEvent, click, pageview (NOT validated at tool level)."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID (write default None)."
+      },
+      {
+        "name": "filters",
+        "type": "array",
+        "required": false,
+        "item_type": "object",
+        "example": [
+          {
+            "type": "equals",
+            "parameter": [
+              {
+                "key": "arg0",
+                "value": "{{Click Text}}"
+              },
+              {
+                "key": "arg1",
+                "value": "Buy"
+              }
+            ]
+          }
+        ],
+        "doc": "array of GTM filter condition objects; connector defaults to []. Maps to GTM body 'filter'."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ trigger_id, trigger_name, trigger_type, workspace_id } | scope error | wrapped GTM API error",
+    "scope": "tagmanager.edit.containers",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_variable",
+    "summary": "Create a GTM variable in a workspace. Requires GTM edit.containers scope.",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "example": "DLV - purchase value",
+        "doc": "Variable name (NOT validated at tool level)."
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "required": true,
+        "example": "v",
+        "doc": "GTM variable type code, e.g. 'v' (data layer var), 'c' (constant), 'jsm' (custom JS) (NOT validated at tool level)."
+      },
+      {
+        "name": "parameters",
+        "type": "array",
+        "required": false,
+        "item_type": "object",
+        "example": [
+          {
+            "key": "name",
+            "value": "ecommerce.value"
+          }
+        ],
+        "doc": "array of GTM parameter objects; defaults to []. Doc lists parameters as required but code passes [] when omitted."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID (write default None)."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ variable_id, variable_name, variable_type, workspace_id } | scope error | wrapped GTM API error",
+    "scope": "tagmanager.edit.containers",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "create_workspace",
+    "summary": "Create a new GTM workspace for staging changes. Requires GTM edit.containers scope.",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "example": "Q2 tracking changes",
+        "doc": "Workspace name."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ ...workspace } | scope error | {error,message}",
+    "scope": "tagmanager.edit.containers",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "delete_tag",
+    "summary": "Delete a GTM tag by ID from a workspace (irreversible within the workspace). Requires GTM edit.containers scope.",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "42",
+        "doc": "Tag ID to delete (NOT validated at tool level)."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID (write default None)."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ deleted: true, tag_name, workspace_id } | scope error | wrapped GTM API error",
+    "scope": "tagmanager.edit.containers",
+    "reversible": false
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "propose_change",
+    "summary": "Dry-run: render a human-readable proposal from a spec dict without mutating anything (safe for read-only users; bypasses scope check).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "spec",
+        "type": "object",
+        "required": true,
+        "example": {
+          "entity_type": "tag",
+          "name": "GA4 Purchase",
+          "change_type": "create",
+          "changes": {
+            "tag_type": "gaawe",
+            "firing_trigger_ids": [
+              "123"
+            ],
+            "parameters": [
+              {
+                "key": "eventName",
+                "value": "purchase"
+              }
+            ]
+          }
+        },
+        "doc": "Proposal spec. Reads keys: entity_type (default 'tag'), name (or top-level name kwarg), change_type ('create'|'update'|'delete', default 'create'), changes (defaults to the whole spec). For create+tag: changes.tag_type|type, changes.firing_triggers|firing_trigger_ids, changes.parameters. For create+trigger: changes.trigger_type|type, changes.filters. For create+variable: changes.variable_type|type."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": false,
+        "example": "GA4 Purchase",
+        "doc": "Fallback entity name if spec.name is absent."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "propose_change only handled on the gtm branch; under adobe_launch it falls through to 'Unknown action'."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ operation, proposal (text), proposed_config, change_type, entity_type, entity_name, is_live:false, requires_publish:true }",
+    "scope": "none (intentionally bypasses both publish and edit.containers scope checks)",
+    "reversible": true
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "publish_container",
+    "summary": "Publish a workspace as a new live container version. Requires the elevated GTM PUBLISH scope (checked before the edit.containers gate).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": true,
+        "example": "3",
+        "doc": "Workspace to publish (NOT validated at tool level; write default None)."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "example": "Release 2026-06-12",
+        "doc": "Version name (NOT validated at tool level)."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ ...published version } | { error_type: insufficient_scope, ... } | wrapped GTM API error",
+    "scope": "tagmanager.publish (https://www.googleapis.com/auth/tagmanager.publish)",
+    "reversible": false
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "transition_library",
+    "summary": "Transition an Adobe Launch library's workflow state (submit/approve/reject/develop). 'approve' on a production library effectively publishes. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "library_id": "LB1234abcd",
+          "action": "approve"
+        },
+        "doc": "config.library_id and config.action required. config.action enum is validated in the connector: submit | approve | reject | develop."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...library state } | { error, message: 'Invalid action. Must be one of: submit, approve, reject, develop' } | no_adobe_launch_response",
+    "scope": "no scope gate (connection presence only)",
+    "reversible": false
+  },
+  {
+    "tool": "tagmanager_write",
+    "action": "update_tag",
+    "summary": "Read-modify-write update of a GTM tag's fields (connector GETs the tag, merges updates, PUTs). Requires GTM edit.containers scope.",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "42",
+        "doc": "Tag ID to update (NOT validated at tool level)."
+      },
+      {
+        "name": "updates",
+        "type": "object",
+        "required": true,
+        "example": {
+          "name": "GA4 - Purchase v2",
+          "paused": false
+        },
+        "doc": "Dict of fields to overlay onto the fetched tag body (NOT validated; defaults to {} which is a no-op update)."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID (write default None)."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ tag_id, tag_name, workspace_id } | scope error | wrapped GTM API error",
+    "scope": "tagmanager.edit.containers",
+    "reversible": true
+  }
+]

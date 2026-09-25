@@ -1,0 +1,10 @@
+{% macro page_header(eyebrow, title, subline=None) %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">{{ eyebrow }}</div>
+    <h1 class="page-title">{{ title | safe }}</h1>
+    {% if subline %}<p class="page-sub">{{ subline }}</p>{% endif %}
+  </div>
+  {% if caller is defined %}{{ caller() }}{% endif %}
+</div>
+{% endmacro %}

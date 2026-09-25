@@ -1,0 +1,504 @@
+{#
+  "Add to your AI" quick-connect component.
+  Shows one-click buttons for Claude, ChatGPT, Cursor, and a "More tools"
+  modal with per-tool JSON config blocks + official icons.
+  Usage:  {% include "partials/add_to_ai.html" %}
+  Requires `base_url` in template context.
+  Note: parent template should provide its own <h2> section header.
+#}
+{% from "partials/ai_tool_icons.html" import ai_tool_icon, ai_tool_color %}
+
+{# -- Client buttons (single row) -- #}
+<div class="ai-connect-grid">
+  <button class="ai-connect-btn" onclick="mcpConnect('claude')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('claude') }};">{{ ai_tool_icon("claude", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">Claude</span>
+      <span class="ai-connect-hint">Web &amp; Desktop</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn" onclick="mcpConnect('chatgpt')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('chatgpt') }};">{{ ai_tool_icon("chatgpt", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">ChatGPT</span>
+      <span class="ai-connect-hint">Web &amp; Desktop</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn" onclick="mcpConnect('cursor')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('cursor') }};">{{ ai_tool_icon("cursor", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">Cursor</span>
+      <span class="ai-connect-hint">Code editor</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn" onclick="mcpConnect('windsurf')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('windsurf') }};">{{ ai_tool_icon("windsurf", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">Windsurf</span>
+      <span class="ai-connect-hint">Code editor</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn" onclick="mcpConnect('lmstudio')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('lmstudio') }};">{{ ai_tool_icon("lmstudio", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">LM Studio</span>
+      <span class="ai-connect-hint">Local models</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn" onclick="mcpConnect('claude-code')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('claude-code') }};">{{ ai_tool_icon("claude-code", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">Claude Code</span>
+      <span class="ai-connect-hint">Terminal agent</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn" onclick="mcpConnect('codex')">
+    <div class="ai-connect-icon" style="background:{{ ai_tool_color('codex') }};">{{ ai_tool_icon("codex", 18) }}</div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">Codex</span>
+      <span class="ai-connect-hint">Coding agent</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+
+  <button class="ai-connect-btn is-more" onclick="openMcpModal()">
+    <div class="ai-connect-icon" style="background:#F4F4F5;border:1px solid #E6E6E8;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+    </div>
+    <div class="ai-connect-body">
+      <span class="ai-connect-name">More tools</span>
+      <span class="ai-connect-hint">VS Code, LM Studio…</span>
+    </div>
+    <svg class="ai-connect-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+</div>
+
+{# -- URL display + instruction (shown after clicking a primary client) -- #}
+<div id="mcpUrlRevealed" style="display:none;margin-top:16px;">
+  <div style="padding:12px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;font-size:13px;">
+    <div id="mcpInstruction" style="color:var(--muted);margin-bottom:8px;font-size:12px;font-weight:500;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <code class="mono" style="word-break:break-all;color:var(--ink);font-size:12.5px;" id="mcpUrlValue">{{ base_url }}/mcp</code>
+      <button class="btn sm" onclick="Fluxito.copy(document.getElementById('mcpUrlValue').textContent, 'MCP URL')" style="flex-shrink:0;">Copy</button>
+    </div>
+  </div>
+</div>
+
+<div class="mcp-help-link" style="margin-top:14px;padding-left:14px;">
+  <a href="https://github.com/digitalXperiments/fluxito-community/tree/main/docs/tutorials" target="_blank" rel="noopener" style="font-size:12px;font-weight:500;font-family:var(--mono);color:var(--muted);text-decoration:none;letter-spacing:0.02em;transition:color .15s;">Need help? View full setup guides <span style="display:inline-block;transition:transform .15s;">→</span></a>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# MODAL — "More tools" picker with per-tool JSON config                     #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<div id="mcpToolModal" class="mcp-modal-backdrop" style="display:none;" onclick="if(event.target===this)closeMcpModal()">
+  <div class="mcp-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-size:20px;font-weight:600;margin:0;letter-spacing:-0.015em;color:var(--ink);font-family:var(--serif, 'Instrument Serif',Georgia,serif);font-style:italic;">Add Fluxito to your tool</h3>
+      <button onclick="closeMcpModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    {# -- Tool picker (step 1) -- #}
+    <div id="mcpModalStep1">
+      <p style="font-size:13px;color:var(--ink-soft, #3F3F46);margin-bottom:16px;line-height:1.55;">Pick your tool — we'll generate the config block for you.</p>
+      <div class="mcp-tool-grid" id="mcpToolGrid"></div>
+    </div>
+
+    {# -- Config display (step 2) -- #}
+    <div id="mcpModalStep2" style="display:none;">
+      <button onclick="mcpModalBack()" style="background:none;border:none;cursor:pointer;color:var(--ink);font-size:12px;font-weight:500;padding:0;margin-bottom:16px;display:flex;align-items:center;gap:4px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.06em;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All tools
+      </button>
+
+      <div id="mcpToolHeader" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div id="mcpToolIcon" class="ai-connect-icon" style="width:40px;height:40px;"></div>
+        <div>
+          <div id="mcpToolName" style="font-weight:600;font-size:15px;color:var(--ink);letter-spacing:-0.01em;"></div>
+          <div id="mcpToolType" style="font-size:12px;color:var(--muted);"></div>
+        </div>
+      </div>
+
+      <div id="mcpLmDeeplink" style="display:none;margin-bottom:16px;">
+        <a id="mcpLmDeeplinkUrl" href="#" class="btn primary block" style="text-align:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Install in LM Studio (one click)
+        </a>
+      </div>
+
+      <div id="mcpToolInstructions" style="font-size:13px;color:var(--ink-soft, #3F3F46);line-height:1.65;margin-bottom:16px;"></div>
+
+      <div id="mcpToolPathBlock" style="margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;font-family:var(--mono);">Config file</div>
+        <code id="mcpToolPath" class="mono" style="display:block;font-size:12px;padding:10px 14px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:8px;word-break:break-all;white-space:pre-wrap;color:var(--ink-soft);"></code>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--mono);">JSON to add</div>
+          <button class="btn primary sm" onclick="copyMcpConfig()" style="font-size:11px;padding:4px 12px;">Copy JSON</button>
+        </div>
+        <pre id="mcpToolConfig" class="mono" style="font-size:12px;line-height:1.6;padding:14px 16px;background:#0B0B0E;color:#FAFAFA;border:1px solid #0B0B0E;border-radius:10px;overflow-x:auto;white-space:pre;margin:0;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# STYLES                                                                     #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<style>
+.ai-connect-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 14px;
+}
+.ai-connect-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg, #FFFFFF);
+  border: 1px solid var(--line, #E6E6E8);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+.ai-connect-btn:hover {
+  border-color: var(--ink, #0B0B0E);
+  transform: translateY(-1px);
+}
+.ai-connect-btn.is-more:hover { background: var(--bg-2, #FAFAFA); }
+.ai-connect-btn:hover .ai-connect-arrow { opacity: 1; transform: translateX(2px); }
+.ai-connect-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ai-connect-body { flex: 1; min-width: 0; }
+.ai-connect-name { display: block; font-weight: 600; font-size: 13px; color: var(--ink, #0B0B0E); letter-spacing: -0.005em; }
+.ai-connect-hint { display: block; font-size: 11px; color: var(--muted, #71717A); margin-top: 2px; }
+.ai-connect-arrow { flex-shrink: 0; opacity: 0; transition: all .15s ease; color: var(--ink, #0B0B0E); }
+
+/* Modal */
+.mcp-modal-backdrop {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(11, 11, 14, 0.45); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn .15s ease;
+}
+.mcp-modal {
+  background: var(--bg, #FFFFFF); border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(11, 11, 14, 0.18), 0 4px 14px rgba(11, 11, 14, 0.08);
+  border: 1px solid var(--line, #E6E6E8);
+  width: 560px; max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
+  overflow-y: auto; padding: 28px;
+  animation: slideUp .2s cubic-bezier(.16,1,.3,1);
+  color: var(--ink, #0B0B0E);
+}
+.mcp-tool-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.mcp-tool-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--bg, #FFFFFF); border: 1px solid var(--line, #E6E6E8);
+  border-radius: 10px; cursor: pointer; transition: border-color .12s ease, transform .12s ease;
+  text-align: left; width: 100%; font-size: 13px; font-weight: 500; color: var(--ink, #0B0B0E);
+  font-family: inherit;
+}
+.mcp-tool-btn:hover {
+  border-color: var(--ink, #0B0B0E); transform: translateY(-1px);
+}
+.mcp-tool-btn .mcp-tool-dot {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .ai-connect-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .ai-connect-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .ai-connect-btn { padding: 10px; gap: 8px; }
+  .ai-connect-icon { width: 28px; height: 28px; }
+  .ai-connect-icon svg { width: 14px; height: 14px; }
+  .ai-connect-name { font-size: 12px; }
+  .ai-connect-hint { display: none; }
+  .ai-connect-arrow { display: none; }
+  .mcp-tool-grid { grid-template-columns: 1fr; }
+  .mcp-modal { padding: 20px; }
+}
+</style>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# JAVASCRIPT                                                                 #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<script>
+(function() {
+  var BASE = {{ base_url | tojson }};
+  var SSE  = BASE + '/mcp';  // streamable HTTP endpoint (name kept for the helpers below)
+
+  /* ── Official SVG icons for each tool ──────────────────────────────── */
+  var icons = {
+    vscode: '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>',
+    kilo: '<svg width="16" height="16" viewBox="0 0 24 24" fill="white" fill-rule="evenodd"><path d="M0 0v24h24V0H0zm22.222 22.222H1.778V1.778h20.444v20.444zm-7.555-4.964h2.222v1.778h-2.794L12.89 17.83v-2.794h1.778v2.222zm4 0h-1.778v-2.222h-2.222v-1.778h2.793l1.207 1.207v2.793zm-7.556-2.591H9.333v-1.778h1.778v1.778zm-5.778-1.778h1.778v4h4v1.778H6.54L5.333 17.46V12.89zm13.334-3.556v1.778h-5.778V9.333h1.987V7.111h-1.987V5.333h2.558l1.206 1.207v2.793h2.014zm-11.556-2h2.222l1.778 1.778v2H9.333v-2H7.111v2H5.333V5.333h1.778v2zm4 0H9.333v-2h1.778v2z"/></svg>',
+    antigravity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg>',
+    jetbrains: '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M2.345 23.997A2.347 2.347 0 0 1 0 21.652V10.988C0 9.665.535 8.37 1.473 7.433l5.965-5.961A5.01 5.01 0 0 1 10.989 0h10.666A2.347 2.347 0 0 1 24 2.345v10.664a5.056 5.056 0 0 1-1.473 3.554l-5.965 5.965A5.017 5.017 0 0 1 13.007 24v-.003H2.345Zm8.969-6.854H5.486v1.371h5.828v-1.371ZM3.963 6.514h13.523v13.519l4.257-4.257a3.936 3.936 0 0 0 1.146-2.767V2.345c0-.678-.552-1.234-1.234-1.234H10.989a3.897 3.897 0 0 0-2.767 1.145L3.963 6.514Zm-.192.192L2.256 8.22a3.944 3.944 0 0 0-1.145 2.768v10.664c0 .678.552 1.234 1.234 1.234h10.666a3.9 3.9 0 0 0 2.767-1.146l1.512-1.511H3.771V6.706Z"/></svg>',
+    zed: '<svg width="16" height="16" viewBox="0 0 24 24" fill="white" fill-rule="evenodd"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.857 7.929L11.786 15h4.714v1.286H9.214V15.07L16.286 8H11.57V6.714h7.286v1.215z"/></svg>',
+    generic: '<svg width="16" height="16" viewBox="0 0 24 24" fill="white" fill-rule="evenodd"><path d="M15.688 2.343a2.588 2.588 0 00-3.61 0l-9.626 9.44a.863.863 0 01-1.203 0 .823.823 0 010-1.18l9.626-9.44a4.313 4.313 0 016.016 0 4.116 4.116 0 011.204 3.54 4.3 4.3 0 013.609 1.18l.05.05a4.115 4.115 0 010 5.9l-8.706 8.537a.274.274 0 000 .393l1.788 1.754a.823.823 0 010 1.18.863.863 0 01-1.203 0l-1.788-1.753a1.92 1.92 0 010-2.754l8.706-8.538a2.47 2.47 0 000-3.54l-.05-.049a2.588 2.588 0 00-3.607-.003l-7.172 7.034-.002.002-.098.097a.863.863 0 01-1.204 0 .823.823 0 010-1.18l7.273-7.133a2.47 2.47 0 00-.003-3.537z"/><path d="M14.485 4.703a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a4.115 4.115 0 000 5.9 4.314 4.314 0 006.016 0l7.12-6.982a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a2.588 2.588 0 01-3.61 0 2.47 2.47 0 010-3.54l7.12-6.982z"/></svg>'
+  };
+
+  /* ── Primary clients ───────────────────────────────────────────────── */
+  var primaryClients = {
+    claude: {
+      name: 'Claude',
+      settingsUrl: 'https://claude.ai/settings/connectors',
+      instruction: 'Click "Add custom connector", paste the URL, and click Add.'
+    },
+    chatgpt: {
+      name: 'ChatGPT',
+      settingsUrl: 'https://chatgpt.com/',
+      instruction: 'In an eligible workspace, open Settings → Apps → Advanced settings, enable Developer mode, then create an app with this MCP URL.'
+    },
+    cursor: {
+      name: 'Cursor',
+      settingsUrl: null,
+      instruction: 'Open Cursor Settings → MCP → Add new global MCP server, and paste the URL.'
+    },
+    windsurf: {
+      name: 'Windsurf',
+      settingsUrl: null,
+      instruction: 'Open Cascade → click the MCPs icon (top-right) → Configure → paste the URL under mcpServers.'
+    },
+    lmstudio: {
+      name: 'LM Studio',
+      settingsUrl: null,  // handled via deeplink below
+      deeplink: true,
+      instruction: 'LM Studio should open automatically. If it does not, install it from lmstudio.ai and paste the URL into ~/.lmstudio/mcp.json.'
+    },
+    'claude-code': {
+      name: 'Claude Code',
+      settingsUrl: null,
+      copyValue: function(url) { return 'claude mcp add --transport http fluxito ' + url; },
+      instruction: 'Paste this command into your terminal, then run /mcp in Claude Code to authenticate.'
+    },
+    codex: {
+      name: 'Codex',
+      settingsUrl: null,
+      instruction: 'Open your Codex MCP settings, add a server named fluxito, and paste this URL.'
+    }
+  };
+
+  /* ── Tool definitions with JSON configs ────────────────────────────── */
+  /*    Note: Claude, ChatGPT, Cursor, Windsurf, and LM Studio are in the */
+  /*    main quick-connect row above — not duplicated here.               */
+  var tools = [
+    {
+      id: 'vscode', name: 'VS Code', type: 'GitHub Copilot', color: '#007acc',
+      path: '.vscode/mcp.json  (workspace)\nUser config via Command Palette → MCP: Open User Configuration',
+      instructions: 'Open Command Palette (<strong>Cmd+Shift+P</strong>) → <strong>MCP: Open User Configuration</strong>. Note: VS Code uses <code>"servers"</code> not <code>"mcpServers"</code>.',
+      config: function() { return JSON.stringify({ servers: { fluxito: { type: "http", url: SSE } } }, null, 2); }
+    },
+    {
+      id: 'zed', name: 'Zed', type: 'Code editor', color: '#0b0b0b',
+      path: '~/.config/zed/settings.json',
+      instructions: 'Open <strong>Command Palette</strong> → <strong>zed: open settings</strong> → add under <code>"context_servers"</code>.',
+      config: function() { return JSON.stringify({ context_servers: { fluxito: { source: "custom", command: null, settings: { url: SSE } } } }, null, 2); }
+    },
+    {
+      id: 'kilo', name: 'Kilo Code', type: 'VS Code extension', color: '#f97316',
+      path: '~/.config/kilo/kilo.jsonc  (global)\n.kilo/kilo.jsonc  (project)',
+      instructions: 'Sidebar → <strong>Settings</strong> → <strong>Agent Behaviour</strong> → <strong>MCP Servers</strong> → Add. Or edit config directly.',
+      config: function() { return JSON.stringify({ mcp: { servers: { fluxito: { type: "streamable-http", url: SSE } } } }, null, 2); }
+    },
+    {
+      id: 'antigravity', name: 'Antigravity', type: 'Google IDE', color: '#4285f4',
+      path: '~/.gemini/antigravity/mcp_config.json',
+      instructions: '<strong>Agent session</strong> → <strong>…</strong> menu → <strong>MCP Servers</strong> → <strong>Manage</strong> → <strong>View raw config</strong>.',
+      config: function() { return JSON.stringify({ mcpServers: { fluxito: { url: SSE } } }, null, 2); }
+    },
+    {
+      id: 'jetbrains', name: 'JetBrains IDEs', type: 'IntelliJ, PyCharm, WebStorm', color: '#fe315d',
+      path: '.junie/mcp/mcp.json  (project)\n~/.junie/mcp/mcp.json  (global)',
+      instructions: 'Works with <strong>AI Assistant / Junie</strong>. Add to your project or global <code>mcp.json</code>.',
+      config: function() { return JSON.stringify({ mcpServers: { fluxito: { url: SSE } } }, null, 2); }
+    },
+    {
+      id: 'generic', name: 'Any MCP client', type: 'Generic streamable HTTP config', color: '#475569',
+      path: 'Any <code>mcp.json</code> / MCP client config file',
+      instructions: 'Fluxito exposes a standard <strong>MCP over streamable HTTP</strong> endpoint with OAuth 2.1. Paste this block into any MCP-compatible client. Field names vary — some clients use <code>url</code>, others use <code>serverUrl</code> or nest under <code>servers</code>.',
+      config: function() { return JSON.stringify({ mcpServers: { fluxito: { type: "http", url: SSE } } }, null, 2); }
+    }
+  ];
+
+  /* ── Build tool grid in modal ──────────────────────────────────────── */
+  var grid = document.getElementById('mcpToolGrid');
+  if (grid) {
+    tools.forEach(function(t) {
+      var btn = document.createElement('button');
+      btn.className = 'mcp-tool-btn';
+      btn.onclick = function() { showToolConfig(t.id); };
+      btn.innerHTML =
+        '<div class="mcp-tool-dot" style="background:' + t.color + ';">' + (icons[t.id] || '') + '</div>' +
+        '<div><div style="font-weight:600;color:var(--ink);">' + t.name + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:1px;">' + t.type + '</div></div>';
+      grid.appendChild(btn);
+    });
+  }
+
+  /* ── Teleport modal to <body> so backdrop covers full viewport ────── */
+  /* (Ancestors with transforms, backdrop-filter, or containment create   */
+  /*  containing blocks that trap position:fixed children inside them.)   */
+  var _modal = document.getElementById('mcpToolModal');
+  if (_modal && _modal.parentNode !== document.body) {
+    document.body.appendChild(_modal);
+  }
+
+  /* ── LM Studio deeplink ────────────────────────────────────────────── */
+  function lmDeeplink() {
+    var cfg = JSON.stringify({ url: SSE });
+    return 'lmstudio://add_mcp?name=fluxito&config=' + encodeURIComponent(btoa(cfg));
+  }
+
+  /* ── Confirm modal helper ───────────────────────────────────────────── */
+  function showConnectConfirm(c, id, onConfirm) {
+    var existing = document.getElementById('mcpConfirmOverlay');
+    if (existing) existing.remove();
+
+    var willRedirect = (c.deeplink && id === 'lmstudio') || c.settingsUrl;
+    var destination = id === 'lmstudio' ? 'LM Studio' : (c.settingsUrl ? c.name + ' settings' : '');
+    var bodyText = willRedirect
+      ? 'Your MCP server URL will be copied to clipboard and you\'ll be redirected to <strong>' + destination + '</strong> to complete the setup.'
+      : (c.copyValue
+        ? 'The setup command will be copied to your clipboard. Run it in your terminal to connect <strong>' + c.name + '</strong>.'
+        : 'Your MCP server URL will be copied to clipboard. You\'ll need to paste it into <strong>' + c.name + '</strong> manually.');
+
+    var overlay = document.createElement('div');
+    overlay.id = 'mcpConfirmOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(11,11,14,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg);border-radius:14px;max-width:420px;width:100%;padding:28px 26px 22px;box-shadow:0 20px 60px rgba(11,11,14,.18);border:1px solid var(--line);font-family:var(--sans, Inter Tight, system-ui, sans-serif);">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">' +
+          '<div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--bg-3);color:var(--ink);border:1px solid var(--line);">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+          '</div>' +
+          '<div style="font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-0.01em;">Connect to ' + c.name + '</div>' +
+        '</div>' +
+        '<p style="font-size:13px;line-height:1.6;color:var(--ink-soft);margin:0 0 22px;">' + bodyText + '</p>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;">' +
+          '<button id="mcpConfirmCancel" style="padding:9px 18px;font-size:13px;font-weight:500;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink-soft);cursor:pointer;font-family:inherit;">Cancel</button>' +
+          '<button id="mcpConfirmOk" style="padding:9px 18px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;font-family:inherit;letter-spacing:-0.005em;">Continue</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) { overlay.remove(); }
+    });
+    document.getElementById('mcpConfirmCancel').addEventListener('click', function() { overlay.remove(); });
+    document.getElementById('mcpConfirmOk').addEventListener('click', function() {
+      overlay.remove();
+      onConfirm();
+    });
+  }
+
+  /* ── Primary client handler ────────────────────────────────────────── */
+  window.mcpConnect = function(id) {
+    var c = primaryClients[id];
+    if (!c) return;
+
+    showConnectConfirm(c, id, function() {
+      var copyValue = c.copyValue ? c.copyValue(SSE) : SSE;
+      var valueEl = document.getElementById('mcpUrlValue');
+      if (valueEl) valueEl.textContent = copyValue;
+      navigator.clipboard.writeText(copyValue).then(function() {
+        var r = document.getElementById('mcpUrlRevealed');
+        if (r) r.style.display = 'block';
+        var i = document.getElementById('mcpInstruction');
+        if (i) i.textContent = c.instruction;
+        if (c.deeplink && id === 'lmstudio') {
+          Fluxito.toast('URL copied! Launching LM Studio…', 'success');
+          window.location.href = lmDeeplink();
+        } else if (c.settingsUrl) {
+          Fluxito.toast('URL copied! Opening ' + c.name + ' settings…', 'success');
+          setTimeout(function() { window.open(c.settingsUrl, '_blank'); }, 500);
+        } else if (c.copyValue) {
+          Fluxito.toast('Command copied! Run it in your terminal.', 'success');
+        } else {
+          Fluxito.toast('URL copied! Paste it into ' + c.name + '.', 'success');
+        }
+      }).catch(function() {
+        var r = document.getElementById('mcpUrlRevealed');
+        if (r) r.style.display = 'block';
+        var i = document.getElementById('mcpInstruction');
+        if (i) i.textContent = c.instruction;
+        Fluxito.toast('Copy the URL below and paste it into ' + c.name + '.', 'error');
+      });
+    });
+  };
+
+  /* ── Modal controls ────────────────────────────────────────────────── */
+  window.openMcpModal = function() {
+    document.getElementById('mcpModalStep1').style.display = '';
+    document.getElementById('mcpModalStep2').style.display = 'none';
+    document.getElementById('mcpToolModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeMcpModal = function() {
+    document.getElementById('mcpToolModal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+  window.mcpModalBack = function() {
+    document.getElementById('mcpModalStep1').style.display = '';
+    document.getElementById('mcpModalStep2').style.display = 'none';
+  };
+
+  /* ── Show config for a tool ────────────────────────────────────────── */
+  var _cfg = '';
+  window.showToolConfig = function(id) {
+    var t = tools.find(function(x) { return x.id === id; });
+    if (!t) return;
+    document.getElementById('mcpModalStep1').style.display = 'none';
+    document.getElementById('mcpModalStep2').style.display = '';
+    document.getElementById('mcpToolIcon').style.background = t.color;
+    document.getElementById('mcpToolIcon').innerHTML = icons[t.id] || '';
+    document.getElementById('mcpToolName').textContent = t.name;
+    document.getElementById('mcpToolType').textContent = t.type;
+    document.getElementById('mcpToolInstructions').innerHTML = t.instructions;
+    document.getElementById('mcpToolPath').textContent = t.path;
+    _cfg = t.config();
+    document.getElementById('mcpToolConfig').textContent = _cfg;
+    var dl = document.getElementById('mcpLmDeeplink');
+    if (t.hasDeeplink) { dl.style.display = ''; document.getElementById('mcpLmDeeplinkUrl').href = lmDeeplink(); }
+    else { dl.style.display = 'none'; }
+  };
+
+  window.copyMcpConfig = function() {
+    navigator.clipboard.writeText(_cfg).then(function() {
+      Fluxito.toast('JSON config copied!', 'success');
+    }).catch(function() {
+      Fluxito.toast('Failed to copy — select and copy manually.', 'error');
+    });
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('mcpToolModal').style.display !== 'none') closeMcpModal();
+  });
+})();
+</script>

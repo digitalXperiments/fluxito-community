@@ -1,0 +1,58 @@
+[
+  {
+    "tool": "seo_write",
+    "action": "delete_sitemap",
+    "summary": "Remove a sitemap from a GSC site. Requires site_url + feedpath and the full 'webmasters' scope. Irreversible.",
+    "group": "",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property. Pydantic-required."
+      },
+      {
+        "name": "feedpath",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/sitemap.xml",
+        "doc": "Full sitemap URL to delete. Pydantic-required."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.delete_sitemap(conn_id, site_url, feedpath) \u2192 connector result | insufficient_scope error | _no_gsc() error",
+    "scope": "seo_write",
+    "reversible": false
+  },
+  {
+    "tool": "seo_write",
+    "action": "submit_sitemap",
+    "summary": "Submit a sitemap for a GSC site. Requires site_url + feedpath. Requires the full 'webmasters' connection scope.",
+    "group": "",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property. Pydantic-required (CoercedStr, not Optional) \u2014 a missing value raises a pydantic validation error, NOT a friendly bad_request."
+      },
+      {
+        "name": "feedpath",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/sitemap.xml",
+        "doc": "Full sitemap URL to submit. Pydantic-required."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.submit_sitemap(conn_id, site_url, feedpath) \u2192 connector result | insufficient_scope error | _no_gsc() error",
+    "scope": "seo_write",
+    "reversible": true
+  }
+]

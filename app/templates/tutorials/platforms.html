@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "tutorials/_macros.html" import guide_logo, back_link %}
+{% block title %}Platform Setup Guides — Fluxito{% endblock %}
+{% set active = 'tutorials' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/tutorials.css?v={{ asset_hash('css/tutorials.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<main class="app-main tut-main">
+  {{ back_link() }}
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Help · Platform setup</div>
+      <h1 class="page-title">Platform setup <em>guides.</em></h1>
+      <p class="page-sub">Connector setup for OAuth apps, credentials, permissions and platform-specific account access — {{ tutorial_count }} guides.</p>
+    </div>
+    <div class="ui-page-actions">
+      <a href="/settings/connections" class="ui-btn">Connections</a>
+    </div>
+  </div>
+
+  {% if platform_categories %}
+    {% for g in platform_categories %}
+    <section class="tut-group" id="{{ g.title | lower | replace(' & ', '-') | replace(' ', '-') }}">
+      <div class="tut-cat">{{ g.title }}</div>
+      {% if g.description %}<p class="tut-cat-sub">{{ g.description }}</p>{% endif %}
+      <div class="ui-grid is-3 tut-grid">
+        {% for t in g.tutorials %}
+        <a href="/tutorials/{{ t[0] }}" class="ui-panel tut-card tut-card-guide">
+          <span class="tut-card-top">{{ guide_logo(t[0], 20) }}<b>{{ t[1] }}</b></span>
+          <span class="tut-card-note">{{ t[3] }}</span>
+          <span class="tut-card-f">
+            <span class="tut-time">{{ t[2] }}</span>
+            {% if t[0] == 'google-cloud-setup' %}<span class="ui-chip no-dot is-accent">Start here</span>{% endif %}
+            <span class="tut-arrow" aria-hidden="true">→</span>
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  {% else %}
+  <div class="ui-grid is-3 tut-grid">
+    {% for slug, name, time, note in platform_tutorials %}
+    <a href="/tutorials/{{ slug }}" class="ui-panel tut-card tut-card-guide">
+      <span class="tut-card-top">{{ guide_logo(slug, 20) }}<b>{{ name }}</b></span>
+      <span class="tut-card-note">{{ note }}</span>
+      <span class="tut-card-f"><span class="tut-time">{{ time }}</span><span class="tut-arrow" aria-hidden="true">→</span></span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

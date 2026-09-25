@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% from "audits/_head.html" import audit_head, audit_ask_script %}
+{% block title %}{{ page_title }}{% endblock %}
+{% set active = 'audit_vendors' %}
+{% set audit_tab = 'vendors' %}
+{% if audit_vendor_count is not defined %}{% set audit_vendor_count = vendors | length %}{% endif %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/auditing.css?v={{ asset_hash('css/auditing.css') }}"/>
+<link rel="stylesheet" href="/static/css/audit_flows.css?v={{ asset_hash('css/audit_flows.css') }}&av=4"/>
+{% endblock %}
+
+{% block main %}
+<div class="app-main audit-page" id="afVendors">
+
+  {{ audit_head(audit_rulebook_count if audit_rulebook_count is defined else none) }}
+
+  {% include "partials/audit_tabs.html" %}
+
+  <div class="ui-note av-howto" id="avHowto">
+    <span><b>1 · Add the tags you fire</b> (GA4, Meta Pixel, Ads conversions…) → <b>2 · Review the rule book</b> and layer your custom rules → <b>3 · Run an audit or flow</b> — every beacon is validated against them.</span>
+  </div>
+
+  <div class="av-layout">
+    <aside class="ui-panel av-rail">
+      <div class="ui-panel-h av-rail-head">
+        <div>
+          <h3>Your tags</h3>
+          <div class="av-rail-count" id="avRailCount"></div>
+        </div>
+        <span class="ui-right">
+          <button type="button" class="ui-btn av-add-btn" id="avAddOpenRail">+ Add</button>
+        </span>
+      </div>
+      <div class="av-list" id="avList"></div>
+      <p class="av-rail-hint">
+        These profiles tell Fluxito which network requests to capture and which rule books to apply.
+      </p>
+    </aside>
+
+    {# Single main stage — only the editor lives here. Add-tag is a modal.
+       Use <div> not <section>: app.css markets `section { padding: 96px 0 }`. #}
+    <div class="av-main">
+      <div class="ui-panel av-pane av-editor" id="avEditor">
+        <div class="ui-panel-h av-editor-head">
+          <div class="av-editor-identity">
+            <div class="av-kicker" id="avEditKicker">Configured tag</div>
+            <h3 class="av-pane-title" id="avFormTitle">Vendor</h3>
+            <div class="av-editor-badges" id="avDetailBadges"></div>
+          </div>
+          <div class="ui-right av-editor-actions">
+            <button type="button" class="ui-btn is-quiet is-danger" id="avDeleteBtn" hidden>Remove</button>
+            <button type="button" class="ui-btn is-primary" id="avSaveBtn">Save changes</button>
+          </div>
+        </div>
+
+        <div class="ui-panel-b av-essentials">
+          <div class="ui-field">
+            <label for="avName">Display name</label>
+            <input type="text" id="avName" class="ui-input" placeholder="e.g. GA4 production"/>
+          </div>
+          <div class="ui-field">
+            <label for="avPlatform">Rule book</label>
+            <select id="avPlatform" class="ui-input">
+              <option value="">— none (custom only) —</option>
+            </select>
+            <div class="af-help">Fluxito validates beacons for this tag against the selected platform rule book.</div>
+          </div>
+        </div>
+
+        <div class="ui-tabs av-tabs" id="avTabs" role="tablist">
+          <button type="button" class="av-tab is-active" data-vtab="rulebook" role="tab">
+            Rule book <span class="ui-count av-tab-count" id="avRbCount" hidden></span>
+          </button>
+          <button type="button" class="av-tab" data-vtab="custom" role="tab">
+            Custom rules <span class="ui-count av-tab-count" id="avCrCount" hidden></span>
+          </button>
+          <button type="button" class="av-tab" data-vtab="advanced" role="tab">
+            Detection &amp; params
+          </button>
+        </div>
+
+        <div class="av-pane-body" data-vpane="rulebook">
+          <div id="avRulebook" class="af-rulebook">
+            <div class="af-empty-inline">Select a rule book above to preview what gets checked.</div>
+          </div>
+        </div>
+
+        <div class="av-pane-body" data-vpane="custom" hidden>
+          <p class="av-tab-intro">
+            Custom rules capture <em>your</em> requirements on top of the platform book —
+            e.g. “purchase must send <code>value</code> and <code>currency</code>”.
+            They apply automatically in every audit and test flow that hits this tag.
+          </p>
+          <div id="avCustomList" class="af-crlist"></div>
+
+          <div class="af-crform" id="avCrForm">
+            <b class="af-crform-title">Custom rule</b>
+            <div class="af-crform-grid">
+              <div class="ui-field">
+                <label for="avCrName">Name</label>
+                <input type="text" id="avCrName" class="ui-input" placeholder="e.g. purchase must carry value"/>
+              </div>
+              <div class="ui-field">
+                <label for="avCrEvent">Event</label>
+                <input type="text" id="avCrEvent" class="ui-input af-mono-in" placeholder="* (any event)"/>
+              </div>
+              <div class="ui-field">
+                <label for="avCrSeverity">Severity</label>
+                <select id="avCrSeverity" class="ui-input">
+                  <option value="warning" selected>warning</option>
+                  <option value="critical">critical</option>
+                  <option value="info">info</option>
+                </select>
+              </div>
+              <div class="ui-field">
+                <label for="avCrRequired">Required params</label>
+                <input type="text" id="avCrRequired" class="ui-input af-mono-in" placeholder="value, currency"/>
+              </div>
+              <div class="ui-field">
+                <label for="avCrForbidden">Forbidden params</label>
+                <input type="text" id="avCrForbidden" class="ui-input af-mono-in" placeholder="test_event_code"/>
+              </div>
+              <div class="ui-field">
+                <label for="avCrRemediation">How to fix</label>
+                <input type="text" id="avCrRemediation" class="ui-input" placeholder="Shown when the rule fails"/>
+              </div>
+            </div>
+            <button type="button" class="ui-btn is-primary" id="avCrSaveBtn">Save rule</button>
+          </div>
+        </div>
+
+        <div class="av-pane-body" data-vpane="advanced" hidden>
+          <p class="av-tab-intro">
+            Most teams leave these as seeded by the rule book. Adjust only if your
+            container uses a non-standard endpoint or you need extra param labels in flows.
+          </p>
+          <div class="ui-field">
+            <label for="avSlug">Slug</label>
+            <input type="text" id="avSlug" class="ui-input af-mono-in" placeholder="ga4"/>
+            <div class="af-help">Stable id used in flows and APIs. Lowercase, unique in this project.</div>
+          </div>
+          <div class="ui-field">
+            <label for="avPattern">URL detection pattern</label>
+            <input type="text" id="avPattern" class="ui-input af-mono-in" placeholder="google-analytics.com/g/collect"/>
+            <div class="af-help">
+              Substring or regex matched against network request URLs during an audit or flow run.
+              <button type="button" class="av-link-btn" id="avSeedBtn" hidden>Re-seed from rule book</button>
+            </div>
+          </div>
+          <div class="ui-field">
+            <label for="avDesc">Notes</label>
+            <textarea id="avDesc" class="ui-input" placeholder="Optional — e.g. which container / GTM workspace this maps to"></textarea>
+          </div>
+
+          <div class="ui-field">
+            <span>Known parameters</span>
+            <p class="af-help" style="margin:0">
+              Labels used when asserting on beacons in test flows. Seeded from the rule book’s required params.
+            </p>
+            <div class="af-ptable-wrap">
+              <table class="af-ptable">
+                <thead>
+                  <tr><th>Label</th><th>Key</th><th>Source</th><th>Default</th><th>Hint</th><th></th></tr>
+                </thead>
+                <tbody id="avParams"></tbody>
+              </table>
+            </div>
+            <button type="button" class="af-mini-add" id="avAddParam">+ Add parameter</button>
+          </div>
+        </div>
+      </div>
+
+      {# Empty project — only shown when there are zero tags #}
+      <div class="ui-panel av-pane av-empty" id="avEmpty" hidden>
+        <div class="ui-empty">
+          <b>No tags configured yet</b>
+          Pick the pixels and tags that fire on your site. Fluxito attaches a rule book to each one for live audits and test flows.
+          <div class="af-empty-act"><button type="button" class="ui-btn is-primary" id="avEmptyAdd">+ Add your first tag</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Add-tag modal — overlays the page; never sits in the layout flow #}
+  <div class="av-modal" id="avPicker" hidden>
+    <div class="av-modal-backdrop" data-av-close></div>
+    <div class="av-modal-panel" role="dialog" aria-modal="true" aria-labelledby="avPickerTitle">
+      <div class="av-modal-head">
+        <div>
+          <div class="av-kicker">Add a tag</div>
+          <h3 class="av-modal-title" id="avPickerTitle">Pick a platform to validate</h3>
+          <p class="av-pane-lede">One click enables the rule book for this project. You can fine-tune detection afterward.</p>
+        </div>
+        <button type="button" class="ui-btn is-quiet" id="avPickerClose" data-av-close aria-label="Close">✕</button>
+      </div>
+      <div class="av-picker-tools">
+        <input type="search" id="avPickerSearch" class="ui-input" placeholder="Search platforms — GA4, Meta, TikTok…" autocomplete="off"/>
+        <button type="button" class="ui-btn" id="avCustomBtn">Custom URL pattern…</button>
+      </div>
+      <div class="av-platform-grid" id="avPlatformGrid">
+        <div class="af-empty-inline">Loading platforms…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.__VENDORS__ = {{ vendors | tojson }};
+  window.__VENDOR_CATALOG__ = {{ catalog | tojson }};
+</script>
+<script src="/static/js/audit_flows.js?v={{ asset_hash('js/audit_flows.js') }}&av=4" defer></script>
+{{ audit_ask_script() }}
+{% endblock %}

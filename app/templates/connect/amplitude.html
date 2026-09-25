@@ -1,0 +1,54 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Amplitude" %}
+{% set platform_slug = "amplitude" %}
+{% set platform_desc = "Connect your Amplitude project for product analytics insights and event data." %}
+
+{% block platform_body %}
+<form id="amplitudeForm" onsubmit="return submitAmplitude(event)">
+  {% if editing %}<input type="hidden" id="ampEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="ampName">Display name</label>
+    <input class="input" id="ampName" required placeholder="e.g. Production analytics" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="ampApiKey">API Key</label>
+    <input class="input" id="ampApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your Amplitude API Key{% endif %}" value=""/>
+    <div class="label-hint">Find your API Key in Amplitude → Settings → Projects → {Your Project}</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="ampSecretKey">Secret Key</label>
+    <input class="input" type="password" id="ampSecretKey" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current key' if editing else 'Your Amplitude Secret Key' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing secret key</div>
+    {% else %}<div class="label-hint">Find your Secret Key in the same location as API Key</div>{% endif %}
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Amplitude' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitAmplitude(e){
+  e.preventDefault();
+  const editId = document.getElementById('ampEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('ampName').value.trim();
+  const api_key = document.getElementById('ampApiKey').value.trim();
+  const secret_key = document.getElementById('ampSecretKey').value.trim();
+
+  const url = isEdit ? '/api/connections/amplitude/' + editId.value : '/api/connections/amplitude';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, secret_key})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "connect/platform.html" %}
+
+{% block platform_body %}
+<div class="ui-note">
+  <span><b>You'll be redirected to {{ platform_name }} to authorize access.</b> Fluxito only requests the minimum scopes needed. You can revoke anytime from your {{ platform_name }} account settings.</span>
+</div>
+
+<div class="ui-label" style="margin-top:0">What we'll read</div>
+<ul style="margin:0 0 4px;padding-left:18px;font-size:13px;line-height:1.7;color:var(--ink-2)">
+  {% for scope in scopes %}<li style="list-style:disc">{{ scope }}</li>{% endfor %}
+</ul>
+
+<div class="oi-actions">
+  <a href="{{ authorize_url }}" class="ui-btn is-primary oi-cta">Continue to {{ platform_name }} →</a>
+  <a href="/settings/connections" class="ui-btn">Cancel</a>
+</div>
+{% endblock %}

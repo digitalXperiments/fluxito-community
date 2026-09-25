@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Check your email — Fluxito{% endblock %}
+
+{% block main %}
+<div class="auth-shell">
+  <div class="auth-card" style="text-align:center">
+    <div class="auth-brand">
+      <a href="/">
+        <span class="auth-brand-mark">Fluxito<span class="auth-brand-dot">.</span></span>
+      </a>
+    </div>
+
+    <div class="ve-badge ve-mail">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div>
+
+    <div class="auth-lead">
+      <h1>Check your <em class="serif-italic">inbox.</em></h1>
+      <p>
+        We've sent a verification link to
+        {% if email %}<strong>{{ email }}</strong>{% else %}your email{% endif %}.
+        Click the link to activate your account.
+      </p>
+    </div>
+
+    <div class="ve-tip">
+      Don't see it? Check your spam folder. The link expires in 24 hours.
+    </div>
+
+    <button class="btn block" onclick="resend()" id="resendBtn">Resend verification email</button>
+    <div id="resendMsg" class="auth-message auth-success" style="display:none;margin-top:12px;"></div>
+
+    <div class="auth-back" style="margin-top:20px">
+      <a href="/signin">← Back to sign in</a>
+    </div>
+  </div>
+</div>
+
+<style>
+.auth-shell {
+  min-height: calc(100vh - 120px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 16px;
+}
+.auth-card {
+  width: 100%; max-width: 460px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 40px 36px;
+}
+.auth-brand { text-align: center; margin-bottom: 24px; }
+.auth-brand a { text-decoration: none; color: var(--ink); }
+.auth-brand-mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.auth-brand-dot { color: var(--green); }
+
+.ve-badge {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.ve-mail {
+  background: var(--bg-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.auth-lead { margin-bottom: 20px; }
+.auth-lead h1 {
+  font-size: 26px; font-weight: 500; letter-spacing: -0.02em;
+  margin: 0 0 8px; color: var(--ink); line-height: 1.15;
+}
+.auth-lead p { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.6; }
+.auth-lead strong { color: var(--ink); font-weight: 600; }
+
+.ve-tip {
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 14px 16px;
+  font-size: 12.5px; color: var(--ink-soft); line-height: 1.55;
+  margin-bottom: 20px;
+}
+
+.auth-message {
+  margin-top: 14px; padding: 10px 14px;
+  border-radius: var(--r-m);
+  font-size: 12.5px; line-height: 1.55;
+  border: 1px solid transparent;
+}
+.auth-success {
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-color: color-mix(in srgb, var(--green) 30%, var(--line));
+  color: var(--green);
+}
+
+.auth-back { text-align: center; margin-top: 20px; }
+.auth-back a { font-size: 12.5px; color: var(--muted); text-decoration: none; font-family: var(--mono); }
+.auth-back a:hover { color: var(--ink); }
+
+@media (max-width: 480px) {
+  .auth-card { padding: 30px 20px; border: none; }
+}
+</style>
+
+<script>
+async function resend() {
+  var btn = document.getElementById('resendBtn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    var res = await fetch('/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: '{{ email }}' }),
+    });
+    var data = await res.json();
+    var msg = document.getElementById('resendMsg');
+    msg.textContent = data.message || 'Sent!';
+    msg.style.display = '';
+  } catch(e) {}
+  btn.disabled = false; btn.textContent = 'Resend verification email';
+}
+</script>
+{% endblock %}

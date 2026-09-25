@@ -1,0 +1,855 @@
+[
+  {
+    "tool": "marketing_write",
+    "action": "create_campaign",
+    "summary": "Create a new campaign. Google requires channel type + budget + start; Meta reuses advertising_channel_type as objective; TikTok/Snap/etc. use it as objective_type. Irreversible (creates a live ad object).",
+    "group": "PAID ADS (Google / Meta / TikTok / Snap / LinkedIn / Pinterest / X / Reddit / Apple)",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "google",
+          "meta",
+          "tiktok",
+          "snap",
+          "linkedin",
+          "pinterest",
+          "x",
+          "reddit",
+          "apple"
+        ],
+        "example": "google",
+        "doc": "All 9 ad platforms now implement create_campaign."
+      },
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "123-456-7890",
+        "doc": "Ad account / customer id (validated up front)."
+      },
+      {
+        "name": "campaign_name",
+        "type": "string",
+        "required": true,
+        "example": "Spring Sale",
+        "doc": "Campaign name. Required for all platforms."
+      },
+      {
+        "name": "advertising_channel_type",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "SEARCH",
+          "DISPLAY",
+          "SHOPPING",
+          "VIDEO",
+          "PERFORMANCE_MAX",
+          "OUTCOME_SALES",
+          "OUTCOME_TRAFFIC",
+          "OUTCOME_AWARENESS",
+          "OUTCOME_ENGAGEMENT",
+          "OUTCOME_LEADS",
+          "OUTCOME_APP_PROMOTION",
+          "TRAFFIC",
+          "CONVERSIONS",
+          "REACH",
+          "VIDEO_VIEWS",
+          "BRAND_AWARENESS",
+          "WEBSITE_VISITS",
+          "LEAD_GENERATION",
+          "AWARENESS",
+          "APP_INSTALLS",
+          "WEBSITE_CLICKS",
+          "ENGAGEMENT"
+        ],
+        "example": "SEARCH",
+        "doc": "Google: channel type (SEARCH|DISPLAY|SHOPPING|VIDEO|PERFORMANCE_MAX). Meta: objective (OUTCOME_SALES|OUTCOME_TRAFFIC|...). TikTok: objective_type (TRAFFIC|CONVERSIONS|REACH|VIDEO_VIEWS). LinkedIn: objectiveType (BRAND_AWARENESS|WEBSITE_VISITS|LEAD_GENERATION). Pinterest: objective_type (AWARENESS|TRAFFIC|VIDEO_VIEWS). Snap: objective (APP_INSTALL|AWARENESS). X: objective (APP_INSTALLS|WEBSITE_CLICKS|ENGAGEMENT|VIDEO_VIEWS). Reddit/Apple: not used (omit or pass default).",
+        "platforms": [
+          "google",
+          "meta",
+          "tiktok",
+          "linkedin",
+          "pinterest",
+          "snap",
+          "x"
+        ]
+      },
+      {
+        "name": "daily_budget_usd",
+        "type": "number",
+        "required": false,
+        "example": 100.0,
+        "doc": "Required for Google (\u2192 micros). TikTok/Reddit use as-is or convert. Snap/X/Reddit convert to micro-USD. Meta/Apple/Pinterest/LinkedIn optional.",
+        "platforms": [
+          "google",
+          "meta",
+          "tiktok",
+          "snap",
+          "linkedin",
+          "pinterest",
+          "x",
+          "reddit",
+          "apple"
+        ]
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": false,
+        "example": "2026-06-01",
+        "doc": "YYYY-MM-DD. Required for Google; optional for Snap/X.",
+        "platforms": [
+          "google",
+          "snap",
+          "x"
+        ]
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": false,
+        "example": "2026-06-30",
+        "doc": "Google: optional end date."
+      },
+      {
+        "name": "bidding_strategy_type",
+        "type": "string",
+        "required": false,
+        "example": "MAXIMIZE_CLICKS",
+        "doc": "Google: defaults to MAXIMIZE_CLICKS when omitted."
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "ACTIVE",
+          "PAUSED",
+          "ENABLED"
+        ],
+        "example": "PAUSED",
+        "doc": "Meta/Snap/Reddit: defaults to PAUSED. LinkedIn/Pinterest: defaults to ACTIVE. Google/Apple: uses ENABLED/PAUSED. Apple uses ENABLED (not ACTIVE)."
+      }
+    ],
+    "platforms": [
+      "google",
+      "meta",
+      "tiktok",
+      "snap",
+      "linkedin",
+      "pinterest",
+      "x",
+      "reddit",
+      "apple"
+    ],
+    "returns": "Connector result (created campaign id) | {error,...}",
+    "scope": "Google: inline SCOPE_GA4_FULL (Full Access) check; Meta: token presence only",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "marketo_add_to_list",
+    "summary": "Adobe Marketo: add lead ids to a static list.",
+    "group": "ADOBE MARKETO ENGAGE",
+    "params": [
+      {
+        "name": "resource_id",
+        "type": "string",
+        "required": true,
+        "example": "55",
+        "doc": "Marketo list id."
+      },
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "lead_ids": [
+            "1001",
+            "1002"
+          ]
+        },
+        "doc": "payload.lead_ids (array of strings) REQUIRED."
+      }
+    ],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "Raw Marketo REST envelope { result:[{id, status}] } | error",
+    "reversible": true
+  },
+  {
+    "tool": "marketing_write",
+    "action": "marketo_remove_from_list",
+    "summary": "Adobe Marketo: remove lead ids from a static list.",
+    "group": "ADOBE MARKETO ENGAGE",
+    "params": [
+      {
+        "name": "resource_id",
+        "type": "string",
+        "required": true,
+        "example": "55",
+        "doc": "Marketo list id."
+      },
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "lead_ids": [
+            "1001",
+            "1002"
+          ]
+        },
+        "doc": "payload.lead_ids (array of strings) REQUIRED."
+      }
+    ],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "Raw Marketo REST envelope { result:[{id, status}] } | error",
+    "reversible": true
+  },
+  {
+    "tool": "marketing_write",
+    "action": "marketo_request_campaign",
+    "summary": "Adobe Marketo: trigger a smart campaign to run against specified leads (with optional my.tokens).",
+    "group": "ADOBE MARKETO ENGAGE",
+    "params": [
+      {
+        "name": "resource_id",
+        "type": "string",
+        "required": true,
+        "example": "3001",
+        "doc": "Marketo campaign id."
+      },
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "lead_ids": [
+            "1001"
+          ],
+          "tokens": [
+            {
+              "name": "{{my.x}}",
+              "value": "v"
+            }
+          ]
+        },
+        "doc": "payload.lead_ids (array) REQUIRED; payload.tokens (array of objects) optional."
+      }
+    ],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "Raw Marketo REST envelope | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "marketo_schedule_campaign",
+    "summary": "Adobe Marketo: schedule a batch campaign to run at a time (with optional tokens).",
+    "group": "ADOBE MARKETO ENGAGE",
+    "params": [
+      {
+        "name": "resource_id",
+        "type": "string",
+        "required": true,
+        "example": "3001",
+        "doc": "Marketo campaign id."
+      },
+      {
+        "name": "payload",
+        "type": "object",
+        "required": false,
+        "example": {
+          "run_at": "2026-07-01T09:00:00Z",
+          "tokens": [
+            {
+              "name": "{{my.x}}",
+              "value": "v"
+            }
+          ]
+        },
+        "doc": "payload.run_at (ISO datetime) optional, payload.tokens (array) optional."
+      }
+    ],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "Raw Marketo REST envelope | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "marketo_upsert_leads",
+    "summary": "Adobe Marketo: POST /rest/v1/leads.json \u2014 create or update leads in bulk.",
+    "group": "ADOBE MARKETO ENGAGE",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "leads": [
+            {
+              "email": "a@b.com",
+              "firstName": "A"
+            }
+          ],
+          "lookup_field": "email",
+          "action": "createOrUpdate"
+        },
+        "doc": "payload.leads (array of objects) is REQUIRED. payload.lookup_field (default 'email'), payload.action (default 'createOrUpdate')."
+      }
+    ],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "Raw Marketo REST envelope { result:[{id, status}] } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "update_campaign_budget",
+    "summary": "Change a campaign's daily budget. Mutates live ad spend. Google converts USD\u2192micros; Snap/X/Reddit\u2192micros; TikTok/LinkedIn/Pinterest passes USD as-is; Meta converts to cents; Apple uses {amount, currency}.",
+    "group": "PAID ADS (Google / Meta / TikTok / Snap / LinkedIn / Pinterest / X / Reddit / Apple)",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "google",
+          "meta",
+          "tiktok",
+          "snap",
+          "linkedin",
+          "pinterest",
+          "x",
+          "reddit",
+          "apple"
+        ],
+        "example": "google",
+        "doc": "All 9 ad platforms now implement update_campaign_budget."
+      },
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "123-456-7890",
+        "doc": "Ad account id. Validated up front for all non-marketo platforms (returns bad_request before action check)."
+      },
+      {
+        "name": "campaign_id",
+        "type": "string",
+        "required": true,
+        "example": "987654321",
+        "doc": "Campaign to modify."
+      },
+      {
+        "name": "daily_budget_usd",
+        "type": "number",
+        "required": true,
+        "example": 50.0,
+        "doc": "New daily budget in USD. Google/Snap multiply by 1_000_000 (micros); TikTok uses raw USD."
+      }
+    ],
+    "platforms": [
+      "google",
+      "meta",
+      "tiktok",
+      "snap",
+      "linkedin",
+      "pinterest",
+      "x",
+      "reddit",
+      "apple"
+    ],
+    "returns": "Connector result (updated budget) | {error,...}",
+    "scope": "Google: inline SCOPE_GA4_FULL (Full Access) check; other platforms: none beyond token presence",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "update_campaign_status",
+    "summary": "Enable/pause a campaign. Mutates live delivery. status is uppercased before the connector call (google/meta/tiktok/snap); linkedin/pinterest/x/reddit/apple pass status as-is.",
+    "group": "PAID ADS (Google / Meta / TikTok / Snap)",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "google",
+          "meta",
+          "tiktok",
+          "snap",
+          "linkedin",
+          "pinterest",
+          "x",
+          "reddit",
+          "apple"
+        ],
+        "example": "google",
+        "doc": "Supported on all 9 ad platforms."
+      },
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "123-456-7890",
+        "doc": "Ad account id (validated up front)."
+      },
+      {
+        "name": "campaign_id",
+        "type": "string",
+        "required": true,
+        "example": "987654321",
+        "doc": "Campaign to toggle."
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ENABLED",
+          "PAUSED"
+        ],
+        "example": "PAUSED",
+        "doc": "Target state. google/meta/tiktok/snap call .upper() on it; other platforms pass it through verbatim (case-sensitivity inconsistency)."
+      }
+    ],
+    "platforms": [
+      "google",
+      "meta",
+      "tiktok",
+      "snap",
+      "linkedin",
+      "pinterest",
+      "x",
+      "reddit",
+      "apple"
+    ],
+    "returns": "Connector result (updated status) | {error,...}",
+    "scope": "Google: inline SCOPE_GA4_FULL (Full Access) check; others: token presence only",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "branch_request_daily_export",
+    "summary": "Branch: request daily log-level data export job.",
+    "group": "BRANCH (DEEP LINKING & ATTRIBUTION)",
+    "params": [
+      {
+        "name": "export_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Export date (YYYY-MM-DD)."
+      }
+    ],
+    "platforms": [
+      "branch"
+    ],
+    "returns": "{ success: true, files: {...} } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_track_users",
+    "summary": "Braze: track user attributes, custom events, and purchases via /users/track.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "attributes": [
+            {
+              "external_id": "user1",
+              "first_name": "Alex"
+            }
+          ],
+          "events": []
+        },
+        "doc": "Braze tracking payload with attributes, events, or purchases."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success', attributes_processed: ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_create_user_alias",
+    "summary": "Braze: create user aliases for anonymous-to-identified mapping.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "user_aliases": [
+            {
+              "alias_name": "anon_123",
+              "alias_label": "device_id"
+            }
+          ]
+        },
+        "doc": "Array of user alias objects."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success' } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_identify_users",
+    "summary": "Braze: identify users by connecting alias to external_id.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "aliases_to_identify": [
+            {
+              "external_id": "user1",
+              "user_alias": {
+                "alias_name": "anon_123",
+                "alias_label": "device_id"
+              }
+            }
+          ]
+        },
+        "doc": "Array of alias identification objects."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success' } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_merge_users",
+    "summary": "Braze: merge duplicate user profiles.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "merge_updates": [
+            {
+              "identifier_to_merge": {
+                "external_id": "old_user"
+              },
+              "identifier_to_keep": {
+                "external_id": "new_user"
+              }
+            }
+          ]
+        },
+        "doc": "Array of merge instruction objects."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success' } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_delete_users",
+    "summary": "Braze: delete user profiles by external ID or Braze ID.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "external_ids": [
+            "user_123"
+          ]
+        },
+        "doc": "Dict containing external_ids or braze_ids list."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success', deleted: ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_send_message",
+    "summary": "Braze: send transactional or triggered messages via /messages/send.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "messages": {
+            "email": {
+              "subject": "Hello",
+              "body": "World"
+            }
+          },
+          "external_user_ids": [
+            "user1"
+          ]
+        },
+        "doc": "Braze message send payload."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success', dispatch_id: ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_trigger_campaign",
+    "summary": "Braze: trigger an API-triggered campaign via /campaigns/trigger/send.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "campaign_id": "camp_123",
+          "recipients": [
+            {
+              "user_alias": {
+                "alias_name": "u1",
+                "alias_label": "id"
+              }
+            }
+          ]
+        },
+        "doc": "Payload containing campaign_id and recipients or broadcast=true."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success', dispatch_id: ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "braze_trigger_canvas",
+    "summary": "Braze: trigger an API-triggered canvas via /canvas/trigger/send.",
+    "group": "BRAZE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "canvas_id": "canvas_123",
+          "recipients": [
+            {
+              "external_user_id": "user1"
+            }
+          ]
+        },
+        "doc": "Payload containing canvas_id and recipients."
+      }
+    ],
+    "platforms": [
+      "braze"
+    ],
+    "returns": "{ message: 'success', dispatch_id: ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "moengage_create_user",
+    "summary": "MoEngage: create a new user profile.",
+    "group": "MOENGAGE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "customer_id": "user_123",
+          "attributes": {
+            "first_name": "Jane",
+            "email": "jane@example.com"
+          }
+        },
+        "doc": "User creation payload with customer_id and attributes."
+      }
+    ],
+    "platforms": [
+      "moengage"
+    ],
+    "returns": "{ status: 'success', ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "moengage_update_user",
+    "summary": "MoEngage: update attributes on an existing user profile.",
+    "group": "MOENGAGE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "customer_id": "user_123",
+          "attributes": {
+            "plan": "premium"
+          }
+        },
+        "doc": "User update payload with customer_id and updated attributes."
+      }
+    ],
+    "platforms": [
+      "moengage"
+    ],
+    "returns": "{ status: 'success', ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "moengage_add_device",
+    "summary": "MoEngage: register a push token or device for a user.",
+    "group": "MOENGAGE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "customer_id": "user_123",
+          "push_token": "token_abc",
+          "device_platform": "ANDROID"
+        },
+        "doc": "Device payload with customer_id, push_token, device_platform."
+      }
+    ],
+    "platforms": [
+      "moengage"
+    ],
+    "returns": "{ status: 'success', ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "moengage_send_push",
+    "summary": "MoEngage: dispatch a push notification campaign.",
+    "group": "MOENGAGE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "campaign_name": "Flash Sale",
+          "target_platform": [
+            "ANDROID",
+            "IOS"
+          ],
+          "payload": {
+            "title": "Sale",
+            "message": "50% off"
+          }
+        },
+        "doc": "MoEngage push campaign configuration payload."
+      }
+    ],
+    "platforms": [
+      "moengage"
+    ],
+    "returns": "{ status: 'success', campaign_id: ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "moengage_send_email",
+    "summary": "MoEngage: dispatch a transactional email.",
+    "group": "MOENGAGE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "transaction_id": "tx_123",
+          "recipients": {
+            "to": [
+              {
+                "email": "user@example.com"
+              }
+            ]
+          },
+          "alert_id": "alert_1"
+        },
+        "doc": "Transactional email payload."
+      }
+    ],
+    "platforms": [
+      "moengage"
+    ],
+    "returns": "{ status: 'success', ... } | error",
+    "reversible": false
+  },
+  {
+    "tool": "marketing_write",
+    "action": "moengage_send_sms",
+    "summary": "MoEngage: dispatch a transactional SMS.",
+    "group": "MOENGAGE (CUSTOMER ENGAGEMENT)",
+    "params": [
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "transaction_id": "tx_123",
+          "recipients": {
+            "to": [
+              {
+                "mobile": "+1234567890"
+              }
+            ]
+          },
+          "alert_id": "sms_alert_1"
+        },
+        "doc": "Transactional SMS payload."
+      }
+    ],
+    "platforms": [
+      "moengage"
+    ],
+    "returns": "{ status: 'success', ... } | error",
+    "reversible": false
+  }
+]

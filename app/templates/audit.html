@@ -1,0 +1,216 @@
+{% extends "settings/shell.html" %}
+{% from "partials/platform_icons.html" import platform_icon %}
+{% block title %}Activity log — Fluxito{% endblock %}
+{% set settings_section = 'activity' %}
+
+{# Normalise a backend platform slug to a platform_icon() slug. #}
+{% macro ax_logo(slug, size=18) -%}
+{%- set s = (slug or '')|lower|replace('-', '_') -%}
+{%- if s in ['', 'other', 'fluxito', 'system'] -%}
+<img src="/static/img/fluxito-mark.svg?v=4" alt="" width="{{ size }}" height="{{ size }}">
+{%- elif s in ['google_analytics', 'ga'] -%}{{ platform_icon('ga4', size) }}
+{%- elif s in ['gads', 'googleads'] -%}{{ platform_icon('google_ads', size) }}
+{%- elif s in ['gsc', 'searchconsole'] -%}{{ platform_icon('search_console', size) }}
+{%- elif s in ['adobe_analytics', 'adobe_launch'] -%}{{ platform_icon('adobe', size) }}
+{%- elif s == 'adobe_marketo' -%}{{ platform_icon('marketo', size) }}
+{%- else -%}{{ platform_icon(s, size) }}
+{%- endif -%}
+{%- endmacro %}
+
+{% block settings_main %}
+<link rel="stylesheet" href="/static/css/connections.css?v={{ asset_hash('css/connections.css') }}"/>
+<main class="app-main ax-page">
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Workspace · Activity log</div>
+      <h1 class="page-title">Every tool call, <em>logged.</em></h1>
+      <p class="page-sub">Every request an AI client made on your connections in the last {{ window_days or 14 }} days, plus your account events. Open any call for its arguments, response and latency. Writes are flagged and scope-gated.</p>
+    </div>
+    {% if day_list %}
+    <div class="ui-page-actions">
+      <button type="button" class="ui-btn" onclick="exportActivityCsv()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Export CSV
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── KPI tiles ── #}
+  {% set fail_rate = ((stats.failures_week or 0) / stats.total_week * 100) if stats.total_week else 0 %}
+  <div class="ui-grid is-4 ax-kpis">
+    <div class="ui-panel ax-kpi">
+      <b>{{ '{:,}'.format(stats.total_week or 0) }}</b>
+      <span><strong>Tool calls · 7d</strong> · read, audit and write</span>
+    </div>
+    <div class="ui-panel ax-kpi">
+      <b>{{ '{:,}'.format(stats.writes_week or 0) }}</b>
+      <span><strong>Write ops</strong>{% if not stats.writes_week %} · none this week{% endif %}</span>
+    </div>
+    <div class="ui-panel ax-kpi{% if stats.failures_week %} is-bad{% endif %}">
+      <b>{{ '{:,}'.format(stats.failures_week or 0) }}</b>
+      <span><strong>Issues</strong>{% if stats.total_week %} · {{ fail_rate | round(1) }}% failed{% endif %}</span>
+    </div>
+    <div class="ui-panel ax-kpi">
+      <b>{{ stats.sources_count or 0 }}</b>
+      <span><strong>Source clients</strong>{% if stats.sources_list %} · {{ stats.sources_list | join(' · ') }}{% else %} · none yet{% endif %}</span>
+    </div>
+  </div>
+
+  <section class="ui-panel ax-log">
+    {# ── Toolbar: server filters + client-side segment ── #}
+    <div class="ui-toolbar ax-toolbar">
+      <form method="get" class="ax-filters">
+        <select name="project_id" class="ui-input" aria-label="Project" onchange="this.form.submit()">
+          <option value="">All projects</option>
+          {% for p in projects %}
+          <option value="{{ p.id }}" {% if selected_project_id == p.id|string %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+        <select name="platform" class="ui-input" aria-label="Platform" onchange="this.form.submit()">
+          <option value="">All platforms</option>
+          {% for slug, label in platform_options %}
+          <option value="{{ slug }}" {% if selected_platform == slug %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="tool" class="ui-input" aria-label="Tool" onchange="this.form.submit()">
+          <option value="">All tools</option>
+          {% for tn in all_tool_names %}
+          <option value="{{ tn }}" {% if selected_tool == tn %}selected{% endif %}>{{ tn }}</option>
+          {% endfor %}
+        </select>
+        {% if selected_platform or selected_tool %}
+        <a href="/activity-log" class="ui-btn is-quiet">Clear</a>
+        {% endif %}
+      </form>
+      <div class="ui-seg ax-seg ui-right" role="group" aria-label="Show">
+        <button type="button" class="is-active" data-filter="all" onclick="setQuickFilter('all')">All</button>
+        <button type="button" data-filter="writes" onclick="setQuickFilter('writes')">Writes</button>
+        <button type="button" data-filter="issues" onclick="setQuickFilter('issues')">Issues</button>
+        <button type="button" data-filter="account" onclick="setQuickFilter('account')">Account</button>
+      </div>
+    </div>
+
+    {% if day_list %}
+    {% for d in day_list %}
+    {% set dayname = d.label ~ (' · ' ~ d.date.strftime('%b %-d') if d.date and d.label in ['Today', 'Yesterday'] else '') %}
+    {% set ns = namespace(items=[], more=0) %}
+    {% for plat in d.platforms_list %}
+      {% for c in plat.calls %}{% set ns.items = ns.items + [{'t': c.time_str, 'c': c, 'slug': plat.slug, 'label': plat.label}] %}{% endfor %}
+      {% set ns.more = ns.more + (plat.count - plat.calls|length) %}
+    {% endfor %}
+    {% for e in d.account_events %}{% set ns.items = ns.items + [{'t': e.time_str, 'e': e}] %}{% endfor %}
+    <div class="ax-day" data-day="{{ dayname }}">
+      <div class="ax-day-h">
+        <span class="ax-day-l">{{ dayname }}</span>
+        <span class="ax-day-sum">
+          {{ d.total }} call{% if d.total != 1 %}s{% endif %}
+          {% if d.writes %} · <b>{{ d.writes }}</b> write{% if d.writes != 1 %}s{% endif %}{% endif %}
+          {% if d.issues %} · <b class="is-bad">{{ d.issues }}</b> issue{% if d.issues != 1 %}s{% endif %}{% endif %}
+          {% if d.sources_list %}<span class="ax-hide-sm"> · {{ d.sources_list | join(', ') }}</span>{% endif %}
+        </span>
+      </div>
+
+      {% for it in ns.items | sort(attribute='t', reverse=True) %}
+      {% if it.c %}
+      {% set c = it.c %}
+      <a class="ax-item{% if c.is_issue %} is-err{% endif %}" href="/activity-log/{{ c.id }}"
+         data-ax-row data-kind="call" data-write="{{ '1' if c.is_write else '0' }}" data-issue="{{ '1' if c.is_issue else '0' }}"
+         data-time="{{ c.time_str }}" data-tool="{{ c.tool_name }}" data-platform="{{ it.label }}" data-status="{{ c.status }}"
+         data-summary="{{ c.summary or '' }}" data-client="{{ c.source or '' }}">
+        <span class="cx-logo ax-logo" title="{{ it.label }}">{{ ax_logo(it.slug) }}</span>
+        <div class="ax-item-b">
+          <p class="ax-item-t"><span class="ax-tool">{{ c.tool_name }}</span>{% if c.is_write %}<span class="ui-chip no-dot is-warn">write</span>{% endif %}{% if c.is_issue %}<span class="ui-chip no-dot is-bad">{{ c.status or 'error' }}</span>{% endif %}</p>
+          {% if c.summary %}<p class="ax-item-s">{{ c.summary }}</p>{% endif %}
+          <small>{{ it.label }}{% if c.source %} · {{ c.source }}{% endif %}{% if c.duration_ms is not none %} · {{ '{:,}'.format(c.duration_ms) }} ms{% endif %}{% if c.project_name %} · {{ c.project_name }}{% endif %}</small>
+        </div>
+        <time class="ax-time">{{ c.time_str }}</time>
+      </a>
+      {% else %}
+      <div class="ax-item is-account" data-ax-row data-kind="account" data-write="0" data-issue="0"
+           data-time="{{ it.e.time_str }}" data-tool="Account" data-summary="{{ it.e.description }}" data-status="">
+        <span class="cx-logo ax-logo"><img src="/static/img/fluxito-mark.svg?v=4" alt="" width="18" height="18"></span>
+        <div class="ax-item-b">
+          <p class="ax-item-t"><span class="ax-acct">{% if it.e.event_type in ('signin', 'signup') %}Account{% elif it.e.event_type == 'connection_added' %}Connection{% else %}Account{% endif %}</span></p>
+          <p class="ax-item-s">{{ it.e.description }}</p>
+        </div>
+        <time class="ax-time">{{ it.e.time_str }}</time>
+      </div>
+      {% endif %}
+      {% endfor %}
+
+      {% if ns.more > 0 %}
+      <div class="ax-more">+ {{ ns.more }} more call{% if ns.more != 1 %}s{% endif %} this day not listed — narrow with the platform or tool filter.</div>
+      {% endif %}
+      {% if not ns.items %}
+      <div class="ax-more">No calls on this day.</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <div class="ui-empty ax-none" id="axNone" hidden><b>Nothing matches this view.</b>Switch back to All to see every call.</div>
+    <div class="ax-foot">Showing the last {{ window_days or 14 }} days.</div>
+    {% else %}
+    <div class="ui-empty ax-empty">
+      <b>No activity yet.</b>
+      Once your AI starts making tool calls, every request appears here — day by day, with the full arguments and response.
+      <div style="margin-top:14px"><a href="/settings/connections" class="ui-btn is-primary">Connect a platform →</a></div>
+    </div>
+    {% endif %}
+  </section>
+
+</main>
+
+<script>
+/* Segment (All / Writes / Issues / Account) — client-side, filters the rows
+   already rendered on the page (no re-fetch). Account events are scoped
+   server-side to the viewing user (audit_routes.py). */
+function setQuickFilter(kind) {
+  document.querySelectorAll('.ax-seg [data-filter]').forEach(function (b) {
+    b.classList.toggle('is-active', b.dataset.filter === kind);
+  });
+  var anyDay = false;
+  document.querySelectorAll('.ax-day').forEach(function (day) {
+    var visible = 0;
+    day.querySelectorAll('[data-ax-row]').forEach(function (r) {
+      var show = kind === 'all'
+        || (kind === 'writes' && r.dataset.write === '1')
+        || (kind === 'issues' && r.dataset.issue === '1')
+        || (kind === 'account' && r.dataset.kind === 'account');
+      r.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    day.querySelectorAll('.ax-more').forEach(function (m) { m.style.display = kind === 'all' ? '' : 'none'; });
+    var showDay = kind === 'all' || visible > 0;
+    day.style.display = showDay ? '' : 'none';
+    if (showDay) anyDay = true;
+  });
+  var none = document.getElementById('axNone');
+  if (none) none.hidden = anyDay;
+}
+
+/* Export CSV — client-side, exports the rows currently visible
+   (respects the active segment). No backend endpoint required. */
+function exportActivityCsv() {
+  var rows = [['Day', 'Time', 'Type', 'Tool', 'Platform', 'Write', 'Status', 'Client', 'Summary']];
+  document.querySelectorAll('.ax-day').forEach(function (day) {
+    if (day.style.display === 'none') return;
+    day.querySelectorAll('[data-ax-row]').forEach(function (r) {
+      if (r.style.display === 'none') return;
+      var d = r.dataset;
+      rows.push([day.dataset.day || '', d.time || '', d.kind === 'account' ? 'account' : 'tool_call', d.tool || '',
+        d.platform || '', d.write === '1' ? 'yes' : 'no', d.status || '', d.client || '', d.summary || '']);
+    });
+  });
+  var csv = rows.map(function (r) {
+    return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'fluxito-activity-log.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+{% endblock settings_main %}

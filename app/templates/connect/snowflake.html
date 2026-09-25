@@ -1,0 +1,81 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Snowflake" %}
+{% set platform_slug = "snowflake" %}
+{% set platform_desc = "Connect your Snowflake account for cloud-native data warehouse queries and analysis." %}
+
+{% block platform_body %}
+<form id="snowflakeForm" onsubmit="return submitSnowflake(event)">
+  {% if editing %}<input type="hidden" id="sfEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="sfName">Display name</label>
+    <input class="input" id="sfName" required placeholder="e.g. Production warehouse" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfAccount">Account identifier</label>
+    <input class="input" id="sfAccount" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.account_hint }} — leave blank to keep{% else %}org-account or account.region.cloud{% endif %}" value=""/>
+    <div class="label-hint">Find in Snowflake → Admin → Accounts</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfUsername">Username</label>
+    <input class="input" id="sfUsername" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.username_hint }} — leave blank to keep{% else %}your_username{% endif %}" value=""/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfPassword">Password</label>
+    <input class="input" type="password" id="sfPassword" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current password' if editing else 'Your Snowflake password' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing password</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfWarehouse">Warehouse</label>
+    <input class="input" id="sfWarehouse" required placeholder="COMPUTE_WH" value="{{ editing.warehouse if editing else '' }}"/>
+    <div class="label-hint">e.g. COMPUTE_WH, ANALYTICS_WH</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfDatabase">Database</label>
+    <input class="input" id="sfDatabase" required placeholder="your_database" value="{{ editing.database if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfSchema">Default schema</label>
+    <input class="input" id="sfSchema" value="{{ editing.default_schema if editing else 'PUBLIC' }}" placeholder="PUBLIC"/>
+    <div class="label-hint">Schema to use for queries (optional, default: PUBLIC)</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="sfRole">Role (optional)</label>
+    <input class="input" id="sfRole" placeholder="e.g. ANALYST_ROLE" value="{{ editing.role if editing else '' }}"/>
+    <div class="label-hint">Specific role to use for database access (optional)</div>
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Snowflake' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitSnowflake(e){
+  e.preventDefault();
+  const editId = document.getElementById('sfEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('sfName').value.trim();
+  const account = document.getElementById('sfAccount').value.trim();
+  const username = document.getElementById('sfUsername').value.trim();
+  const password = document.getElementById('sfPassword').value.trim();
+  const warehouse = document.getElementById('sfWarehouse').value.trim();
+  const database = document.getElementById('sfDatabase').value.trim();
+  const default_schema = document.getElementById('sfSchema').value.trim() || "PUBLIC";
+  const role = document.getElementById('sfRole').value.trim() || null;
+
+  const url = isEdit ? '/api/connections/snowflake/' + editId.value : '/api/connections/snowflake';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, account, username, password, warehouse, database, default_schema, role})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

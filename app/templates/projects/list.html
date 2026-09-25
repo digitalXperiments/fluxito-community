@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Projects — Fluxito{% endblock %}
+{% set active = 'projects' %}
+
+{% block main %}
+<div class="app-main pj-page">
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Settings · Projects</div>
+      <h1 class="page-title">Your <em>projects.</em></h1>
+      <p class="page-sub">Everything in Fluxito belongs to a project: connections, plans, audits, dashboards and members.</p>
+    </div>
+    <div class="ui-page-actions">
+      <button type="button" class="ui-btn is-primary" onclick="openCreateModal()">+ New project</button>
+    </div>
+  </div>
+
+  {% if projects %}
+  <section class="ui-panel">
+    <div class="ui-panel-h">
+      <h2>Projects</h2>
+      <span class="ui-sub">{{ projects | length }} you belong to</span>
+    </div>
+    {% for p in projects %}
+    {% set is_current = p.project_id == active_project_id %}
+    <div class="ui-row pj-row">
+      <span class="ui-avatar pj-mark" aria-hidden="true">{{ p.name[:2] | upper }}</span>
+      <div class="ui-grow">
+        <a href="/project/{{ p.slug }}/settings" class="pj-name">{{ p.name }}</a>
+        <div class="pj-meta"><span class="ui-mono">{{ p.slug }}</span>{% if p.created_at %} · created {{ p.created_at | fmt_date }}{% endif %}</div>
+      </div>
+      {% if is_current %}<span class="ui-chip is-good">Active</span>{% endif %}
+      <span class="ui-chip no-dot{% if p.role == 'owner' %} is-accent{% endif %}">{{ p.role | capitalize }}</span>
+      <div class="pj-acts">
+        {% if not is_current %}<a href="/api/project/switch/{{ p.slug }}" class="ui-btn is-quiet is-sm">Switch to</a>{% endif %}
+        <a href="/project/{{ p.slug }}/settings" class="ui-btn is-sm">Settings</a>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="ui-panel">
+    <div class="ui-empty">
+      <b>No projects yet</b>
+      Create your first project to connect platforms and invite your team.
+      <div class="pj-empty-act"><button type="button" class="ui-btn is-primary" onclick="openCreateModal()">Create project</button></div>
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+
+<template id="createProjectTpl">
+  <div class="ui-modal-b">
+    <h3>Create project</h3>
+    <form id="createForm">
+      <label class="ui-field" style="margin-top:12px">
+        <span>Name</span>
+        <input type="text" name="name" class="ui-input" placeholder="e.g. Nimbus Travel" required maxlength="255">
+      </label>
+      <label class="ui-field">
+        <span>Description <small class="ui-muted">(optional)</small></span>
+        <input type="text" name="description" class="ui-input" placeholder="Brief description">
+      </label>
+      <div id="createError" class="ui-note is-warn" style="display:none"></div>
+      <div class="ui-modal-f">
+        <button type="button" class="ui-btn" data-ui-close>Cancel</button>
+        <button type="submit" class="ui-btn is-primary" id="createBtn">Create project</button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<style>
+.pj-row { flex-wrap: wrap; }
+.pj-mark { width: 34px; height: 34px; border-radius: 9px; font-size: 12px; }
+.pj-name { font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.pj-name:hover { color: var(--accent); }
+.pj-meta { margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.pj-acts { display: flex; gap: 4px; }
+.pj-empty-act { margin-top: 14px; }
+.ui-btn.is-sm { height: 30px; padding: 0 11px; border-radius: 8px; font-size: 12.5px; }
+@media (max-width: 640px) { .pj-acts { width: 100%; justify-content: flex-end; } }
+</style>
+
+<script>
+function openCreateModal() {
+  var m = Fluxito.ui.modal(document.getElementById('createProjectTpl').innerHTML);
+  var form = m.querySelector('#createForm');
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = m.querySelector('#createBtn');
+    var errEl = m.querySelector('#createError');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+    var fd = new FormData(form);
+    try {
+      var res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name: fd.get('name'), description: fd.get('description') }),
+      });
+      var data = await res.json().catch(function() { return {}; });
+      if (!res.ok) throw new Error(data.detail || data.message || 'Failed to create project');
+      window.location.href = data.redirect_url || window.location.href;
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'Create project';
+    }
+  });
+}
+// /projects#new opens the create dialog directly (e.g. from the project switcher).
+if (location.hash === '#new') document.addEventListener('DOMContentLoaded', openCreateModal);
+</script>
+{% endblock %}

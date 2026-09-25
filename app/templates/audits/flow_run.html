@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% set active = 'audit_flows' %}
+{% set audit_tab = 'flows' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/auditing.css?v={{ asset_hash('css/auditing.css') }}"/>
+<link rel="stylesheet" href="/static/css/audit_flows.css?v={{ asset_hash('css/audit_flows.css') }}"/>
+{% endblock %}
+
+{% block main %}
+{% set total = run.assertions_total or 0 %}
+{% set passed = run.assertions_passed or 0 %}
+{% set st_cls = {'passing': 'is-good', 'failing': 'is-bad', 'error': 'is-warn', 'running': 'is-accent'} %}
+<div class="app-main audit-page">
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow"><a href="/audits/flows" class="au-crumb">Test flows</a> / Run</div>
+      <h1 class="page-title">{{ flow.name }}</h1>
+      <p class="page-sub">{% if flow.base_url %}<span class="ui-mono">{{ flow.base_url }}</span> · {% endif %}{{ 'Mobile web' if flow.device == 'mobile_web' else 'Desktop' }} · {{ (run.step_results or []) | length }} step{{ 's' if (run.step_results or []) | length != 1 }}</p>
+    </div>
+    <div class="ui-page-actions af-builder-actions">
+      <a href="/audits/flows/{{ flow.id }}" class="ui-btn">Edit flow</a>
+      <a href="/audits/flows" class="ui-btn is-quiet">All flows</a>
+    </div>
+  </div>
+
+  {% include "partials/audit_tabs.html" %}
+
+  <div class="ui-stat-band is-4 af-run-head">
+    <div>
+      <b><span class="ui-chip af-pill af-pill--{{ run.status }} {{ st_cls.get(run.status, '') }}">{{ run.status }}</span></b>
+      <span>Status</span>
+    </div>
+    <div class="{{ 'is-good' if total and passed == total else ('' if not total else 'is-bad') }}">
+      <b class="af-assert {{ 'af-assert--pass' if total and passed == total else ('af-assert--none' if not total else 'af-assert--fail') }}">{{ passed }}/{{ total }}</b>
+      <span>Checks passed</span>
+    </div>
+    <div>
+      <b class="af-run-small">{{ run.trigger | capitalize }}</b>
+      <span>Trigger · {{ run.started_at | fmt_datetime if run.started_at else '—' }}</span>
+    </div>
+    <div>
+      <b class="af-run-small" id="afDuration" data-start="{{ run.started_at or '' }}" data-end="{{ run.finished_at or '' }}">—</b>
+      <span>Duration</span>
+    </div>
+  </div>
+
+  {% if run.error %}
+  <div class="ui-note is-warn"><span><b>Run error —</b> {{ run.error }}</span></div>
+  {% endif %}
+
+  {% if run.step_results %}
+  <div class="ui-panel">
+  <div class="ui-panel-h"><h3>Step timeline</h3><span class="ui-sub">captured dataLayer events and vendor beacons at each step</span></div>
+  <div class="af-timeline">
+    {% for step in run.step_results %}
+    <div class="af-tl-step">
+      <div class="af-tl-head">
+        <span class="af-tl-num {{ 'is-fail' if not step.ok else '' }}">{{ (step.step_index | default(loop.index0)) + 1 }}</span>
+        <div class="af-tl-title">
+          <span class="ui-tool">{{ step.action }}</span>
+          <span class="af-tl-label">{{ step.label or step.action }}</span>
+        </div>
+        {% if step.ok %}
+        <span class="ui-chip is-good">ok</span>
+        {% else %}
+        <span class="ui-chip is-bad">failed</span>
+        {% endif %}
+      </div>
+      <div class="af-tl-body">
+        {% if step.error %}<div class="af-tl-suberr">{{ step.error }}</div>{% endif %}
+
+        {# ── Captured-event summary chips (quick read, like the prototype) ── #}
+        {% set aresults = step.assertion_results or [] %}
+        {% if aresults %}
+        <div class="af-tl-chips">
+          {% for r in aresults %}
+          {% set exp = r.expected or {} %}
+          <span class="ui-chip no-dot {{ 'is-good' if r.passed else 'is-bad' }}">{{ (exp.event if r.kind == 'datalayer' else exp.vendor_id) or r.description }} {{ '✓' if r.passed else '✗' }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# ── Assertions ── #}
+        {% set aresults = step.assertion_results or [] %}
+        {% if aresults %}
+        <div class="af-sub-label">Assertions</div>
+        <div class="af-atable-wrap"><table class="af-atable">
+          <thead><tr><th>Kind</th><th>Assertion</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead>
+          <tbody>
+            {% for r in aresults %}
+            <tr>
+              <td><span class="af-vslug">{{ r.kind }}</span></td>
+              <td>{{ r.description }}</td>
+              <td>
+                {% set exp = r.expected or {} %}
+                {% if r.kind == 'datalayer' %}
+                  <span class="af-code">{{ exp.event }}</span>
+                {% else %}
+                  <span class="af-code">{{ exp.vendor_id }}</span>
+                {% endif %}
+                <div class="af-mono" style="margin-top:3px;">{{ exp.mode }} · {{ exp.when }}</div>
+              </td>
+              <td>
+                {% set act = r.actual or {} %}
+                {{ 'fired' if act.fired else 'not fired' }}
+                {% if act.match_count is defined %}<div class="af-mono" style="margin-top:3px;">{{ act.match_count }}/{{ act.candidate_count }} matched</div>{% endif %}
+                {% set checks = (act.fields if r.kind == 'datalayer' else act.params) or [] %}
+                {% if checks %}
+                <details style="margin-top:5px;">
+                  <summary class="af-mono" style="cursor:pointer;">field checks</summary>
+                  <dl class="af-kv">
+                    {% for c in checks %}
+                    <dt>{{ c.key }} {{ c.op }}</dt>
+                    <dd>{{ '✓' if c.passed else '✕' }} exp={{ c.expected }} got={{ c.actual }}</dd>
+                    {% endfor %}
+                  </dl>
+                </details>
+                {% endif %}
+              </td>
+              <td>{% if r.passed %}<span class="ui-chip is-good">pass</span>{% else %}<span class="ui-chip is-bad">fail</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+        {% endif %}
+
+        {# ── Captured beacons ── #}
+        {% set beacons = step.beacons or [] %}
+        {% if beacons %}
+        <div class="af-sub-label">Captured beacons · {{ beacons | length }}</div>
+        {% for b in beacons %}
+        <details class="af-beacon">
+          <summary>
+            {% if b.vendor_slug %}<span class="af-vslug">{{ b.vendor_slug }}</span>{% else %}<span class="af-mono">{{ b.method }}</span>{% endif %}
+            <span class="af-beacon-url">{{ b.url[:90] }}{% if b.url and b.url|length > 90 %}…{% endif %}</span>
+          </summary>
+          {% if b.params %}
+          <dl class="af-kv">
+            {% for k, v in b.params.items() %}
+            <dt>{{ k }}</dt><dd>{{ v }}</dd>
+            {% endfor %}
+          </dl>
+          {% else %}
+          <div class="af-empty-inline" style="margin-top:6px;">No parsed params.</div>
+          {% endif %}
+        </details>
+        {% endfor %}
+        {% endif %}
+
+        {# ── dataLayer events ── #}
+        {% set dl = step.datalayer_events or [] %}
+        {% if dl %}
+        <div class="af-sub-label">dataLayer events · {{ dl | length }}</div>
+        {% for ev in dl %}
+        <details class="af-beacon">
+          <summary>
+            <span class="af-vslug">{{ ev.event or '(no event)' }}</span>
+          </summary>
+          <div class="af-pre">{{ ev.data | tojson(indent=2) }}</div>
+        </details>
+        {% endfor %}
+        {% endif %}
+
+        {% if not aresults and not beacons and not dl %}
+        <div class="af-empty-inline">No assertions, beacons, or dataLayer events for this step.</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  </div>
+  {% else %}
+  <div class="ui-panel">
+    <div class="ui-empty af-empty">
+      <b>No step results</b>
+      {% if run.status == 'running' %}This run is still in progress. Refresh in a moment.{% else %}This run produced no step-level detail.{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>{# /app-main #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var el = document.getElementById('afDuration');
+  if (!el) return;
+  var s = el.getAttribute('data-start'), e = el.getAttribute('data-end');
+  if (!s || !e) { el.textContent = s ? 'in progress' : '—'; return; }
+  var ms = new Date(e) - new Date(s);
+  if (isNaN(ms) || ms < 0) { el.textContent = '—'; return; }
+  var sec = ms / 1000;
+  el.textContent = sec < 60 ? sec.toFixed(1) + 's' : Math.floor(sec / 60) + 'm ' + Math.round(sec % 60) + 's';
+})();
+</script>
+{% endblock %}

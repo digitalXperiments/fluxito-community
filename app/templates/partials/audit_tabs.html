@@ -1,0 +1,9 @@
+{# Sub-nav for the Audit section (real pages, no iframe).
+   Pass `audit_tab` = 'runs' | 'flows' | 'vendors' from the page.
+   Optional counts: `audit_flow_count`, `audit_vendor_count` (shown only when defined).
+   Beta redesign: numbered underline tabs (ui-tabs). #}
+<nav class="ui-tabs audit-tabs" aria-label="Audit sections">
+  <a href="/audits" class="{% if audit_tab == 'runs' %}is-active{% endif %}" {% if audit_tab == 'runs' %}aria-current="page"{% endif %}><span class="audit-tab-n">01</span>Runs</a>
+  <a href="/audits/flows" class="{% if audit_tab == 'flows' %}is-active{% endif %}" {% if audit_tab == 'flows' %}aria-current="page"{% endif %}><span class="audit-tab-n">02</span>Test flows{% if audit_flow_count is defined and audit_flow_count is not none %} <span class="ui-count">{{ audit_flow_count }}</span>{% endif %}</a>
+  <a href="/audits/vendors" class="{% if audit_tab == 'vendors' %}is-active{% endif %}" {% if audit_tab == 'vendors' %}aria-current="page"{% endif %}><span class="audit-tab-n">03</span>Vendors &amp; rules{% if audit_vendor_count is defined and audit_vendor_count is not none %} <span class="ui-count">{{ audit_vendor_count }}</span>{% endif %}</a>
+</nav>

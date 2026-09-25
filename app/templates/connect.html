@@ -1,0 +1,263 @@
+{% extends "settings/shell.html" %}
+{% from "partials/platform_icons.html" import platform_icon %}
+{% block title %}Connections — Fluxito{% endblock %}
+{% set settings_section = 'connections' %}
+
+{# Scope pill — each connection carries a read/write/query tier per platform.
+   OAuth rows carry the real `scope_tier` ('read' | 'write') derived server-side
+   from the granted scopes when those are conclusive (Google, Meta, TikTok,
+   Pinterest, LinkedIn, Reddit). Other rows have no stored access level, so a
+   default is inferred from the provider. #}
+{% macro scope_badge(c) %}
+{%- set s = (c.provider or '')|lower -%}
+{%- if c.scope_tier == 'write' -%}
+  <span class="cx-scope is-write">READ + WRITE</span>
+{%- elif c.scope_tier == 'read' -%}
+  <span class="cx-scope">READ</span>
+{%- elif s in ['bigquery', 'redshift', 'snowflake'] -%}
+  <span class="cx-scope">QUERY</span>
+{%- elif s == 'google' -%}
+  {%- if google_active_tier in ['Full', 'GTM Write'] -%}
+  <span class="cx-scope is-write">READ + WRITE</span>
+  {%- else -%}
+  <span class="cx-scope">READ</span>
+  {%- endif -%}
+{%- else -%}
+  <span class="cx-scope">READ</span>
+{%- endif -%}
+{% endmacro %}
+
+{# Available platforms grouped by category (prototype: Tag management,
+   Analytics, Mobile attribution, Ads, Engagement, Warehouse). The route's
+   platforms_avail list carries no category, so it is assigned here by slug. #}
+{% set cx_categories = [
+  ('Tag management', ['adobe']),
+  ('Analytics', ['amplitude', 'mixpanel', 'posthog', 'bing']),
+  ('Mobile attribution', ['appsflyer', 'adjust', 'branch']),
+  ('Ads', ['meta', 'tiktok', 'snap', 'linkedin', 'pinterest', 'x', 'reddit', 'apple']),
+  ('Engagement', ['marketo', 'braze', 'moengage']),
+  ('Warehouse', ['bigquery', 'snowflake', 'redshift']),
+] %}
+{% set oauth_providers = ['google', 'meta', 'tiktok', 'snap', 'x', 'bing', 'reddit', 'apple', 'linkedin', 'pinterest'] %}
+
+{% block settings_main %}
+<link rel="stylesheet" href="/static/css/connections.css?v={{ asset_hash('css/connections.css') }}"/>
+<main class="app-main cx-page">
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Workspace · Connections</div>
+      <h1 class="page-title">Your <em>connections.</em></h1>
+      <p class="page-sub">The platforms your AI can work with in this project. Read-only by default · tokens encrypted at rest.</p>
+    </div>
+    <div class="ui-page-actions">
+      <label class="cx-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="search" id="connSearch" placeholder="Filter platforms" aria-label="Filter connections and platforms" oninput="window.filterConnections()">
+      </label>
+    </div>
+  </div>
+
+  {# ── Connected ── #}
+  <section class="ui-panel cx-connected" id="connectedPanel" data-cx-section>
+    <div class="ui-panel-h">
+      <h2>Connected · {{ connections|length if connections else 0 }}</h2>
+      <span class="ui-sub">Google connects several services with one sign-in</span>
+    </div>
+    {% if connections %}
+    <div id="connectedGrid">
+      {% for c in connections %}
+      {% set is_expiring = c.is_expiring is defined and c.is_expiring %}
+      {% set prov = (c.provider or '')|lower %}
+      <div class="ui-row cx-row conn-row{% if is_expiring %} is-warn{% endif %}" data-cx-item
+           data-search="{{ [c.platform_name, c.label, c.detail or '', (c.services or []) | map(attribute='name') | join(' ')] | join(' ') | lower }}">
+        <span class="cx-logo">{{ platform_icon(c.provider, 22) }}</span>
+        <div class="ui-grow cx-row-body">
+          <div class="cx-row-name"><b>{{ c.platform_name }}</b>{{ scope_badge(c) }}</div>
+          <div class="cx-row-meta{% if is_expiring %} is-warn{% endif %}">{{ c.label }}{% if c.detail %} · {{ c.detail }}{% endif %}</div>
+          {% if c.usage_calls is defined %}
+          <div class="cx-usage" data-cx-usage>
+            {% if c.usage_calls %}
+            <span class="cx-usage-n"><b>{{ "{:,}".format(c.usage_calls) }}</b> call{{ '' if c.usage_calls == 1 else 's' }} · {{ c.usage_days }}d</span>
+            {% else %}
+            <span class="cx-usage-n is-none">No calls in {{ c.usage_days }} days</span>
+            {% endif %}
+            {% if c.last_used %}<span class="cx-usage-last">last used {{ c.last_used }}</span>{% endif %}
+          </div>
+          {% endif %}
+          {% if c.services %}
+          <div class="cx-svcs" aria-label="Services">
+            {% for svc in c.services %}
+            <span class="cx-svc{% if not svc.enabled %} is-off{% endif %}"
+                  title="{{ svc.name }}{% if not svc.enabled %} — not enabled{% endif %}">{{ platform_icon(svc.slug, 13) }}<span>{{ svc.name }}</span></span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% if is_expiring %}
+        <a href="{{ c.edit_url }}" class="ui-btn is-accent cx-renew">Renew</a>
+        {% elif c.is_active %}
+        <span class="cx-live"><span class="cx-dot"></span>Live</span>
+        {% else %}
+        <span class="cx-live is-off"><span class="cx-dot"></span>Inactive</span>
+        {% endif %}
+        <button type="button" class="ui-btn is-quiet cx-more" aria-label="Options for {{ c.platform_name }}"
+                data-cx-menu
+                data-name="{{ c.platform_name }}"
+                data-edit="{{ c.edit_url or '' }}"
+                data-reconnect="{% if prov == 'google' %}{{ c.edit_url }}{% elif prov in oauth_providers %}/connect/{{ prov }}{% endif %}"
+                data-delete="{{ c.delete_url }}">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="ui-empty">
+      <b>Nothing connected yet.</b>
+      Connect a platform below and your AI can start reading it through Fluxito.
+    </div>
+    {% endif %}
+  </section>
+
+  {# ── Google: one sign-in, access per service ── #}
+  {% if not has_google %}
+  <section class="cx-group" data-cx-section>
+    <div class="cx-cat">Google</div>
+    <a href="/connect/google" class="ui-panel cx-google" data-cx-item
+       data-search="google suite ga4 gtm google ads search console analytics tag manager data manager">
+      <div class="cx-google-l">
+        <span class="cx-logo is-lg">{{ platform_icon("google", 26) }}</span>
+        <div>
+          <b>Google</b>
+          <p>One Google sign-in, access chosen per service. Fluxito asks Google only for the scopes you tick.</p>
+        </div>
+      </div>
+      <div class="cx-google-svcs">
+        {% for slug, name, levels in [
+          ('ga4', 'Google Analytics 4', 'Read · Read + Write'),
+          ('gtm', 'Tag Manager', 'Read · Edit + Publish'),
+          ('search_console', 'Search Console', 'Read · Read + Sitemap write'),
+          ('google_ads', 'Google Ads', 'Read only'),
+          ('data_manager', 'Data Manager', 'Read + Write'),
+        ] %}
+        <div class="cx-google-svc">{{ platform_icon(slug, 16) }}<span>{{ name }}</span><small>{{ levels }}</small></div>
+        {% endfor %}
+      </div>
+      <span class="ui-btn is-primary cx-google-cta">{{ platform_icon("google", 14) }}Connect Google</span>
+    </a>
+  </section>
+  {% endif %}
+
+  {# ── Available platforms, by category ── #}
+  {% set avail_list = platforms_avail | rejectattr('primary') | list if platforms_avail else [] %}
+  {% set ns = namespace(placed=[]) %}
+  {% for cat, slugs in cx_categories %}
+  {% set items = avail_list | selectattr('slug', 'in', slugs) | list %}
+  {% if items %}
+  <section class="cx-group" data-cx-section>
+    <div class="cx-cat">{{ cat }}</div>
+    <div class="ui-grid is-3 cx-grid">
+      {% for p in items %}
+      {% set ns.placed = ns.placed + [p.slug] %}
+      <a href="{{ p.url }}" class="ui-panel cx-card avail-card" data-cx-item
+         data-search="{{ [p.name, p.desc, cat, ((p.products or []) | map(attribute='name') | join(' '))] | join(' ') | lower }}">
+        <span class="cx-logo">{{ platform_icon(p.slug, 22) }}</span>
+        <div class="cx-card-body">
+          <b>{{ p.name }}</b>
+          <small>{% if p.count %}{{ p.count }} connected · {% endif %}{{ p.desc }}</small>
+        </div>
+        <span class="ui-btn cx-card-cta">{{ 'Add' if p.count else 'Connect' }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+
+  {# Any platform the route adds later without a category still shows up. #}
+  {% set others = avail_list | rejectattr('slug', 'in', ns.placed) | list %}
+  {% if others %}
+  <section class="cx-group" data-cx-section>
+    <div class="cx-cat">More</div>
+    <div class="ui-grid is-3 cx-grid">
+      {% for p in others %}
+      <a href="{{ p.url }}" class="ui-panel cx-card avail-card" data-cx-item
+         data-search="{{ [p.name, p.desc] | join(' ') | lower }}">
+        <span class="cx-logo">{{ platform_icon(p.slug, 22) }}</span>
+        <div class="cx-card-body">
+          <b>{{ p.name }}</b>
+          <small>{% if p.count %}{{ p.count }} connected · {% endif %}{{ p.desc }}</small>
+        </div>
+        <span class="ui-btn cx-card-cta">{{ 'Add' if p.count else 'Connect' }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="ui-empty cx-noresults" id="cxNoResults" hidden><b>No platforms match.</b>Try a different name, e.g. “GA4” or “warehouse”.</div>
+
+  {# Nudge — points at the first unconnected platform. No usage stat is
+     fabricated; copy stays honest about what connecting unlocks. #}
+  {% set nudge = (avail_list | rejectattr('count') | list | first) if avail_list else None %}
+  {% if nudge %}
+  <div class="ui-note cx-nudge">
+    <span class="cx-flux" aria-hidden="true">F</span>
+    <span>Connecting <b>{{ nudge.name }}</b> lets your AI include it in cross-channel comparisons — right now none of its data is available. <a href="{{ nudge.url }}">Connect {{ nudge.name }}</a></span>
+  </div>
+  {% endif %}
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.filterConnections = function () {
+    var input = document.getElementById('connSearch');
+    if (!input) return;
+    var q = (input.value || '').toLowerCase().trim();
+    var any = false;
+    document.querySelectorAll('[data-cx-section]').forEach(function (sec) {
+      var items = sec.querySelectorAll('[data-cx-item]');
+      if (!items.length) { sec.style.display = q ? 'none' : ''; return; }
+      var visible = 0;
+      items.forEach(function (el) {
+        var hay = (el.dataset.search || el.textContent || '').toLowerCase();
+        var show = !q || hay.indexOf(q) !== -1;
+        el.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      sec.style.display = visible ? '' : 'none';
+      if (visible) any = true;
+    });
+    var none = document.getElementById('cxNoResults');
+    if (none) none.hidden = !q || any;
+  };
+
+  (function () {
+    function esc(s) {
+      return String(s || '').replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-cx-menu]');
+      if (btn) {
+        e.preventDefault();
+        var d = btn.dataset, html = '';
+        if (d.edit) html += '<a href="' + esc(d.edit) + '">Edit access</a>';
+        if (d.reconnect) html += '<a href="' + esc(d.reconnect) + '">Reconnect</a>';
+        if (html) html += '<hr>';
+        html += '<button type="button" class="is-danger" data-cx-disconnect>Disconnect</button>';
+        var menu = Fluxito.ui.menu(btn, html);
+        var del = menu.querySelector('[data-cx-disconnect]');
+        if (del) del.addEventListener('click', function () {
+          Fluxito.ui.close();
+          Fluxito.confirmDelete(d.delete, 'Disconnect ' + (d.name || 'this connection') + '?');
+        });
+      }
+    });
+  })();
+</script>
+{% endblock %}

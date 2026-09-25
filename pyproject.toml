@@ -1,0 +1,214 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fluxito"
+dynamic = ["version"]
+description = "Open-source MCP server bridging Claude with marketing & analytics platforms"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Fluxito contributors"},
+]
+keywords = ["mcp", "claude", "marketing", "analytics", "ga4", "gtm", "openai"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+urls = {Homepage = "https://github.com/digitalXperiments/fluxito", Repository = "https://github.com/digitalXperiments/fluxito", Issues = "https://github.com/digitalXperiments/fluxito/issues"}
+
+# ---------------------------------------------------------------------------
+# Setuptools dynamic version — reads MAJOR.MINOR track from repo-root VERSION
+# ---------------------------------------------------------------------------
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--showlocals",
+    "--cov=app",
+    "--cov-branch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=xml:coverage.xml",
+    "--cov-report=html:htmlcov",
+]
+markers = [
+    "unit: fast isolated unit tests (no external services)",
+    "integration: tests requiring real Postgres + Redis via docker-compose",
+    "e2e: end-to-end tests exercising the full FastAPI + MCP + OAuth stack",
+    "slow: tests that take more than a few seconds",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:google.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+    "ignore::DeprecationWarning:passlib.*",
+    "ignore::PendingDeprecationWarning",
+    "ignore:.*datetime.utcnow.*:DeprecationWarning",
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20",
+    "ignore:unclosed Connection:ResourceWarning",
+    "ignore:Exception ignored in:pytest.PytestUnraisableExceptionWarning",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = [
+    "app/static/*",
+    "app/templates/*",
+    "app/db/migrations/*",
+    "app/db/seed_templates.py",
+    "app/__init__.py",
+    "app/*/__init__.py",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "\\.\\.\\.",
+    "pass",
+]
+# Starting floor — will raise this as coverage improves
+fail_under = 0
+
+# ---------------------------------------------------------------------------
+# Ruff — linter + formatter (replaces black/isort/flake8)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = [
+    ".venv",
+    "app/db/migrations/versions",
+    "app/static",
+    "app/templates",
+    "htmlcov",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "UP",   # pyupgrade
+    "PIE",  # misc idioms
+    "SIM",  # simplifications
+    "RUF",  # ruff-specific
+    "S",    # bandit (security)
+]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "E712",   # SQLAlchemy requires `== True` / `== False` for column comparisons
+    "E711",   # SQLAlchemy requires `== None` for IS NULL comparisons
+    "E701",   # multiple statements on one line — used sparingly for brevity
+    "B008",   # FastAPI-style mutable defaults in function signatures
+    "B904",   # raise from — too noisy for existing codebase
+    "S101",   # asserts are fine in tests (per-file override below handles)
+    "S110",   # try-except-pass — used intentionally for non-critical ops (audit, cache, logging)
+    "S324",   # hashlib without usedforsecurity — acceptable for token hashing
+    "SIM105", # contextlib.suppress — try/except/pass reads more explicitly
+    "SIM108", # ternary not always clearer
+    "SIM102", # collapsible if — sometimes nested is more readable
+    "UP038",  # isinstance tuple — keep readable
+    "RUF001", # ambiguous unicode — intentional in SQL safety test cases
+    "RUF002", # ambiguous unicode docstring
+    "RUF003", # ambiguous unicode comment
+    "RUF005", # collection literal concatenation
+    "RUF006", # dangling asyncio tasks — intentional fire-and-forget background tasks
+    "RUF012", # mutable class attributes — used in SQLAlchemy/Pydantic models
+    "RUF013", # PEP 604 Optional — keep Optional[x] for readability
+    "F841",   # unused variable — will clean up incrementally
+    "F821",   # undefined name — false positives from conditional imports
+    "C401",   # unnecessary generator — sometimes clearer than comprehension
+    "S112",   # try-except-continue — same rationale as S110
+    "S311",   # pseudo-random — acceptable for non-security uses
+    "S608",   # SQL injection — handled via dedicated identifier validation
+    "S105",   # hardcoded password — false positives on field names
+    "S108",   # hardcoded temp directory
+    "E731",   # lambda assignment — used for concise callbacks
+    "E741",   # ambiguous variable name — short names acceptable in loops
+    "B007",   # unused loop variable — common pattern
+    "B024",   # abstract base class without abstract methods
+    "PIE810", # startswith/endswith single-arg
+    "SIM118", # dict key check — .keys() is sometimes more explicit
+    "SIM401", # dict get default
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S", "B011", "B017", "SIM117", "E402", "RUF001"]
+"app/connectors/*.py" = ["S608"]  # SQL warnings handled via dedicated identifier validation
+"app/api/*.py" = ["E402", "I001"]  # late imports after env/middleware setup; isort N/A with late imports
+"app/config.py" = ["E402"]        # bootstrap_secrets() must run before pydantic imports
+"app/main.py" = ["E402"]          # late imports after logging config
+"app/tools/*.py" = ["E402"]       # late imports inside register_ functions
+"app/auth/*.py" = ["E402"]        # late imports to avoid circular deps
+"app/billing/*.py" = ["E402"]     # late imports to avoid circular deps
+"app/scheduling/*.py" = ["E402"]  # late imports to avoid circular deps
+"app/notifications/*.py" = ["E402"]
+"app/notifications/**/*.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ---------------------------------------------------------------------------
+# mypy — opt-in static type checking on critical modules
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false   # gradually enable
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+exclude = [
+    "app/db/migrations",
+    "tests",
+    ".venv",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "google.*",
+    "facebook_business.*",
+    "redshift_connector.*",
+    "snowflake.*",
+    "mcp.*",
+    "redis.*",
+    "starlette.*",
+]
+ignore_missing_imports = true

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}AI &amp; MCP — {{ brand().name }}{% endblock %}
+{% set active = 'ai_mcp' %}
+
+{% block main %}
+<div class="app-main ai-mcp-page">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Workspace · AI &amp; MCP</div>
+      <h1 class="page-title">Take {{ brand().name }} <em>where you think.</em></h1>
+      <p class="page-sub">Connect the AI you already use, manage how it signs in, and see what it is allowed to do in {{ active_project_name or 'this project' }}.</p>
+    </div>
+  </div>
+
+  <div class="ui-panel">
+    <div class="ui-panel-b" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px">
+        <div class="ui-muted" style="font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Your MCP endpoint · streamable HTTP · OAuth 2.1</div>
+        <div class="ui-code" style="margin-top:8px"><span id="aiMcpUrl">{{ base_url }}/mcp</span><button type="button" data-copy-mcp="{{ base_url }}/mcp">Copy</button></div>
+      </div>
+      <div class="ui-kpis">
+        <div class="ui-kpi"><b>{{ oauth_clients | length }}</b><span>AI clients authorized</span></div>
+        <div class="ui-kpi"><b>{{ tool_calls_24h }}</b><span>tool calls · 24h</span></div>
+        <div class="ui-kpi"><b>{{ pat_tokens | length }}</b><span>access tokens</span></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="ui-tabs" aria-label="AI & MCP sections">
+    <a href="#clients" data-tab="clients">Add to your AI</a>
+    <a href="#connected" data-tab="connected">Connected clients <span class="ui-count">{{ oauth_clients | length }}</span></a>
+    <a href="#tokens" data-tab="tokens">Access tokens <span class="ui-count">{{ pat_tokens | length }}</span></a>
+    <a href="#access" data-tab="access">What your AI can do</a>
+  </nav>
+
+  {# ── Add to your AI ── #}
+  <section class="ui-tab-panel" data-panel="clients">
+    <div class="ui-panel"><div class="ui-panel-b">{% include "partials/add_to_ai.html" %}</div></div>
+    <div class="ui-note">No API keys and no new chat app: your AI calls {{ brand().name }}'s tools over MCP using your existing subscription. Read-only by default — changes such as GTM tags are drafted first and published only with your approval.</div>
+  </section>
+
+  {# ── Connected (OAuth) clients ── #}
+  <section class="ui-tab-panel" data-panel="connected" hidden>
+    <div class="ui-panel" id="aiClientsPanel">
+      {% for c in oauth_clients %}
+      <div class="ui-row" data-client-row="{{ c.client_id }}">
+        <div class="ui-grow">
+          <b>{{ c.client_name }}</b>
+          <div><small>Authorized <span data-time="{{ c.authorized_at or '' }}">{{ c.authorized_at or '—' }}</span>{% if c.last_used_at %} · last used <span data-time="{{ c.last_used_at }}">{{ c.last_used_at }}</span>{% endif %}{% if c.sessions > 1 %} · {{ c.sessions }} sessions{% endif %}</small></div>
+        </div>
+        <span class="ui-chip is-good">Active</span>
+        <button type="button" class="ui-btn" data-revoke-client="{{ c.client_id }}" data-client-name="{{ c.client_name }}">Revoke</button>
+      </div>
+      {% else %}
+      <div class="ui-empty"><b>No AI clients authorized yet</b>Add {{ brand().name }} to Claude, ChatGPT or another client — it appears here after you approve the consent screen.</div>
+      {% endfor %}
+    </div>
+    <div class="ui-note">Revoking ends a client's access immediately. It can sign in again later, which shows the consent screen once more.</div>
+  </section>
+
+  {# ── Personal access tokens ── #}
+  <section class="ui-tab-panel" data-panel="tokens" hidden>
+    <div class="ui-panel">
+      <div class="ui-panel-h">
+        <div><h2>Access tokens</h2><div class="ui-sub">For MCP clients that can't sign in with OAuth. A token has the same permissions as you.</div></div>
+      </div>
+      <form class="ui-panel-b" id="patForm" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--line)">
+        <label style="flex:1;min-width:220px;display:grid;gap:6px;font-size:13px;font-weight:600">Name<input class="input" name="name" required maxlength="120" placeholder="e.g. Claude Code — laptop"></label>
+        <label style="display:grid;gap:6px;font-size:13px;font-weight:600">Expires
+          <select class="input" name="expiry_days">
+            <option value="90" selected>90 days (recommended)</option>
+            <option value="30">30 days</option>
+            <option value="60">60 days</option>
+            <option value="365">365 days</option>
+            <option value="">Never</option>
+          </select>
+        </label>
+        <button type="submit" class="ui-btn is-primary">Create token</button>
+      </form>
+      <div id="patReveal" hidden class="ui-panel-b" style="border-bottom:1px solid var(--line)">
+        <div class="ui-note is-warn" style="margin-bottom:10px">Copy this token now — it won't be shown again.</div>
+        <div class="ui-code"><span id="patValue"></span><button type="button" id="patCopy">Copy</button></div>
+      </div>
+      <div id="patList">
+        {% for t in pat_tokens %}
+        <div class="ui-row" data-pat-row="{{ t.id }}">
+          <div class="ui-grow"><b>{{ t.name }}</b><div><small class="ui-mono">{{ t.token_hint }}</small></div></div>
+          <small class="ui-hide-sm">Expires {% if t.access_token_expires_at and not t.access_token_expires_at.startswith('9999') %}<span data-date="{{ t.access_token_expires_at }}">{{ t.access_token_expires_at[:10] }}</span>{% else %}never{% endif %}</small>
+          <small class="ui-hide-sm">{% if t.last_used_at %}Last used <span data-time="{{ t.last_used_at }}">{{ t.last_used_at }}</span>{% else %}Never used{% endif %}</small>
+          <button type="button" class="ui-btn is-quiet is-danger" data-revoke-pat="{{ t.id }}">Revoke</button>
+        </div>
+        {% else %}
+        <div class="ui-empty" id="patEmpty">No access tokens yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# ── What your AI can do ── #}
+  <section class="ui-tab-panel" data-panel="access" hidden>
+    <div class="ui-note">Your AI acts with <b>your</b> permissions in {{ active_project_name or 'the active project' }}{% if full_access %} — you have full access{% endif %}. {% if active_project_slug %}Owners and admins set access for members with custom roles in <a href="/project/{{ active_project_slug }}/settings#members">Members &amp; roles</a>.{% endif %}</div>
+    <div class="ui-panel">
+      <table class="ui-table">
+        <thead><tr><th>Tool domain</th><th class="ui-hide-sm">Covers</th><th>Read</th><th>Write</th></tr></thead>
+        <tbody>
+          {% for d in domains %}
+          <tr>
+            <td><b>{{ d.label }}</b> <span class="ui-mono ui-muted">{{ d.key }}</span></td>
+            <td class="ui-hide-sm ui-muted">{{ d.covers }}</td>
+            <td>{% if d.read %}<span class="ui-chip is-good no-dot">Allowed</span>{% else %}<span class="ui-chip no-dot">No access</span>{% endif %}</td>
+            <td>{% if d.read_only %}<span class="ui-muted">read-only domain</span>{% elif d.write %}<span class="ui-chip is-good no-dot">Allowed</span>{% else %}<span class="ui-chip no-dot">No access</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="ui-note is-warn">Write means your AI can <b>draft</b> changes. GTM publishes and ad-platform changes still require your approval.</div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.ui-tabs [data-tab]');
+  var panels = document.querySelectorAll('.ui-tab-panel');
+  function show(id) {
+    if (!document.querySelector('.ui-tab-panel[data-panel="' + id + '"]')) id = 'clients';
+    tabs.forEach(function (t) { t.classList.toggle('is-active', t.dataset.tab === id); });
+    panels.forEach(function (p) { p.hidden = p.dataset.panel !== id; });
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', '#' + t.dataset.tab); show(t.dataset.tab); }); });
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+  show((location.hash || '#clients').slice(1));
+
+  function when(iso) {
+    if (!iso) return '—';
+    try { return (window.Fluxito && Fluxito.timeAgo) ? Fluxito.timeAgo(iso) : new Date(iso).toLocaleString(); } catch (e) { return iso; }
+  }
+  document.querySelectorAll('[data-time]').forEach(function (el) { if (el.dataset.time) el.textContent = when(el.dataset.time); });
+  document.querySelectorAll('[data-date]').forEach(function (el) { try { el.textContent = new Date(el.dataset.date).toLocaleDateString(); } catch (e) {} });
+  function toast(m, k) { if (window.Fluxito && Fluxito.toast) Fluxito.toast(m, k); }
+
+  document.addEventListener('click', async function (e) {
+    var rc = e.target.closest('[data-revoke-client]');
+    if (rc) {
+      var name = rc.dataset.clientName || 'this client';
+      if (!confirm('Revoke ' + name + "'s access to your account?")) return;
+      rc.disabled = true;
+      var res = await fetch('/api/ai/clients/' + encodeURIComponent(rc.dataset.revokeClient) + '/revoke', { method: 'POST', credentials: 'same-origin' });
+      if (res.ok) { rc.closest('[data-client-row]').remove(); toast(name + ' access revoked'); }
+      else { rc.disabled = false; toast('Could not revoke access', 'error'); }
+    }
+    var rp = e.target.closest('[data-revoke-pat]');
+    if (rp) {
+      if (!confirm('Revoke this token? Clients using it stop working immediately.')) return;
+      rp.disabled = true;
+      var r2 = await fetch('/api/profile/tokens/' + encodeURIComponent(rp.dataset.revokePat) + '/revoke', { method: 'POST', credentials: 'same-origin' });
+      if (r2.ok) { rp.closest('[data-pat-row]').remove(); toast('Token revoked'); }
+      else { rp.disabled = false; toast('Could not revoke token', 'error'); }
+    }
+  });
+
+  var form = document.getElementById('patForm');
+  if (form) form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var fd = new FormData(form);
+    var days = fd.get('expiry_days');
+    var res = await fetch('/api/profile/tokens', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: fd.get('name'), expiry_days: days ? parseInt(days, 10) : null })
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data.token) { toast(data.error || 'Could not create token', 'error'); return; }
+    document.getElementById('patValue').textContent = data.token;
+    document.getElementById('patReveal').hidden = false;
+    var empty = document.getElementById('patEmpty'); if (empty) empty.remove();
+    var row = document.createElement('div');
+    row.className = 'ui-row'; row.setAttribute('data-pat-row', data.id);
+    row.innerHTML = '<div class="ui-grow"><b></b><div><small class="ui-mono"></small></div></div><small>Just created</small><button type="button" class="ui-btn is-quiet is-danger" data-revoke-pat="' + data.id + '">Revoke</button>';
+    row.querySelector('b').textContent = data.name;
+    row.querySelector('small.ui-mono').textContent = data.token_hint || '';
+    document.getElementById('patList').prepend(row);
+    form.reset();
+  });
+  var copy = document.getElementById('patCopy');
+  if (copy) copy.addEventListener('click', function () {
+    var v = document.getElementById('patValue').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(v).then(function () { toast('Token copied'); });
+  });
+})();
+</script>
+{% endblock %}

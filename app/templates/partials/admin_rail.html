@@ -1,0 +1,33 @@
+{# Dedicated Admin Rail — real-page navigation for Super Admin panel.
+   Completely detached from Settings rail. Expects `admin_section` set by the page:
+   'activity' | 'projects' | 'oauth' | 'settings'. #}
+<nav class="settings-rail admin-rail" aria-label="Admin panel sections">
+
+  <div class="settings-rail-group">
+    <div class="settings-rail-group-label" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Admin Hub</span>
+      <span style="background:var(--ink);color:var(--bg);font-size:9px;padding:1px 5px;border-radius:4px;letter-spacing:0.04em">SUPER</span>
+    </div>
+
+    <a href="/admin/activity" class="settings-tab {% if admin_section == 'activity' %}is-active{% endif %}" {% if admin_section == 'activity' %}aria-current="page"{% endif %} aria-label="Platform activity log">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-3 3 3 5-5"/></svg>
+      Platform Activity
+    </a>
+
+    <a href="/admin/projects" class="settings-tab {% if admin_section == 'projects' %}is-active{% endif %}" {% if admin_section == 'projects' %}aria-current="page"{% endif %} aria-label="Projects directory">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20V4a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/></svg>
+      Projects Directory
+    </a>
+
+    <a href="/admin/oauth-apps" class="settings-tab {% if admin_section == 'oauth' %}is-active{% endif %}" {% if admin_section == 'oauth' %}aria-current="page"{% endif %} aria-label="OAuth app credentials">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/></svg>
+      OAuth Apps
+    </a>
+
+    <a href="/admin" class="settings-tab {% if admin_section == 'settings' %}is-active{% endif %}" {% if admin_section == 'settings' %}aria-current="page"{% endif %} aria-label="Platform settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Platform Settings
+    </a>
+  </div>
+
+</nav>

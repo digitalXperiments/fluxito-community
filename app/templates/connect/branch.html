@@ -1,0 +1,54 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Branch" %}
+{% set platform_slug = "branch" %}
+{% set platform_desc = "Mobile linking and attribution platform for deep-linking and measurement." %}
+
+{% block platform_body %}
+<form id="branchForm" onsubmit="return submitBranch(event)">
+  {% if editing %}<input type="hidden" id="branchEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="branchName">Display name</label>
+    <input class="input" id="branchName" required placeholder="e.g. Production Branch" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="branchApiKey">Branch Key</label>
+    <input class="input" id="branchApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your Branch Key{% endif %}" value=""/>
+    <div class="label-hint">Find your Branch Key in Branch Dashboard → Account Settings → App Settings</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="branchSecretKey">Branch Secret</label>
+    <input class="input" type="password" id="branchSecretKey" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current key' if editing else 'Your Branch Secret' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing Branch Secret</div>
+    {% else %}<div class="label-hint">Find your Branch Secret in Branch Dashboard → Account Settings → App Settings</div>{% endif %}
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Branch' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitBranch(e){
+  e.preventDefault();
+  const editId = document.getElementById('branchEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('branchName').value.trim();
+  const api_key = document.getElementById('branchApiKey').value.trim();
+  const secret_key = document.getElementById('branchSecretKey').value.trim();
+
+  const url = isEdit ? '/api/connections/branch/' + editId.value : '/api/connections/branch';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, secret_key})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

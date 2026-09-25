@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Terms of Service — {{ brand().name }}{% endblock %}
+{% block description %}Fluxito's Terms of Service governing the use of the hosted platform, API, and Model Context Protocol (MCP) integrations.{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/legal.css?v={{ asset_hash('css/legal.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<div class="legal-page">
+  <!-- ═══ HERO ═══ -->
+  <header class="legal-hero">
+    <div class="legal-container">
+      <div class="legal-eyebrow">
+        <span>Legal</span> · <span>User Agreement</span>
+      </div>
+      <h1>Terms of <em>Service.</em></h1>
+      <div class="legal-meta">
+        <span><strong>Effective Date:</strong> September 9, 2026</span>
+        <span><strong>Platform:</strong> {{ brand().name }} (fluxito.app)</span>
+        <span><strong>License:</strong> Apache-2.0 (Core Engine)</span>
+      </div>
+
+      <!-- Key Highlights Callout -->
+      <div class="legal-highlights">
+        <div class="legal-highlights-title">
+          <span class="legal-highlight-icon">✓</span>
+          <span>At a Glance: Key Terms Summary</span>
+        </div>
+        <div class="legal-highlights-grid">
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">01</span>
+            <div><strong>MCP Execution:</strong> You authorize Fluxito to execute tool calls on your behalf when triggered by your connected AI clients.</div>
+          </div>
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">02</span>
+            <div><strong>Platform Authority:</strong> You warrant that you have proper authority and rights to connect third-party platforms (GA4, GTM, Meta, etc.).</div>
+          </div>
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">03</span>
+            <div><strong>Safety Safeguards:</strong> Live-altering operations (like GTM container publishes) require explicit user approval.</div>
+          </div>
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">04</span>
+            <div><strong>Open Source:</strong> Core Fluxito software is open-source under Apache-2.0; hosted services are subject to these Terms.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ CONTENT LAYOUT ═══ -->
+  <div class="legal-container">
+    <div class="legal-layout">
+      <!-- Sticky Sidebar TOC -->
+      <aside class="legal-sidebar" aria-label="Table of contents">
+        <div class="legal-toc-title">Contents</div>
+        <nav class="legal-toc-nav">
+          <a href="#acceptance" class="legal-toc-link">1. Acceptance of Terms</a>
+          <a href="#service-desc" class="legal-toc-link">2. Description of Service</a>
+          <a href="#accounts" class="legal-toc-link">3. Accounts &amp; Security</a>
+          <a href="#third-party" class="legal-toc-link">4. Third-Party Integrations</a>
+          <a href="#mcp-ai" class="legal-toc-link">5. MCP &amp; AI Operations</a>
+          <a href="#open-source" class="legal-toc-link">6. Open Source &amp; IP</a>
+          <a href="#acceptable-use" class="legal-toc-link">7. Acceptable Use Policy</a>
+          <a href="#beta-availability" class="legal-toc-link">8. Beta &amp; Availability</a>
+          <a href="#disclaimers" class="legal-toc-link">9. Disclaimers of Warranties</a>
+          <a href="#liability" class="legal-toc-link">10. Limitation of Liability</a>
+          <a href="#termination" class="legal-toc-link">11. Termination</a>
+          <a href="#general" class="legal-toc-link">12. Governing Law &amp; Disputes</a>
+          <a href="#contact" class="legal-toc-link">13. Contact Information</a>
+        </nav>
+      </aside>
+
+      <!-- Main Article -->
+      <article class="legal-article">
+        <section id="acceptance">
+          <h2>1. Acceptance of Terms</h2>
+          <p>Welcome to <strong>Fluxito</strong>. These Terms of Service ("Terms") constitute a legally binding agreement between you ("User", "you", or "your") and the operators of Fluxito ("Fluxito", "we", "us", or "our"), governing your access to and use of the website at <a href="https://fluxito.app">fluxito.app</a>, our Model Context Protocol (MCP) server endpoints, APIs, and related hosted services (collectively, the "Service").</p>
+          <p>By creating an account, authenticating via Google OAuth, connecting a third-party platform, or integrating an MCP client, you agree to be bound by these Terms and our <a href="/privacy">Privacy Policy</a>. If you do not agree to these Terms, you must not access or use the Service.</p>
+        </section>
+
+        <section id="service-desc">
+          <h2>2. Description of Service</h2>
+          <p>Fluxito provides an open-source analytics, tag management, and operations layer accessible through web interfaces and the <strong>Model Context Protocol (MCP)</strong>. Key capabilities include:</p>
+          <ul>
+            <li>Exposing standardized MCP tools over SSE and HTTP to authorized AI assistants (such as Claude, Cursor, Windsurf, ChatGPT, and LM Studio);</li>
+            <li>Enabling authenticated, on-demand querying of marketing and analytics platforms (e.g. Google Analytics 4, Google Tag Manager, Google Ads, BigQuery, Meta, TikTok);</li>
+            <li>Generating, validating, and versioning Solution Design References (tracking plans) from live container data;</li>
+            <li>Live tag audits against industry best practice rulebooks; and</li>
+            <li>Automated marketing recaps, dashboard generation, and anomaly detection.</li>
+          </ul>
+        </section>
+
+        <section id="accounts">
+          <h2>3. Accounts, Workspaces &amp; Security</h2>
+          <p>To use the Service, you must register for an account using email/password or Google Single Sign-On (SSO). You agree to:</p>
+          <ul>
+            <li>Provide accurate, current, and complete registration information;</li>
+            <li>Maintain the confidentiality of your account credentials and project API/MCP tokens;</li>
+            <li>Immediately notify us of any unauthorized use of your account or tokens; and</li>
+            <li>Take full responsibility for all activities, tool executions, and platform modifications performed under your account credentials.</li>
+          </ul>
+          <p>Workspaces and projects are isolated environments. Workspace owners are responsible for managing member permissions, roles (Owner, Admin, Member), and tool access boundaries.</p>
+        </section>
+
+        <section id="third-party">
+          <h2>4. Third-Party Platform Authorizations</h2>
+          <p>Fluxito allows you to connect third-party platforms via OAuth 2.0, API keys, or service accounts. When you connect an external platform (including Google Analytics, Google Tag Manager, Google Ads, BigQuery, Meta Ads, TikTok Ads, Snap Ads, Snowflake, or Adobe Experience Cloud), you represent and warrant that:</p>
+          <ul>
+            <li>You own or have obtained all necessary authorizations, licenses, and rights to access, query, inspect, and modify the connected third-party accounts;</li>
+            <li>Your use of the third-party platform via Fluxito complies with all applicable terms, policies, and API guidelines of that third-party provider (including Google API Terms of Service, Google Ads Policies, and Meta Platform Terms); and</li>
+            <li>You will not use Fluxito to circumvent any access controls, rate limits, or security restrictions imposed by third-party providers.</li>
+          </ul>
+        </section>
+
+        <section id="mcp-ai">
+          <h2>5. Model Context Protocol (MCP) &amp; AI Operations</h2>
+          <p>Fluxito enables AI agents to interact with your marketing stack through MCP tools. By connecting an MCP client, you acknowledge and agree that:</p>
+          <ul>
+            <li><strong>Tool Authorization:</strong> Any tool call initiated by your AI client (authenticated with your workspace Bearer or OAuth token) is treated as an explicit instruction authorized by you.</li>
+            <li><strong>Human-in-the-Loop Safeguards:</strong> Fluxito is designed with safety gates. Mutating operations (such as deploying or publishing Google Tag Manager containers or modifying ad campaigns) generate draft diffs and require explicit user confirmation before execution. You agree not to bypass or script around these confirmation safeguards.</li>
+            <li><strong>AI Recommendations:</strong> AI assistants process data and make recommendations based on probabilistic models. You are solely responsible for reviewing and verifying any tracking plans, tag code snippets, SQL queries, or marketing strategies suggested by AI clients before deploying them to live production environments.</li>
+            <li><strong>Zero Training:</strong> In accordance with our <a href="/privacy">Privacy Policy</a>, Fluxito never uses your data, queries, or Google API information to train foundational AI models.</li>
+          </ul>
+        </section>
+
+        <section id="open-source">
+          <h2>6. Open Source Software &amp; Proprietary Services</h2>
+          <p>The core Fluxito codebase is released as open-source software under the <strong>Apache License, Version 2.0</strong> (<a href="https://github.com/digitalXperiments/fluxito-community/blob/main/LICENSE" target="_blank" rel="noopener">Apache-2.0</a>). You are free to inspect, modify, and self-host the open-source software in accordance with the Apache-2.0 license terms.</p>
+          <p>These Terms govern the hosted cloud services, managed APIs, and infrastructure provided at <code>fluxito.app</code>. The Fluxito name, logo, trade dress, and hosted domain infrastructure are proprietary trademarks and assets of Digital Xperiments.</p>
+        </section>
+
+        <section id="acceptable-use">
+          <h2>7. Acceptable Use Policy</h2>
+          <p>You agree not to use the Service to:</p>
+          <ul>
+            <li>Violate any local, state, national, or international law, regulation, or third-party right;</li>
+            <li>Transmit malicious code, viruses, trojans, or exploit vulnerabilities in connected APIs;</li>
+            <li>Attempt to gain unauthorized access to other users' workspaces, databases, or encrypted credentials;</li>
+            <li>Launch Denial of Service (DoS) attacks or excessively query APIs beyond reasonable operational limits;</li>
+            <li>Scrape, harvest, or extract data from the hosted Service outside of documented MCP and API endpoints; or</li>
+            <li>Misrepresent your identity or impersonate any person or entity.</li>
+          </ul>
+        </section>
+
+        <section id="beta-availability">
+          <h2>8. Public Beta &amp; Service Availability</h2>
+          <p>Fluxito is currently in <strong>Public Beta</strong>. While we strive for 99.9% uptime and enterprise-grade reliability, the Service is provided on an "as available" basis. We reserve the right to:</p>
+          <ul>
+            <li>Modify, suspend, or discontinue any feature, tool, or connector at any time;</li>
+            <li>Impose reasonable rate limits or quotas on tool calls, queries, and scheduled runs; and</li>
+            <li>Perform scheduled or emergency maintenance when necessary to protect infrastructure security.</li>
+          </ul>
+        </section>
+
+        <section id="disclaimers">
+          <h2>9. Disclaimer of Warranties</h2>
+          <div class="legal-callout warning">
+            <div class="legal-callout-title">Warranty Disclaimer</div>
+            <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SERVICE IS PROVIDED <strong>"AS IS"</strong> AND <strong>"AS AVAILABLE"</strong>, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR COMPLETELY SECURE, OR THAT ANY DEFECTS WILL BE CORRECTED.</p>
+          </div>
+        </section>
+
+        <section id="liability">
+          <h2>10. Limitation of Liability</h2>
+          <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL FLUXITO, ITS CONTRIBUTORS, DIRECTORS, EMPLOYEES, OR PARTNERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF REVENUE, LOSS OF DATA, TAG DRIFT, TRACKING DISCREPANCIES, AD SPEND OVERAGES, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF OR INABILITY TO USE THE SERVICE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p>
+          <p>OUR TOTAL AGGREGATE LIABILITY FOR ANY AND ALL CLAIMS ARISING OUT OF THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE AMOUNT PAID BY YOU TO FLUXITO IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR ONE HUNDRED UNITED STATES DOLLARS ($100.00 USD), WHICHEVER IS GREATER.</p>
+        </section>
+
+        <section id="termination">
+          <h2>11. Termination</h2>
+          <p>You may terminate these Terms at any time by closing your account and disconnecting all third-party platform integrations. We may suspend or terminate your access to the hosted Service immediately, with or without prior notice, if you breach these Terms or engage in conduct that threatens the security or integrity of the platform.</p>
+          <p>Upon termination, your right to use the hosted Service ceases, and all encrypted credentials associated with your workspace will be permanently deleted in accordance with our <a href="/privacy">Privacy Policy</a>.</p>
+        </section>
+
+        <section id="general">
+          <h2>12. Governing Law &amp; Dispute Resolution</h2>
+          <p>These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, United States, without regard to its conflict of law provisions. Any dispute arising out of or relating to these Terms shall be submitted to binding arbitration or settled in the state or federal courts located in Delaware, and you consent to personal jurisdiction therein.</p>
+        </section>
+
+        <section id="contact">
+          <h2>13. Contact Information</h2>
+          <p>For questions or notices regarding these Terms, please reach out to our legal and support teams:</p>
+          <p>
+            <strong>Fluxito Legal Team</strong><br>
+            Email: <a href="mailto:legal@fluxito.app">legal@fluxito.app</a><br>
+            Support: <a href="mailto:support@fluxito.app">support@fluxito.app</a><br>
+            Website: <a href="https://fluxito.app">https://fluxito.app</a>
+          </p>
+        </section>
+      </article>
+    </div>
+  </div>
+</div>
+
+<script>
+// Highlight TOC items on scroll
+(function(){
+  var links = document.querySelectorAll('.legal-toc-link');
+  var sections = document.querySelectorAll('.legal-article section');
+  if (!links.length || !sections.length) return;
+
+  function onScroll() {
+    var scrollPos = window.scrollY + 100;
+    var current = '';
+    sections.forEach(function(s) {
+      if (s.offsetTop <= scrollPos) {
+        current = '#' + s.id;
+      }
+    });
+    links.forEach(function(link) {
+      if (link.getAttribute('href') === current) {
+        link.classList.add('is-active');
+      } else {
+        link.classList.remove('is-active');
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+{% endblock %}

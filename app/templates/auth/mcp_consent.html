@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Authorize access — {{ brand().name }}{% endblock %}
+{% block nav %}{% endblock %}
+{% block app_topbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block main %}
+{% set client_lower = (client_name or '')|lower %}
+{% if 'claude' in client_lower %}
+  {% set client_logo, client_bg = '/static/img/logos/claude.svg', '#d97757' %}
+{% elif 'chatgpt' in client_lower or 'gpt' in client_lower %}
+  {% set client_logo, client_bg = '/static/img/logos/chatgpt.svg', '#10a37f' %}
+{% elif 'cursor' in client_lower %}
+  {% set client_logo, client_bg = '/static/img/logos/cursor.svg', '#09090b' %}
+{% elif 'windsurf' in client_lower %}
+  {% set client_logo, client_bg = '/static/img/logos/windsurf.svg', '#09b6a2' %}
+{% elif 'lm studio' in client_lower or 'lmstudio' in client_lower %}
+  {% set client_logo, client_bg = '/static/img/logos/lmstudio.svg', '#4338ca' %}
+{% else %}
+  {% set client_logo, client_bg = None, '#57503F' %}
+{% endif %}
+
+<div class="mcpc-shell">
+  <div class="mcpc-wrap">
+    <div class="mcpc-brand">
+      <a href="/" class="mcpc-wordmark">{{ brand().name | lower }}<span class="mcpc-wordmark-dot"></span></a>
+    </div>
+
+    <div class="mcpc-card">
+      <div class="mcpc-head">
+        <div class="mcpc-icons">
+          <span class="mcpc-client-icon" style="background:{{ client_bg }};">
+            {% if client_logo %}<img src="{{ client_logo }}" alt="">{% else %}{{ (client_name or 'App')[:1] | upper }}{% endif %}
+          </span>
+          <span class="mcpc-dots"><span></span><span class="is-accent"></span><span></span></span>
+          <span class="mcpc-flux-mark">F</span>
+        </div>
+        <h1><strong>{{ client_name or "This app" }}</strong> wants to work with <em>{{ brand().name }}.</em></h1>
+        <div class="mcpc-account-line">
+          Signed in as {{ account_email or account_display_name }}
+          {% if project_name %} · project <strong>{{ project_name }}</strong>{% endif %}
+        </div>
+        {% if redirect_host %}<div class="mcpc-account-line">Access will be sent to <strong class="ui-mono">{{ redirect_host }}</strong> — only allow it if you recognise it.</div>{% endif %}
+      </div>
+
+      <div class="mcpc-body">
+        <div class="mcpc-eyebrow">{{ client_name or "This app" }} will be able to</div>
+        <div class="mcpc-perms">
+          <div><span class="mcpc-check">✓</span><span>Read analytics, ads, tags and warehouse data from your <strong>connected platforms</strong></span></div>
+          <div><span class="mcpc-check">✓</span><span>Use your tracking plan, KPI definitions and business context</span></div>
+          <div><span class="mcpc-check">✓</span><span>Create dashboards, reports and scheduled automations</span></div>
+          <div><span class="mcpc-diamond">◆</span><span>Draft changes (GTM tags, budgets) — <strong>published only with your approval</strong></span></div>
+        </div>
+        <div class="mcpc-lock-note">
+          <span aria-hidden="true">🔒</span>
+          <span>{{ client_name or "This app" }} never sees your platform credentials — only the results of tool calls scoped to this project.</span>
+        </div>
+      </div>
+
+      <form method="post" action="/oauth/authorize/decision" class="mcpc-actions">
+        <input type="hidden" name="state" value="{{ state }}">
+        <input type="hidden" name="consent_nonce" value="{{ consent_nonce }}">
+        <label class="mcpc-readonly"><input type="checkbox" name="read_only" value="1"> <span><b>Read-only access</b> — it can look but not change anything (no publishing, edits or deletes).</span></label>
+        <button type="submit" name="consent" value="allow" class="btn-accent mcpc-allow">Allow access</button>
+        <button type="submit" name="consent" value="deny" class="btn-secondary mcpc-deny">Deny</button>
+      </form>
+    </div>
+    <div class="mcpc-footnote">You can revoke this anytime from your MCP access settings.</div>
+  </div>
+</div>
+
+<style>
+.mcpc-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+.has-sidebar .main { margin-left: 0; }
+html.sidebar-collapsed .has-sidebar .main { margin-left: 0; }
+.mcpc-wrap { width: 100%; max-width: 480px; }
+.mcpc-brand { display: flex; justify-content: center; margin-bottom: 22px; }
+.mcpc-wordmark { display: flex; align-items: baseline; font-family: var(--serif); font-size: 24px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.mcpc-wordmark-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--accent); display: inline-block; margin-left: 3px; }
+
+.mcpc-card { background: var(--card); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: var(--shadow-card); overflow: hidden; }
+.mcpc-head { padding: 28px 30px 22px; text-align: center; border-bottom: 1px solid var(--line-3); }
+.mcpc-icons { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 18px; }
+.mcpc-client-icon, .mcpc-flux-mark { width: 52px; height: 52px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; }
+.mcpc-client-icon img { width: 28px; height: 28px; }
+.mcpc-client-icon { color: #fff; font-family: var(--sans); font-weight: 700; font-size: 20px; }
+.mcpc-flux-mark { background: var(--ink); color: var(--paper); font-family: var(--serif); font-style: italic; font-size: 26px; }
+.mcpc-dots { display: flex; gap: 4px; }
+.mcpc-dots span { width: 5px; height: 5px; border-radius: 99px; background: var(--line-strong); display: block; }
+.mcpc-dots span.is-accent { background: var(--accent); }
+.mcpc-head h1 { margin: 0 0 6px; font-family: var(--serif); font-size: 27px; font-weight: 500; line-height: 1.15; color: var(--ink); }
+.mcpc-head h1 em { color: var(--accent-hover); font-style: italic; }
+.mcpc-account-line { font-size: 13px; color: var(--muted); }
+.mcpc-account-line strong { color: var(--ink-soft); }
+
+.mcpc-body { padding: 20px 30px; }
+.mcpc-eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 12px; }
+.mcpc-perms { display: flex; flex-direction: column; gap: 11px; font-size: 13.5px; color: #39332A; }
+.mcpc-perms > div { display: flex; gap: 11px; }
+.mcpc-check { color: var(--good); flex-shrink: 0; }
+.mcpc-diamond { color: var(--warn); flex-shrink: 0; }
+.mcpc-lock-note {
+  display: flex; gap: 11px; margin-top: 14px; padding: 12px 14px; background: var(--paper-2);
+  border: 1px solid var(--line-2); border-radius: 9px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5;
+}
+.mcpc-lock-note span:first-child { flex-shrink: 0; }
+
+.mcpc-actions { padding: 0 30px 26px; display: flex; flex-direction: column; gap: 10px; }
+.mcpc-readonly { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: inherit; opacity: .85; cursor: pointer; }
+.mcpc-readonly input { margin-top: 3px; }
+.mcpc-allow, .mcpc-deny { width: 100%; padding: 13px; font-size: 14.5px; }
+.mcpc-allow { box-shadow: 0 8px 20px rgba(196,112,58,0.25); }
+
+.mcpc-footnote { text-align: center; margin-top: 16px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+</style>
+{% endblock %}

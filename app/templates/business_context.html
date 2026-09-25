@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Business Context — Fluxito{% endblock %}
+{% set active = 'business_context' %}
+{% set context_section = 'business' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.css">
+<link rel="stylesheet" href="/static/css/context.css?v={{ asset_hash('css/context.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<div class="app-main ctx-page">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Context</div>
+      <h1 class="page-title">What your AI should know about <em>your business.</em></h1>
+      <p class="page-sub">Approved KPI definitions and business context your AI reads before it analyses or reports — so “conversion rate” means what you mean by it.</p>
+    </div>
+  </div>
+
+  {% include "partials/context_tabs.html" %}
+
+  {# ── Read-first panel: default view shows a short excerpt; "Edit" swaps to
+     the full EasyMDE editor below (the editor stays mounted underneath). ── #}
+  <section class="ui-panel bc-panel" id="bcViewCard">
+    <div class="ui-panel-h">
+      <h2>Business context</h2>
+      <span class="ui-sub" id="bcViewStatus">markdown · read by your AI via get_business_context</span>
+      <div class="ui-right"><button type="button" class="ui-btn" id="bcEditToggle">Edit</button></div>
+    </div>
+    <div class="ui-panel-b bc-view">
+      <div class="bc-view-heading" id="bcViewHeading"></div>
+      <div class="bc-view-text" id="bcViewText"></div>
+      <div class="bc-view-more" id="bcViewMore"></div>
+    </div>
+  </section>
+
+  <section class="ui-panel bc-panel" id="bcEditCard" style="display:none">
+    <div class="ui-panel-h">
+      <h2>Business context</h2>
+      <span class="ui-sub bc-status" id="bcStatus">markdown · loaded by every MCP tool call</span>
+    </div>
+    <div class="ui-panel-b">
+      <textarea
+        id="bcContent"
+        rows="22"
+        placeholder="# About the business&#10;&#10;## Industry&#10;We sell prescription eyewear online across the GCC region.&#10;&#10;## Audience&#10;- Primary: 25–44 urban professionals in UAE &amp; KSA&#10;- Secondary: Parents buying for children&#10;&#10;## Seasonality&#10;- Ramadan: spend shifts to evening/late-night&#10;- Back-to-school (Aug–Sep): kids frames spike 3x&#10;&#10;## Definitions specific to us&#10;- 'Prescription order' = any order with at least one lens SKU&#10;- 'New customer' = first order in the last 365 days&#10;">{{ content }}</textarea>
+    </div>
+    <div class="bc-foot">
+      <div class="bc-count"><span id="bcCharCount">0</span> chars · Markdown supported · ⌘S to save</div>
+      <div class="bc-foot-actions">
+        <button id="bcCancelBtn" class="ui-btn" type="button">Cancel</button>
+        <button id="bcSaveBtn" class="ui-btn is-primary" type="button">Save</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="ui-note bc-tip">
+    <span><b>Tip —</b> include what your AI can’t infer from raw data: internal terminology, business rules (“we only count paid orders after the refund window”), launches, campaigns and goals. Works the same whether your AI is Claude, ChatGPT, Cursor or any other MCP client.</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js"></script>
+<script>
+(function() {
+  const ta = document.getElementById('bcContent');
+  const saveBtn = document.getElementById('bcSaveBtn');
+  const cancelBtn = document.getElementById('bcCancelBtn');
+  const status = document.getElementById('bcStatus');
+  const count = document.getElementById('bcCharCount');
+
+  const viewCard = document.getElementById('bcViewCard');
+  const editCard = document.getElementById('bcEditCard');
+  const editToggle = document.getElementById('bcEditToggle');
+  const viewHeading = document.getElementById('bcViewHeading');
+  const viewText = document.getElementById('bcViewText');
+  const viewMore = document.getElementById('bcViewMore');
+
+  // Read-first excerpt: pull the first heading (if any) as a display title,
+  // then a plain-text preview of the body with a trailing word count —
+  // matches the Context design without needing a full markdown
+  // renderer for the collapsed state (the full document still renders via
+  // EasyMDE's own preview once in Edit mode).
+  const EXCERPT_WORDS = 90;
+  function renderExcerpt(md) {
+    const trimmed = (md || '').trim();
+    if (!trimmed) {
+      viewHeading.textContent = '';
+      viewText.innerHTML = '<span class="bc-empty">No business context yet — click Edit to write one.</span>';
+      viewMore.textContent = '';
+      return;
+    }
+    const lines = trimmed.split(/\n+/).filter(Boolean);
+    let heading = '';
+    let bodyLines = lines;
+    if (/^#{1,3}\s+/.test(lines[0] || '')) {
+      heading = lines[0].replace(/^#{1,3}\s+/, '').trim();
+      bodyLines = lines.slice(1);
+    }
+    const plain = bodyLines.join(' ').replace(/[#*_`>]/g, '').replace(/\s+/g, ' ').trim();
+    const words = plain.split(' ').filter(Boolean);
+    const shown = words.slice(0, EXCERPT_WORDS);
+    const remaining = Math.max(0, words.length - shown.length);
+    viewHeading.textContent = heading;
+    viewText.textContent = shown.join(' ') + (remaining ? '…' : '');
+    viewMore.textContent = remaining
+      ? `— ${remaining.toLocaleString()} more word${remaining === 1 ? '' : 's'} · shared with your AI in every session`
+      : (words.length ? 'Shared with your AI in every session' : '');
+  }
+
+  function showView() {
+    renderExcerpt(currentValue());
+    editCard.style.display = 'none';
+    viewCard.style.display = 'block';
+  }
+  function showEdit() {
+    viewCard.style.display = 'none';
+    editCard.style.display = 'block';
+    // CodeMirror mis-sizes if it was initialized/updated while hidden.
+    if (editor.codemirror) editor.codemirror.refresh();
+    editor.codemirror.focus();
+  }
+  editToggle.addEventListener('click', showEdit);
+  cancelBtn.addEventListener('click', showView);
+
+  const editor = new EasyMDE({
+    element: ta,
+    autofocus: false,
+    spellChecker: false,
+    status: ['lines', 'words', 'cursor'],
+    placeholder: ta.getAttribute('placeholder') || '',
+    minHeight: '480px',
+    indentWithTabs: false,
+    tabSize: 2,
+    forceSync: true,
+    autoDownloadFontAwesome: true,
+    toolbar: [
+      'bold', 'italic', 'strikethrough', '|',
+      'heading-1', 'heading-2', 'heading-3', '|',
+      'unordered-list', 'ordered-list', 'quote', 'code', '|',
+      'link', 'table', 'horizontal-rule', '|',
+      'preview', 'side-by-side', 'fullscreen', '|',
+      { name: 'guide', action: 'https://www.markdownguide.org/basic-syntax/', className: 'fa fa-question-circle', title: 'Markdown guide' },
+    ],
+    shortcuts: {
+      toggleBold: 'Cmd-B', toggleItalic: 'Cmd-I',
+      toggleHeadingSmaller: 'Cmd-H', toggleUnorderedList: 'Cmd-L',
+      togglePreview: 'Cmd-P', toggleSideBySide: 'F9', toggleFullScreen: 'F11',
+    },
+  });
+
+  function currentValue() { return editor.value(); }
+  function updateCount() { count.textContent = currentValue().length.toLocaleString(); }
+  function markDirty() {
+    status.textContent = 'Unsaved changes';
+    status.classList.add('is-dirty');
+  }
+
+  editor.codemirror.on('change', () => { updateCount(); markDirty(); });
+  updateCount();
+
+  async function save() {
+    saveBtn.disabled = true;
+    const original = saveBtn.textContent;
+    saveBtn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/business-context', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: currentValue() }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      status.textContent = 'Saved just now';
+      status.classList.remove('is-dirty');
+      if (window.Fluxito && Fluxito.toast) Fluxito.toast('Business context saved');
+      showView();
+    } catch (e) {
+      alert('Failed to save');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = original;
+    }
+  }
+
+  saveBtn.addEventListener('click', save);
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); }
+  });
+  editor.codemirror.addKeyMap({
+    'Cmd-S': () => save(),
+    'Ctrl-S': () => save(),
+  });
+
+  // Start in read-first view mode; editor stays mounted underneath so
+  // toggling to Edit never re-initializes CodeMirror.
+  showView();
+})();
+</script>
+{% endblock %}

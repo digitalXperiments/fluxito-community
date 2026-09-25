@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}First-run Setup — {{ brand().name }}{% endblock %}
+
+{% block main %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-brand-mark">{{ brand().name }}<span class="auth-brand-dot">.</span></span>
+    </div>
+
+    {% if already_complete %}
+
+    <div class="auth-lead">
+      <h1>Setup <em class="serif-italic">complete.</em></h1>
+      <p>An admin account already exists. Please <a href="/signin">sign in</a> normally.</p>
+    </div>
+
+    {% else %}
+
+    <div class="auth-lead">
+      <h1>Welcome to <em class="serif-italic">{{ brand().name }}.</em></h1>
+      <p>Create your admin account to get started. This form is only available once — while the users table is empty.</p>
+    </div>
+
+    {# First-admin sign-up uses email/password only. Google sign-in becomes
+       available for subsequent users after Google OAuth is configured at
+       Settings → Integrations. #}
+    <form id="setupForm" class="auth-form" autocomplete="on">
+      <div class="f-field">
+        <span>Name <span style="color:var(--muted);font-weight:400;">(optional)</span></span>
+        <input type="text" id="displayName" name="display_name" class="f-input" placeholder="Your name" autocomplete="name">
+      </div>
+      <div class="f-field">
+        <span>Email</span>
+        <input type="email" id="setupEmail" name="email" class="f-input" placeholder="admin@example.com" required autocomplete="email">
+      </div>
+      <div class="f-field">
+        <span>Password</span>
+        <input type="password" id="setupPassword" name="password" class="f-input" placeholder="Min. 8 characters" required minlength="8" autocomplete="new-password">
+      </div>
+
+      <button type="submit" class="btn primary block" id="setupSubmitBtn">Create admin account</button>
+
+      <div id="setupError" class="auth-message auth-error" style="display:none;"></div>
+    </form>
+
+    <p class="auth-footnote">
+      After this you'll configure at least one platform OAuth app under
+      <strong>Settings &rarr; Integrations</strong> to connect your data sources.
+    </p>
+
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.auth-shell {
+  min-height: calc(100vh - 120px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 16px;
+}
+.auth-card {
+  width: 100%; max-width: 460px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 40px 36px;
+}
+.auth-brand { text-align: center; margin-bottom: 20px; }
+.auth-brand-mark {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.auth-brand-dot { color: var(--green); }
+
+.auth-lead { text-align: center; margin-bottom: 26px; }
+.auth-lead h1 {
+  font-size: 28px; font-weight: 500; letter-spacing: -0.02em;
+  margin: 0 0 6px; color: var(--ink); line-height: 1.1;
+}
+.auth-lead p {
+  font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.55;
+}
+.auth-lead a { color: var(--ink); text-decoration: underline; }
+
+.btn-google {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; width: 100%;
+  padding: 11px 16px;
+  border: 1px solid var(--line); border-radius: var(--r-m);
+  background: var(--bg); color: var(--ink);
+  font-size: 14px; font-weight: 500;
+  text-decoration: none; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.btn-google:hover { border-color: var(--ink); background: var(--bg-2); }
+
+.auth-divider {
+  display: flex; align-items: center;
+  margin: 20px 0; gap: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+.auth-divider span {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  font-family: var(--mono);
+}
+
+.auth-form .f-field { margin-bottom: 14px; }
+
+.auth-message {
+  margin-top: 14px; padding: 10px 14px;
+  border-radius: var(--r-m);
+  font-size: 12.5px; line-height: 1.55;
+  border: 1px solid transparent;
+}
+.auth-error {
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
+  color: var(--red);
+}
+
+.auth-footnote {
+  font-size: 11.5px; color: var(--muted);
+  text-align: center; margin-top: 26px; line-height: 1.55;
+}
+
+@media (max-width: 480px) {
+  .auth-card { padding: 30px 20px; border: none; }
+  .auth-lead h1 { font-size: 24px; }
+}
+</style>
+
+{% if not already_complete %}
+<script>
+document.getElementById('setupForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var errEl = document.getElementById('setupError');
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
+  var btn = document.getElementById('setupSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+
+  var email = document.getElementById('setupEmail').value.trim();
+  var password = document.getElementById('setupPassword').value;
+  var displayName = document.getElementById('displayName').value.trim();
+
+  try {
+    var res = await fetch('/setup/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password, display_name: displayName }),
+    });
+    var data = await res.json();
+
+    if (!res.ok || data.error) {
+      errEl.textContent = (typeof data.error === 'string' ? data.error : data.message) || 'Something went wrong.';
+      errEl.style.display = '';
+      return;
+    }
+
+    if (data.redirect_url) {
+      window.location.href = data.redirect_url;
+    }
+  } catch (err) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = '';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create admin account';
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

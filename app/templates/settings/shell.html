@@ -1,0 +1,81 @@
+{# Shared layout for standalone settings pages: app sidebar (from base) +
+   page head ("Settings / Account and project.") + the two-column settings
+   layout (sticky rail left, panels right) from the Studio prototype.
+   Each settings page does:
+     {% extends "settings/shell.html" %}
+     {% set settings_section = 'account' %}      (drives rail highlight)
+     {% block settings_main %} ...page content... {% endblock %}
+   Pages may override {% block settings_head %} or fill
+   {% block settings_actions %} with ui-btns.
+   Connections and Activity log also extend this shell but render
+   standalone (their own head, no rail).
+
+   Page-local layers: any `.set-layer` element (a hidden wrapper holding a
+   `.ui-scrim` plus a `.ui-modal`/`.ui-drawer`) can be opened with
+   `SettingsUI.open('id')` and closed with `SettingsUI.close()`, Esc, a click
+   on the scrim or on any `[data-layer-close]`. Unlike Fluxito.ui.modal this
+   keeps the real DOM (form ids + listeners) instead of re-rendering HTML.
+#}
+{% extends "base.html" %}
+{% set active = active or 'settings' %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/settings.css?v={{ asset_hash('css/settings.css') }}"/>
+{% set standalone = settings_section in ['connections', 'activity'] %}
+<div class="app-main settings-page{% if standalone %} is-standalone{% else %} set-page{% endif %}">
+
+  {% if not standalone %}
+  {% block settings_head %}
+  {% set _head_project = project.name if (settings_section == 'project' and project is defined and project and project.name) else active_project_name %}
+  <div class="page-head settings-head">
+    <div>
+      <div class="eyebrow">Settings</div>
+      <h1 class="page-title">Account and <em>project.</em></h1>
+      <p class="page-sub">Your profile, {% if _head_project %}the {{ _head_project }} project{% else %}your projects{% endif %}.</p>
+    </div>
+    <div class="settings-head-actions">{% block settings_actions %}{% endblock %}</div>
+  </div>
+  {% endblock %}
+  {% endif %}
+
+  {# Connections and Activity log are top-level nav items: no settings rail. #}
+  <div class="settings-shell{% if standalone %} is-standalone{% else %} set-layout{% endif %}">
+    {% if not standalone %}{% include "partials/settings_rail.html" %}{% endif %}
+    <div class="settings-content">
+      {% block settings_main %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% if not standalone %}
+<script>
+(function () {
+  var open = null;
+  function close() {
+    if (!open) return;
+    var el = open; open = null;
+    el.hidden = true;
+    document.documentElement.classList.remove('ui-locked');
+    el.dispatchEvent(new CustomEvent('layer:close'));
+  }
+  function show(id) {
+    var el = typeof id === 'string' ? document.getElementById(id) : id;
+    if (!el) return null;
+    if (open && open !== el) close();
+    open = el;
+    el.hidden = false;
+    document.documentElement.classList.add('ui-locked');
+    var f = el.querySelector('[autofocus], input:not([type=hidden]):not([disabled]), select, textarea');
+    if (f) setTimeout(function () { try { f.focus(); } catch (e) {} }, 30);
+    return el;
+  }
+  document.addEventListener('click', function (e) {
+    if (!open) return;
+    if (e.target.classList && e.target.classList.contains('ui-scrim') && open.contains(e.target)) close();
+    else if (e.target.closest('[data-layer-close]') && open.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  window.SettingsUI = { open: show, close: close };
+})();
+</script>
+{% endif %}
+{% endblock %}

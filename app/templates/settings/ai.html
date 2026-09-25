@@ -1,0 +1,121 @@
+{% extends "settings/shell.html" %}
+{% block title %}AI model — {{ brand().name }}{% endblock %}
+{% set settings_section = 'ai' %}
+
+{% block settings_main %}
+{% set cfg = chat_config or {} %}
+<section class="ui-panel" id="chat-model">
+  <div class="ui-panel-h">
+    <div class="set-grow">
+      <h2>Chat model {% if chat_config %}<span class="ui-chip is-good" id="ai-status">Configured</span>{% else %}<span class="ui-chip is-warn" id="ai-status">Not set up</span>{% endif %}</h2>
+      <div class="ui-sub">The model behind the in-app <a href="/chat">Chat</a>. Any OpenAI-compatible endpoint works. This is personal to you; the key is encrypted at rest. MCP clients (Claude, ChatGPT, Cursor…) use their own model and aren't affected.</div>
+    </div>
+  </div>
+  <form id="ai-form" autocomplete="off">
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b><label for="ai-base-url">Base URL</label></b><small>OpenAI-compatible API root</small></div>
+      <div>
+        <input type="url" class="ui-input set-input" id="ai-base-url" name="base_url" value="{{ cfg.base_url or '' }}" placeholder="https://api.openai.com/v1" required maxlength="500" spellcheck="false"/>
+        <div class="set-pills ai-presets" role="group" aria-label="Base URL presets">
+          {% for p in presets %}
+          <button type="button" class="ui-pill-opt" data-base-url="{{ p.base_url }}">{{ p.label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b><label for="ai-model">Model</label></b><small>Model id as the endpoint names it</small></div>
+      <div><input type="text" class="ui-input set-input" id="ai-model" name="model" value="{{ cfg.model or '' }}" placeholder="e.g. gpt-4.1-mini or openai/gpt-4.1-mini" required maxlength="200" spellcheck="false"/></div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b><label for="ai-api-key">API key</label></b><small>{% if cfg.has_key %}Saved ({{ cfg.key_hint }}) — leave blank to keep it{% else %}Optional for local servers{% endif %}</small></div>
+      <div><input type="password" class="ui-input set-input" id="ai-api-key" name="api_key" value="" placeholder="{% if cfg.has_key %}{{ cfg.key_hint }}{% else %}sk-…{% endif %}" maxlength="1000" autocomplete="new-password" spellcheck="false"/></div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"></div>
+      <div class="ai-actions">
+        <button type="submit" class="ui-btn is-primary is-sm" id="ai-save">Save</button>
+        <button type="button" class="ui-btn is-sm" id="ai-test">Test connection</button>
+        {% if chat_config %}<button type="button" class="ui-btn is-quiet is-danger is-sm" id="ai-remove">Remove</button>{% endif %}
+      </div>
+    </div>
+    <div class="ui-panel-b set-foot-note">
+      <p class="ui-note" id="ai-result" role="status" aria-live="polite" hidden></p>
+      <p class="ui-sub">Changing the base URL without entering a key clears the saved key — a key is never sent to a different endpoint.</p>
+    </div>
+  </form>
+</section>
+
+<style>
+.ai-presets { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#ai-result[hidden] { display: none; }
+</style>
+<script>
+(function () {
+  var form = document.getElementById('ai-form');
+  var baseUrl = document.getElementById('ai-base-url');
+  var model = document.getElementById('ai-model');
+  var apiKey = document.getElementById('ai-api-key');
+  var result = document.getElementById('ai-result');
+  var testBtn = document.getElementById('ai-test');
+  var removeBtn = document.getElementById('ai-remove');
+
+  function csrf() {
+    var m = document.cookie.match(/(?:^|; )csrf_token=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function show(msg, kind) {
+    result.textContent = msg;
+    result.className = 'ui-note' + (kind ? ' is-' + kind : '');
+    result.hidden = false;
+  }
+  function call(method, url, body) {
+    var opts = { method: method, headers: { 'X-CSRF-Token': csrf() } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(url, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.error || d.detail || ('Request failed (' + r.status + ')'));
+        return d;
+      });
+    });
+  }
+  function fields() {
+    return { base_url: baseUrl.value.trim(), model: model.value.trim(), api_key: apiKey.value.trim() };
+  }
+
+  document.querySelectorAll('[data-base-url]').forEach(function (b) {
+    b.addEventListener('click', function () { baseUrl.value = b.getAttribute('data-base-url'); baseUrl.focus(); });
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    show('Saving…');
+    call('PUT', '/api/chat/config', fields())
+      .then(function () { window.location.reload(); })
+      .catch(function (err) { show(err.message, 'warn'); });
+  });
+
+  testBtn.addEventListener('click', function () {
+    testBtn.disabled = true;
+    show('Testing…');
+    call('POST', '/api/chat/config/test', fields())
+      .then(function (d) {
+        if (d.ok) show('Connection works.', 'good');
+        else show(d.error || 'Test failed.', 'warn');
+      })
+      .catch(function (err) { show(err.message, 'warn'); })
+      .then(function () { testBtn.disabled = false; });
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function () {
+      if (!window.confirm('Remove your chat model and API key?')) return;
+      call('DELETE', '/api/chat/config')
+        .then(function () { window.location.reload(); })
+        .catch(function (err) { show(err.message, 'warn'); });
+    });
+  }
+})();
+</script>
+{% endblock %}

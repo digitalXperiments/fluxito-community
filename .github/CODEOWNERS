@@ -1,0 +1,31 @@
+# CODEOWNERS — required reviewers per path.
+#
+# Every PR that touches these paths must be approved by a listed owner
+# before it can merge. Configure branch protection on `main` in the
+# GitHub repo settings to enforce this:
+#
+#   Settings → Branches → Branch protection rules → main
+#     [x] Require a pull request before merging
+#     [x] Require approvals (1)
+#     [x] Require review from Code Owners
+#     [x] Require status checks to pass before merging (select CI jobs)
+#     [x] Restrict who can push to matching branches  (only maintainers)
+#
+# The pattern below makes the maintainer the default owner for every
+# file. Add specialised owners per path as the project grows.
+
+# Default — owns everything
+*       @ramnew2006
+
+# Critical surfaces — extra scrutiny suggested. Same owner today; split
+# when other maintainers join.
+/app/auth/             @ramnew2006
+/app/db/migrations/    @ramnew2006
+/app/connectors/       @ramnew2006
+/.github/              @ramnew2006
+/Dockerfile            @ramnew2006
+/docker-compose.yml    @ramnew2006
+/pyproject.toml        @ramnew2006
+/LICENSE               @ramnew2006
+/NOTICE                @ramnew2006
+/SECURITY.md           @ramnew2006

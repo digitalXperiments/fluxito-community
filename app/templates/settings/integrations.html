@@ -1,0 +1,111 @@
+{% extends "admin/shell.html" %}
+{% block title %}OAuth apps — Fluxito{% endblock %}
+{% set admin_section = 'oauth' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/integrations.css?v={{ asset_hash('css/integrations.css') }}"/>
+{% endblock %}
+
+{% block admin_main %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Admin hub · OAuth apps</div>
+    <h1 class="page-title">Platform <em>credentials.</em></h1>
+    <p class="page-sub">The client ID and secret this instance uses when anyone connects Google, Meta and the rest. Install-wide, visible only to super admins. A project can bring its own app instead under Project settings → OAuth apps.</p>
+  </div>
+</div>
+<div class="set-stack intg-page">
+
+  {# ── First-run welcome banner (shown when ?welcome=1) ── #}
+  {% if request.query_params.get('welcome') == '1' %}
+  <div class="ui-note is-good">
+    <span><b>Admin account created.</b> Configure at least one OAuth app below so users can connect their platforms — choose <b>Add credentials</b> on a platform to enter its client ID and secret.</span>
+  </div>
+  {% endif %}
+
+  {# ── Env-based banner ── #}
+  {% set env_platforms = platforms | selectattr('source', 'equalto', 'env') | list %}
+  {% if env_platforms %}
+  <div class="ui-note">
+    <span>
+      {{ env_platforms | map(attribute='platform') | map('capitalize') | join(', ') }}
+      {% if env_platforms | length == 1 %}is{% else %}are{% endif %}
+      configured via environment variables. Save credentials here to move them into the database for easier rotation — database credentials take precedence.
+    </span>
+  </div>
+  {% endif %}
+
+  {# ── Display copy per platform — pure presentation. `caps` mirrors the
+       products each OAuth app unlocks (see PLATFORM_TUTORIALS in
+       app/api/integrations_routes.py); `short` is used in the "not
+       configured" sentence; `logo` is a file in /static/img/logos. ── #}
+  {% set platform_meta = {
+    'google':    {'name': 'Google Cloud OAuth',   'caps': 'GA4, GTM, Ads, Search Console, BigQuery', 'short': 'Google',        'logo': 'ga4.svg'},
+    'meta':      {'name': 'Meta for Developers',  'caps': 'Marketing API',                           'short': 'Meta Ads',      'logo': 'meta.svg'},
+    'tiktok':    {'name': 'TikTok for Business',  'caps': 'TikTok Ads',                              'short': 'TikTok Ads',    'logo': 'tiktok.svg'},
+    'snap':      {'name': 'Snap Kit',             'caps': 'Snapchat Ads',                            'short': 'Snapchat Ads',  'logo': 'snapchat.svg'},
+    'linkedin':  {'name': 'LinkedIn Developers',  'caps': 'LinkedIn Ads',                            'short': 'LinkedIn Ads',  'logo': 'linkedin.svg'},
+    'pinterest': {'name': 'Pinterest Developers', 'caps': 'Pinterest Ads',                           'short': 'Pinterest Ads', 'logo': 'pinterest.svg'},
+    'x':         {'name': 'X Developer Platform', 'caps': 'X Ads (OAuth 1.0a)',                      'short': 'X Ads',         'logo': 'x.svg'},
+    'reddit':    {'name': 'Reddit Apps',          'caps': 'Reddit Ads API',                          'short': 'Reddit Ads',    'logo': 'reddit.svg'},
+    'bing':      {'name': 'Microsoft Azure AD',   'caps': 'Bing Webmaster, Microsoft Ads',           'short': 'Microsoft Ads', 'logo': 'microsoft.svg'},
+    'apple':     {'name': 'Apple Search Ads',     'caps': 'Apple Ads API',                           'short': 'Apple Ads',     'logo': 'apple.svg'},
+  } %}
+
+  {# ── OAuth app credentials ── #}
+  <section class="ui-panel intg-panel">
+    <div class="ui-panel-h">
+      <div class="set-grow">
+        <h2>OAuth apps <span class="ui-chip no-dot">Admin</span></h2>
+        <div class="ui-sub">Client credentials Fluxito uses when users connect these platforms. Required for self-hosted instances; encrypted at rest.</div>
+      </div>
+      {% set configured = platforms | rejectattr('source', 'equalto', 'unconfigured') | list %}
+      <div class="ui-right"><span class="ui-muted">{{ configured | length }} of {{ platforms | length }} configured</span></div>
+    </div>
+
+    <div class="intg-rows" id="intgGrid">
+      {% for p in platforms %}
+      {% set slug = p.platform %}
+      {% set source = p.source %}
+      {% set meta = platform_meta.get(slug, {'name': slug | capitalize, 'caps': '', 'short': slug | capitalize, 'logo': ''}) %}
+      <div class="ui-row intg-row" id="intg-card-{{ slug }}" data-platform="{{ slug }}" data-source="{{ source }}">
+
+        <span class="intg-row-icon" aria-hidden="true">{% if meta.logo %}<img src="/static/img/logos/{{ meta.logo }}" alt="" width="20" height="20">{% else %}{{ slug[:2] | upper }}{% endif %}</span>
+
+        <div class="ui-grow intg-row-main">
+          <div class="intg-row-name">{{ meta.name }}</div>
+          <div class="intg-row-meta">
+            <span class="intg-id-row" {% if not p.client_id_masked %}style="display:none"{% endif %}>
+              <span class="intg-id-label">Client ID</span><span class="intg-id-value">{{ p.client_id_masked or '' }}</span>
+            </span>{% if meta.caps %}<span class="intg-row-caps"> · {{ meta.caps }}</span>{% endif %}
+          </div>
+          <div class="intg-row-empty">Needed before users can connect {{ meta.short }}</div>
+          <div class="intg-updated">{% if source == 'db' and p.updated_at %}Updated {{ p.updated_at | fmt_datetime }}{% endif %}</div>
+        </div>
+
+        <div class="intg-status-row">
+          {% if source == 'db' %}
+          <span class="ui-chip is-good intg-badge intg-badge-db">Configured (DB)</span>
+          {% elif source == 'env' %}
+          <span class="ui-chip is-info intg-badge intg-badge-env">Configured (env)</span>
+          {% else %}
+          <span class="ui-chip intg-badge intg-badge-none">Not configured</span>
+          {% endif %}
+        </div>
+
+        <div class="intg-actions">
+          <button type="button" class="ui-btn is-sm{% if source in ('db', 'env') %} is-quiet{% endif %} intg-edit-btn" onclick="IntgUI.openModal('{{ slug }}')">{% if source in ('db', 'env') %}Edit{% else %}Add credentials{% endif %}</button>
+          <button type="button" class="ui-btn is-quiet is-danger is-sm intg-remove-btn" {% if source != 'db' %}style="display:none"{% endif %} onclick="IntgUI.removeCredentials('{{ slug }}')">Remove</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+
+{# ── Modal ── #}
+{% include "settings/_integration_modal.html" %}
+
+<script src="/static/js/integrations.js?v={{ asset_hash('js/integrations.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Chat — {{ brand().name }}{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/chat.css?v={{ asset_hash('css/chat.css') }}"/>
+{% endblock %}
+{% block main %}
+<div class="app-main chat-page">
+  <div class="page-head chat-page-head">
+    <div>
+      <div class="eyebrow">Chat</div>
+      <h1 class="page-title">Chat</h1>
+      <p class="page-sub">Ask about the data in {{ active_project_name or 'this project' }}'s connected platforms. Read-only — to make changes, use an MCP client connected to this instance.</p>
+    </div>
+    <div class="ui-page-actions">
+      <a class="ui-btn is-quiet" href="/settings/ai">Model settings</a>
+      <button type="button" class="ui-btn is-primary" id="chat-new">New chat</button>
+    </div>
+  </div>
+
+  {% if not chat_configured %}
+  <p class="ui-note is-warn chat-setup" id="chat-setup">
+    No model is set up yet. <a href="/settings/ai">Add your model and API key</a> to start chatting.
+  </p>
+  {% endif %}
+
+  <div class="chat-shell">
+    <aside class="chat-history" aria-label="Conversations">
+      <input type="search" class="ui-input chat-search" id="chat-search" placeholder="Search conversations" aria-label="Search conversations" autocomplete="off">
+      <ul class="chat-conv-list" id="chat-conv-list"></ul>
+      <p class="ui-sub chat-conv-empty" id="chat-conv-empty" hidden>No conversations yet.</p>
+    </aside>
+    <section class="chat-main">
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-empty" id="chat-empty">
+          <h2>What do you want to know?</h2>
+          <p class="ui-sub">The assistant can read this project's connected platforms and cite what it used. It can't change anything.</p>
+        </div>
+      </div>
+      <form class="chat-composer" id="chat-composer">
+        <textarea id="chat-input" class="ui-input" rows="1" placeholder="Ask a question…" aria-label="Message"{% if not chat_configured %} disabled{% endif %}></textarea>
+        <button type="submit" class="ui-btn is-primary" id="chat-send"{% if not chat_configured %} disabled{% endif %}>Send</button>
+      </form>
+      <p class="chat-hint">Enter to send · Shift+Enter for a new line</p>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/chat.js?v={{ asset_hash('js/chat.js') }}" defer></script>
+{% endblock %}

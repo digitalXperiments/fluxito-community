@@ -1,0 +1,76 @@
+/* integrations.css — Settings → Workspace → OAuth apps (settings/integrations.html)
+   Rows are ui-row / ui-chip / ui-btn from app.css's redesign layer. The class
+   hooks integrations.js queries (`.intg-status-row`, `.intg-badge*`,
+   `.intg-id-row`, `.intg-updated`, `.intg-actions`, `.intg-remove-btn`,
+   `.intg-edit-btn`) are kept and styled here. Only this page loads the file. */
+
+/* ── Rows ── */
+.intg-row { flex-wrap: wrap; }
+.intg-row-icon {
+  width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--card);
+  font: 600 11px var(--mono); color: var(--ink-2);
+}
+.intg-row-icon img { width: 20px; height: 20px; object-fit: contain; }
+.intg-row-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.intg-row-meta, .intg-row-empty, .intg-updated { margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.intg-updated:empty { display: none; }
+.intg-id-label { margin-right: 4px; }
+.intg-id-value { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+/* The meta line only makes sense once configured, the "needed before"
+   sentence only while unconfigured; integrations.js keeps data-source in sync. */
+.intg-row:not([data-source="unconfigured"]) .intg-row-empty { display: none; }
+.intg-row[data-source="unconfigured"] .intg-row-meta { display: none; }
+.intg-status-row { flex: none; }
+.intg-actions { display: flex; gap: 4px; flex: none; }
+
+@media (max-width: 640px) {
+  .intg-row .intg-status-row, .intg-row .intg-actions { margin-left: 46px; }
+  .intg-row .intg-actions { margin-left: auto; }
+}
+
+/* ── Modal (same shape as the shared ui-modal) ── */
+.intg-backdrop { z-index: 880; padding: 16px; background: rgba(22,24,19,.42); backdrop-filter: blur(3px); }
+.intg-modal {
+  width: min(600px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column;
+  border-radius: 20px; background: var(--card); box-shadow: 0 40px 80px -30px rgba(28,30,25,.45); overflow: hidden;
+}
+.intg-modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 22px 24px 14px; }
+.intg-modal-title-row { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; }
+.intg-modal-logo:empty { display: none; }
+.intg-modal-logo { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; }
+.intg-modal-logo img { width: 22px; height: 22px; }
+.intg-modal-title { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; color: var(--ink); }
+.intg-modal-sub { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
+.intg-modal-close { width: 30px; height: 30px; flex: none; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 15px; cursor: pointer; }
+.intg-modal-close:hover { background: var(--paper-2); color: var(--ink); }
+.intg-modal-body { flex: 1; overflow: auto; padding: 0 24px; }
+
+.intg-step { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.intg-step-num { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11.5px; font-weight: 700; }
+.intg-step-content { flex: 1; min-width: 0; }
+.intg-step-title { margin-bottom: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.intg-step-links { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.intg-guide-link a { font-size: 12.5px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.intg-guide-link a:hover { text-decoration: underline; }
+
+.intg-uri-list { display: grid; gap: 6px; }
+.intg-uri-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--dark-bg); color: #EDE9DD; }
+.intg-uri-code { flex: 1; min-width: 0; font: 12px var(--mono); overflow-wrap: anywhere; background: none; color: inherit; }
+.intg-copy-btn { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--dark-line); border-radius: 7px; background: transparent; color: var(--dark-text, #EDE9DD); cursor: pointer; }
+.intg-copy-btn:hover { border-color: #EDE9DD; }
+
+.intg-secret-wrap { position: relative; display: block; }
+.intg-secret-wrap .ui-input { padding-right: 40px; }
+.intg-secret-toggle { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.intg-secret-toggle:hover { color: var(--ink); background: var(--paper-2); }
+
+.intg-test-result { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+.intg-test-loading { background: var(--paper-2); color: var(--muted); }
+.intg-test-ok { background: var(--good-soft); color: var(--good); }
+.intg-test-fail { background: var(--bad-soft); color: var(--bad); }
+.intg-test-issues { margin: 6px 0 0; padding-left: 18px; }
+
+.intg-modal-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 24px; border-top: 1px solid var(--line); }
+.intg-foot-gap { flex: 1; }
+#intgDevTokenWrap .ui-field { margin-bottom: 0; }

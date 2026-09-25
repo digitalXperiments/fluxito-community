@@ -1,0 +1,60 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "PostHog" %}
+{% set platform_slug = "posthog" %}
+{% set platform_desc = "Connect your PostHog project (Cloud or self-hosted) for product analytics insights and event data." %}
+
+{% block platform_body %}
+<form id="posthogForm" onsubmit="return submitPostHog(event)">
+  {% if editing %}<input type="hidden" id="phEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="phName">Display name</label>
+    <input class="input" id="phName" required placeholder="e.g. Production analytics" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="phHost">Project Host</label>
+    <input class="input" type="url" id="phHost" required placeholder="https://app.posthog.com" value="{{ editing.project_host if editing else '' }}"/>
+    <div class="label-hint">Project Host is your PostHog instance URL (e.g. https://app.posthog.com for Cloud, or your self-hosted URL)</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="phProjectId">Project ID</label>
+    <input class="input" id="phProjectId" required placeholder="e.g. 12345" value="{{ editing.external_project_id if editing else '' }}"/>
+    <div class="label-hint">Project ID is found in PostHog → Project Settings → Project ID</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="phApiKey">API Key</label>
+    <input class="input" type="password" id="phApiKey" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current key' if editing else 'Your PostHog Personal API Key' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing API key</div>
+    {% else %}<div class="label-hint">API Key is found in PostHog → Project Settings → Personal API Keys</div>{% endif %}
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect PostHog' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitPostHog(e){
+  e.preventDefault();
+  const editId = document.getElementById('phEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('phName').value.trim();
+  const project_host = document.getElementById('phHost').value.trim();
+  const external_project_id = document.getElementById('phProjectId').value.trim();
+  const api_key = document.getElementById('phApiKey').value.trim();
+
+  const url = isEdit ? '/api/connections/posthog/' + editId.value : '/api/connections/posthog';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, project_host, external_project_id})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

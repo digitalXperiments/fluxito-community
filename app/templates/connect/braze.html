@@ -1,0 +1,58 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Braze" %}
+{% set platform_slug = "braze" %}
+{% set platform_desc = "Customer engagement platform with multi-channel messaging, campaigns, and analytics." %}
+
+{% block platform_body %}
+<form id="brazeForm" onsubmit="return submitBraze(event)">
+  {% if editing %}<input type="hidden" id="bzEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="bzName">Display name</label>
+    <input class="input" id="bzName" required placeholder="e.g. Production Braze" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="bzApiKey">Braze REST API Key</label>
+    <input class="input" id="bzApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your Braze REST API Key{% endif %}" value=""/>
+    <div class="label-hint">Create an API key in Braze Dashboard → Settings → API Keys with the scopes you need</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="bzEndpoint">REST Endpoint URL</label>
+    <input class="input" id="bzEndpoint" required placeholder="https://rest.iad-01.braze.com" value="{{ editing.rest_endpoint_url if editing else '' }}"/>
+    <div class="label-hint">Your Braze cluster REST endpoint, e.g. <code>https://rest.iad-01.braze.com</code>. Find it in Braze Dashboard → Settings → SDK Endpoints</div>
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Braze' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitBraze(e){
+  e.preventDefault();
+  const editId = document.getElementById('bzEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('bzName').value.trim();
+  const api_key = document.getElementById('bzApiKey').value.trim();
+  const rest_endpoint_url = document.getElementById('bzEndpoint').value.trim();
+
+  if (!rest_endpoint_url.startsWith('https://')) {
+    Fluxito.toast('REST Endpoint URL must start with https://', 'error');
+    return;
+  }
+
+  const url = isEdit ? '/api/connections/braze/' + editId.value : '/api/connections/braze';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, rest_endpoint_url})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+name: New connector request
+description: Request integration with a marketing/analytics platform that isn't supported yet.
+title: "[connector] "
+labels: ["connector", "enhancement"]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Platform name
+      placeholder: e.g. "Reddit Ads"
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: API documentation URL
+    validations:
+      required: true
+  - type: dropdown
+    id: auth
+    attributes:
+      label: Authentication style
+      options:
+        - OAuth 2.0
+        - API key / token
+        - Basic auth
+        - Service account / JSON credential
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Primary use case
+      description: What kinds of analyses or tools would you run against this platform?
+    validations:
+      required: true

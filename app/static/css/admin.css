@@ -1,0 +1,80 @@
+/* ============================================================
+   Admin hub (/admin, /admin/activity, /admin/projects,
+   /admin/activity/{id}) — light beta-redesign restyle.
+   Loaded after settings.css by admin/shell.html; everything is scoped
+   to .admin-page so the shared settings/admin classes elsewhere are
+   untouched. Behaviour/markup hooks are unchanged.
+   ============================================================ */
+
+/* ---- Rail ---- */
+.admin-page .admin-rail .settings-rail-group-label span:last-child { background: var(--accent) !important; color: #fff !important; border-radius: 999px !important; padding: 1px 7px !important; }
+
+/* ---- KPI band → ui-stat-band ---- */
+.admin-page .admin-kpi-row { margin: 0 0 16px; border-radius: var(--r-xl); box-shadow: var(--shadow-sm); }
+.admin-page .admin-kpi-row .kpi { padding: 16px 18px; }
+.admin-page .admin-kpi-row .kpi .label { order: 2; margin: 6px 0 0; font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); white-space: normal; }
+.admin-page .admin-kpi-row .kpi .label::before { display: none; }
+.admin-page .admin-kpi-row .kpi .val { order: 1; margin: 0; font-family: var(--sans); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.admin-page .admin-kpi-row .kpi .meta { order: 3; margin-top: 2px; font-size: 12px; color: var(--muted); }
+@media (max-width: 1280px) { .admin-page .admin-kpi-row:not(.cols-4) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Rail items: left-aligned icon + label */
+.admin-page .admin-rail .settings-tab { justify-content: flex-start; gap: 10px; text-align: left; }
+
+/* ---- Tabs (admin.html) → ui-tabs underline ---- */
+.admin-page .admin-tabs { margin: 0 0 4px; }
+.admin-page .admin-tabs .tabs { gap: 4px; padding: 0; border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
+.admin-page .admin-tabs .tabs .tab {
+  height: 40px; padding: 0 14px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: none; font: 600 13.5px var(--sans); letter-spacing: 0; text-transform: none; color: var(--muted);
+}
+.admin-page .admin-tabs .tabs .tab:hover { background: none; color: var(--ink); }
+.admin-page .admin-tabs .tabs .tab.is-active { background: none; color: var(--ink); border-bottom-color: var(--accent); }
+
+/* ---- Tab panels → ui-panel body ---- */
+.admin-page section[data-panel] { margin-top: 16px; padding: 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-sm); }
+.admin-page section[data-panel] > p:first-child { margin-top: 0; font-size: 13.5px; color: var(--muted) !important; }
+
+/* ---- Fields → ui-field / ui-input ---- */
+.admin-page .f-field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); font-family: var(--sans); letter-spacing: 0; text-transform: none; }
+.admin-page .f-input { min-height: 38px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--card); font: 14px var(--sans); color: var(--ink); box-shadow: none; }
+.admin-page .f-input.mono { font-family: var(--mono); font-size: 13px; }
+.admin-page textarea.f-input { min-height: 72px; line-height: 1.5; }
+.admin-page .f-input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(28,30,25,.08); }
+.admin-page .toggle-row { border-color: var(--line); border-radius: 12px; background: var(--card); box-shadow: none; }
+.admin-page .toggle-row .toggle-copy strong { font-weight: 600; font-size: 13.5px; }
+
+/* ---- Buttons → ui-btn ---- */
+.admin-page .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px; padding: 0 13px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font: 600 13px var(--sans); letter-spacing: 0; text-transform: none; box-shadow: none; }
+.admin-page .btn:hover { border-color: var(--ink); }
+.admin-page .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.admin-page .btn.primary:hover { background: #000; }
+.admin-page .btn.sm { min-height: 30px; padding: 0 11px; font-size: 12.5px; }
+.admin-page .admin-btn-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+.admin-page .admin-btn-row .btn { width: auto; min-width: 120px; }
+.admin-page .approve-btn { background: var(--good); border-color: var(--good); color: #fff; }
+
+/* ---- Tables → ui-table ---- */
+.admin-page .ps-table { font-size: 13px; }
+.admin-page .ps-table thead tr { background: var(--card-well); }
+.admin-page .ps-table th { padding: 10px 18px; font-family: var(--sans) !important; font-size: 11.5px !important; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.admin-page .ps-table td { padding: 11px 18px; }
+.admin-page section[data-panel] .ps-table { margin: 16px -18px -18px; width: calc(100% + 36px); border-top: 1px solid var(--line); }
+.admin-page .ps-msg { border: 0; border-radius: 12px; background: var(--info-soft); color: var(--info); padding: 10px 14px; }
+
+/* ---- Filter bar / activity list (admin_activity.html) ---- */
+.admin-page .admin-filters-bar { padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-sm); }
+.admin-page .admin-filters-bar .filter-label { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.admin-page .activity { border-radius: var(--r-xl); border-color: var(--line); box-shadow: var(--shadow-sm); overflow: hidden; }
+.admin-page .qf-pill { border-radius: 8px; font-family: var(--sans); }
+.admin-page .qf-pill.is-active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+/* ---- Call detail (admin_activity_detail.html) ---- */
+.admin-detail .breadcrumbs { margin-bottom: 10px; font-family: var(--sans); font-size: 13px; letter-spacing: 0; }
+.admin-detail .breadcrumbs a { color: var(--muted); text-decoration: none; }
+.admin-detail .breadcrumbs a:hover { color: var(--ink); }
+.admin-detail .ad-card { border-radius: var(--r-xl) !important; box-shadow: var(--shadow-sm); }
+.admin-detail .ad-title { font-family: var(--mono); font-weight: 600; letter-spacing: -0.02em; }
+.admin-detail .ad-code { background: var(--dark-bg) !important; color: #EDE9DD; border: 0 !important; border-radius: 10px !important; }
+.admin-detail .t-flag { border-radius: 999px; }
+.admin-page section[data-panel] { overflow-x: auto; }

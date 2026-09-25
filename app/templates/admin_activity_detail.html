@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Platform Audit — {{ row.tool_name }} — Fluxito{% endblock %}
+{% set active = 'admin' %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/admin.css?v={{ asset_hash('css/admin.css') }}"/>
+<main class="app-main admin-page admin-detail">
+
+  {# ── Back link ── #}
+  <div class="breadcrumbs">
+    <a href="/admin/activity">← Platform activity</a>
+  </div>
+
+  {# ── Call header ── #}
+  <div class="ad-card" style="padding:26px 28px;margin-bottom:18px">
+    <div class="ad-head">
+      <div class="ad-head-main">
+        <div class="eyebrow">Admin hub · Platform tool call</div>
+        <h1 class="ad-title">{{ row.tool_name }}</h1>
+        {% if row.platform %}
+        <div class="ad-platform">Platform · {{ row.platform_label or row.platform }}</div>
+        {% endif %}
+      </div>
+      <div class="ad-head-flags">
+        {% if row.status == 'success' %}
+        <span class="t-flag ad-flag-ok">success</span>
+        {% elif row.status == 'denied' %}
+        <span class="t-flag ad-flag-warn">denied</span>
+        {% else %}
+        <span class="t-flag ad-flag-err">error</span>
+        {% endif %}
+        {% if row.is_write %}
+        <span class="t-flag ad-flag-write">WRITE</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="ad-meta-grid" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr))">
+      <div class="ad-meta">
+        <div class="ad-meta-label">Caller / User</div>
+        <div class="ad-meta-val" style="font-weight:600">{{ row.user_name }} <span style="font-weight:normal;color:var(--muted)">({{ row.user_email }})</span></div>
+      </div>
+      <div class="ad-meta">
+        <div class="ad-meta-label">Project</div>
+        <div class="ad-meta-val">{{ row.project_name or 'Global (No project)' }}</div>
+      </div>
+      <div class="ad-meta">
+        <div class="ad-meta-label">When</div>
+        <div class="ad-meta-val">{{ row.created_at[:19].replace('T',' ') if row.created_at else '—' }}</div>
+      </div>
+      <div class="ad-meta">
+        <div class="ad-meta-label">Source client</div>
+        <div class="ad-meta-val">{{ row.source_client or '—' }}</div>
+      </div>
+      <div class="ad-meta">
+        <div class="ad-meta-label">Latency</div>
+        <div class="ad-meta-val" style="font-variant-numeric:tabular-nums">{% if row.duration_ms is not none %}{{ row.duration_ms }} ms{% else %}—{% endif %}</div>
+      </div>
+      <div class="ad-meta" style="grid-column:1/-1">
+        <div class="ad-meta-label">Summary</div>
+        <div class="ad-meta-val">{{ row.response_summary or '—' }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Error banner ── #}
+  {% if row.error_message %}
+  <div class="ad-error" style="margin-bottom:18px;padding:16px;background:rgba(180,69,47,0.06);border:1px solid var(--bad);border-radius:var(--r-m, 8px)">
+    <div class="ad-error-label" style="font-weight:700;color:var(--bad);margin-bottom:4px">Execution Error</div>
+    <div class="ad-error-msg mono" style="font-size:12px;color:var(--bad)">{{ row.error_message }}</div>
+  </div>
+  {% endif %}
+
+  {# ── Arguments ── #}
+  <div class="ad-card" style="padding:22px 26px;margin-bottom:18px">
+    <div class="ad-sec-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3>Tool Arguments</h3>
+      <button class="mini-btn btn ghost" type="button" onclick="copyCode('argsBlock', this)" style="padding:4px 8px;font-size:11px">
+        Copy JSON
+      </button>
+    </div>
+    <pre class="ad-code mono" id="argsBlock" style="background:var(--paper-2);padding:14px;border-radius:6px;border:1px solid var(--line);overflow-x:auto;font-size:12px">{{ row.arguments | tojson(indent=2) if row.arguments else '{}' }}</pre>
+  </div>
+
+  {# ── Response ── #}
+  <div class="ad-card" style="padding:22px 26px">
+    <div class="ad-sec-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3>
+        Platform Response Payload
+        {% if row.response_truncated %}
+        <span class="t-flag ad-flag-warn" style="margin-left:8px">TRUNCATED (32KB+)</span>
+        {% endif %}
+      </h3>
+      <button class="mini-btn btn ghost" type="button" onclick="copyCode('respBlock', this)" style="padding:4px 8px;font-size:11px">
+        Copy Response
+      </button>
+    </div>
+    {% if row.response_preview %}
+    <pre class="ad-code ad-code-resp mono" id="respBlock" style="background:var(--paper-2);padding:14px;border-radius:6px;border:1px solid var(--line);overflow-x:auto;font-size:12px;max-height:400px">{{ row.response_preview }}</pre>
+    {% else %}
+    <div class="ad-empty" style="color:var(--muted);font-style:italic;padding:12px">No response payload captured.</div>
+    {% endif %}
+  </div>
+
+</main>
+
+<style>
+.ad-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m, 8px);
+}
+.ad-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+.ad-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+}
+.ad-platform {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.ad-meta-grid {
+  display: grid;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-3);
+}
+.ad-meta-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.ad-meta-val {
+  font-size: 13px;
+  color: var(--ink);
+}
+.ad-flag-ok { background: #D4EFDF; color: #1E8449; }
+.ad-flag-warn { background: #FCF3CF; color: #B7950B; }
+.ad-flag-err { background: #FDEDEC; color: var(--bad); }
+.ad-flag-write { background: var(--paper-2); color: var(--accent); border: 1px solid var(--accent); }
+.breadcrumbs {
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.breadcrumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.breadcrumbs a:hover {
+  color: var(--ink);
+}
+</style>
+
+<script>
+function copyCode(id, btn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(function() {
+    var orig = btn.innerText;
+    btn.innerText = 'Copied!';
+    setTimeout(function() { btn.innerText = orig; }, 2000);
+  });
+}
+</script>
+{% endblock %}

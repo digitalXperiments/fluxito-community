@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Email Verification — Fluxito{% endblock %}
+
+{% block main %}
+<div class="auth-shell">
+  <div class="auth-card" style="text-align:center">
+    <div class="auth-brand">
+      <a href="/">
+        <span class="auth-brand-mark">Fluxito<span class="auth-brand-dot">.</span></span>
+      </a>
+    </div>
+
+    {% if success %}
+      <div class="ve-badge ve-ok">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="auth-lead">
+        <h1>Email <em class="serif-italic">verified.</em></h1>
+        <p>Your account is now active. Sign in to get started.</p>
+      </div>
+      <a href="/signin" class="btn primary block" style="margin-top:18px">Sign in</a>
+    {% else %}
+      <div class="ve-badge ve-err">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+      <div class="auth-lead">
+        <h1>Verification <em class="serif-italic">failed.</em></h1>
+        <p>{{ error or "This link is invalid or has expired." }}</p>
+      </div>
+      <a href="/signin" class="btn block" style="margin-top:18px">Back to sign in</a>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.auth-shell {
+  min-height: calc(100vh - 120px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 16px;
+}
+.auth-card {
+  width: 100%; max-width: 460px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: 40px 36px;
+}
+.auth-brand { text-align: center; margin-bottom: 24px; }
+.auth-brand a { text-decoration: none; color: var(--ink); }
+.auth-brand-mark {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.auth-brand-dot { color: var(--green); }
+
+.ve-badge {
+  width: 60px; height: 60px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.ve-ok {
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  color: var(--green);
+}
+.ve-err {
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  color: var(--red);
+}
+
+.auth-lead h1 {
+  font-size: 26px; font-weight: 500; letter-spacing: -0.02em;
+  margin: 0 0 8px; color: var(--ink); line-height: 1.15;
+}
+.auth-lead p {
+  font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .auth-card { padding: 30px 20px; border: none; }
+}
+</style>
+{% endblock %}

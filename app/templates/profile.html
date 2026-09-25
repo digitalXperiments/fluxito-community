@@ -1,0 +1,583 @@
+{% extends "settings/shell.html" %}
+{% block title %}Account — Fluxito{% endblock %}
+{% set settings_section = 'account' %}
+
+{% block settings_main %}
+{% set _display = user.display_name or (user.email.split('@')[0] | title if user.email else 'You') %}
+<div class="set-stack" id="profileWin">
+
+  {# Tab hooks — the settings rail is the visible navigation; this list keeps
+     the tab ids (and old #hash deep links) in one place for the controller. #}
+  <nav class="pf-tabs" id="pfTabs" hidden>
+    <a class="sub-tab is-active" href="#general" data-tab="general">Profile</a>
+    <a class="sub-tab" href="#preferences" data-tab="preferences">Preferences</a>
+    <a class="sub-tab" href="#tokens" data-tab="tokens">MCP tokens</a>
+    <a class="sub-tab" href="#activity" data-tab="activity">Usage</a>
+  </nav>
+
+  {# ══════════════ PROFILE ══════════════ #}
+  <div class="pf-tab-content" id="generalTab" data-pf-tab="general">
+    <section class="ui-panel" id="personal-info">
+      <div class="ui-panel-h">
+        <span class="ui-avatar set-avatar-lg" id="profileAvatar" aria-hidden="true">{{ (user.display_name or user.email or '?')[:2] | upper }}</span>
+        <div class="set-grow">
+          <h2><span id="profileDisplayName">{{ _display }}</span>{% if not user.is_active %} <span class="ui-chip is-warn">Deactivated</span>{% endif %}</h2>
+          <div class="ui-sub">Signed in as {{ user.email }}{% if user.created_at %} · member since {{ user.created_at | fmt_date }}{% endif %}</div>
+        </div>
+        <div class="ui-right">
+          <button type="button" class="ui-btn is-primary is-sm" id="saveProfileBtn" onclick="Fluxito._saveProfile()">Save</button>
+        </div>
+      </div>
+      <form id="profileForm" onsubmit="Fluxito._saveProfile(); return false;">
+        <div class="ui-rowf">
+          <div class="ui-rowf-l"><b><label for="displayName">Display name</label></b><small>Shown to your teammates</small></div>
+          <div><input type="text" class="ui-input set-input" id="displayName" name="display_name" value="{{ user.display_name or '' }}" placeholder="How should we call you?" maxlength="255"/></div>
+        </div>
+        <div class="ui-rowf">
+          <div class="ui-rowf-l"><b><label for="emailField">Email</label></b><small>Used to sign in</small></div>
+          <div><input type="email" class="ui-input set-input" id="emailField" name="email" value="{{ user.email }}" readonly aria-readonly="true" title="Your sign-in email can't be changed here"/></div>
+        </div>
+        {% if user.auth_provider %}
+        <div class="ui-rowf">
+          <div class="ui-rowf-l"><b>Sign-in</b><small>How you sign in</small></div>
+          <div class="set-inline">
+            {% if user.auth_provider == 'google' %}<img src="/static/img/logos/ga4.svg" alt="" width="18" height="18"><span>Google · {{ user.email }}</span>
+            {% elif user.auth_provider == 'both' %}<img src="/static/img/logos/ga4.svg" alt="" width="18" height="18"><span>Google or email and password · {{ user.email }}</span>
+            {% else %}<span>Email and password · {{ user.email }}</span>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+        <div class="ui-rowf">
+          <div class="ui-rowf-l"><b>Password</b><small>For email sign-in</small></div>
+          <div><button type="button" class="ui-btn is-sm" id="sendResetBtn" onclick="Fluxito._sendPasswordReset()">Email me a reset link</button></div>
+        </div>
+      </form>
+    </section>
+
+    {% if org %}
+    <section class="ui-panel" id="orgCard">
+      <div class="ui-row">
+        <div class="ui-grow"><b>{{ org.name }}</b><br><small>Organization · {{ org_member_count }} members</small></div>
+        <a href="/org" class="ui-btn is-sm">Manage</a>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="ui-panel set-danger" id="danger">
+      <div class="ui-panel-h"><h2>Danger zone</h2></div>
+      <div id="accountActions">
+        {% if user.is_active %}
+        <div id="deactivateSection">
+          <div class="ui-rowf">
+            <div class="ui-rowf-l"><b>Deactivate account</b><small>Pause access; your data is kept and you can reactivate any time.</small></div>
+            <div><button type="button" class="ui-btn is-sm" onclick="Fluxito._deactivateAccount()">Deactivate</button></div>
+          </div>
+          <div class="ui-rowf">
+            <div class="ui-rowf-l"><b>Delete account</b><small>Deactivate first. This cannot be undone.</small></div>
+            <div><button type="button" class="ui-btn is-sm is-danger" disabled title="Deactivate your account first">Delete account</button></div>
+          </div>
+        </div>
+        {% else %}
+        <div class="ui-rowf">
+          <div class="ui-rowf-l"><b>Account deactivated</b><small>Reactivate to resume normal access.</small></div>
+          <div><button type="button" class="ui-btn is-primary is-sm" onclick="Fluxito._reactivateAccount()">Reactivate</button></div>
+        </div>
+        <div class="ui-rowf">
+          <div class="ui-rowf-l"><b>Delete account</b><small>Erases your data, connections, dashboards and history. This cannot be undone.</small></div>
+          <div><button type="button" class="ui-btn is-sm is-danger" onclick="Fluxito._deleteAccount()">Delete account</button></div>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  {# ══════════════ PREFERENCES ══════════════ #}
+  <div class="pf-tab-content" id="preferencesTab" data-pf-tab="preferences" hidden>
+    <section class="ui-panel" id="briefs">
+      <div class="ui-panel-h">
+        <div class="set-grow"><h2>Preferences</h2><div class="ui-sub">Set during onboarding — change any time.</div></div>
+        <div class="ui-right"><button type="button" class="ui-btn is-primary is-sm" id="savePrefsBtn" onclick="Fluxito._savePrefsForm()">Save</button></div>
+      </div>
+      <div class="ui-rowf" id="client">
+        <div class="ui-rowf-l"><b>Your AI client</b><small>Which AI talks to Fluxito over MCP — used for Home shortcuts</small></div>
+        <div>
+          <div class="set-pills" id="pfClientGrid" role="radiogroup" aria-label="Your AI client">
+            {% set _clients = [('claude', 'Claude', 'claude.svg', '#d97757'), ('chatgpt', 'ChatGPT', 'chatgpt.svg', '#10a37f'), ('cursor', 'Cursor', 'cursor.svg', '#09090b'), ('windsurf', 'Windsurf', 'windsurf.svg', '#09b6a2'), ('lmstudio', 'LM Studio', 'lmstudio.svg', '#4338ca')] %}
+            {% for key, label, logo, tile in _clients %}
+            <button type="button" class="ui-pill-opt pf-client-card{% if user.preferred_ai_client == key %} is-on{% endif %}" data-client="{{ key }}" role="radio" aria-checked="{{ 'true' if user.preferred_ai_client == key else 'false' }}"><span class="pf-logo" style="background:{{ tile }}" aria-hidden="true"><img src="/static/img/logos/{{ logo }}" alt="" width="11" height="11"></span>{{ label }}</button>
+            {% endfor %}
+            {% if chat_enabled() %}
+            <button type="button" class="ui-pill-opt pf-client-card{% if user.preferred_ai_client == 'inapp' %} is-on{% endif %}" data-client="inapp" role="radio" aria-checked="{{ 'true' if user.preferred_ai_client == 'inapp' else 'false' }}">Built-in Chat</button>
+            {% endif %}
+          </div>
+          <div class="ui-code set-code"><span id="pfMcpUrl">{{ base_url }}/mcp</span><button type="button" id="pfCopyMcpUrl">Copy URL</button></div>
+          <p class="set-hint">Paste this into your client's MCP settings — see <a href="/ai">AI &amp; MCP</a> for per-client install steps.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {# ══════════════ MCP TOKENS (moved to AI & MCP; kept for #tokens links) ══════════════ #}
+  <div class="pf-tab-content" id="tokensTab" data-pf-tab="tokens" hidden>
+    <div class="ui-note">Access tokens now live in <a href="/ai#tokens">AI &amp; MCP → Access tokens</a>. The list below is the same set of tokens.</div>
+    <section class="ui-panel" id="mcpTokensCard">
+      <div class="ui-panel-h">
+        <div class="set-grow"><h2>MCP access tokens</h2><div class="ui-sub">For remote servers, SSH, containers and CLIs that can't sign in with OAuth.</div></div>
+      </div>
+      <div class="ui-panel-b">
+        <form id="mcpTokenForm" onsubmit="Fluxito._createMcpPat(); return false;" class="pf-token-create">
+          <label class="ui-field pf-grow">
+            <span>Name</span>
+            <input class="ui-input" type="text" id="mcpTokenName" placeholder="e.g. Claude Code — laptop" maxlength="255" required />
+          </label>
+          <label class="ui-field pf-expires">
+            <span>Expires</span>
+            <select class="ui-input" id="mcpTokenExpiry">
+              <option value="90">90 days (recommended)</option>
+              <option value="30">30 days</option>
+              <option value="60">60 days</option>
+              <option value="365">365 days</option>
+              <option value="0">Never</option>
+            </select>
+          </label>
+          <button type="submit" class="ui-btn is-primary pf-btn-create" id="mcpCreateBtn">Create token</button>
+        </form>
+
+        {# Post-create reveal (populated by JS, shown once) #}
+        <div id="mcpPatReveal" class="ui-note is-good pf-pat-reveal" style="display:none">
+          <div class="set-grow">
+            <b>Token created — copy it now. It is shown only once.</b>
+            <div class="ui-code set-code"><span id="mcpPatPlain"></span><button type="button" onclick="Fluxito.copy(document.getElementById('mcpPatPlain').textContent, 'MCP PAT')">Copy token</button></div>
+            <div>Config snippet for your remote MCP client:</div>
+            <pre id="mcpPatSnippet" class="pf-pat-snippet"></pre>
+            <div class="set-actions">
+              <button type="button" class="ui-btn is-sm" onclick="Fluxito.copy(document.getElementById('mcpPatSnippet').textContent, 'Config snippet')">Copy snippet</button>
+              <button type="button" class="ui-btn is-sm" onclick="document.getElementById('mcpPatReveal').style.display='none'">Done — I've copied it</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mcpPatList">
+        {% if mcp_pats %}
+        <div class="pf-pat-list">
+          {% for p in mcp_pats %}
+          <div class="ui-row pf-pat-row" data-id="{{ p.id }}">
+            <div class="ui-grow"><b>{{ p.name or '(unnamed)' }}</b> <span class="ui-mono ui-muted">{{ p.token_hint or '' }}</span></div>
+            <small>{% if p.access_token_expires_at %}expires {{ p.access_token_expires_at | fmt_date }}{% else %}no expiry{% endif %}{% if p.last_used_at %} · last used {{ p.last_used_at | fmt_date }}{% endif %}</small>
+            <button type="button" class="ui-btn is-quiet is-danger is-sm" onclick="Fluxito._revokeMcpPat({{ p.id | string | tojson | forceescape }}, {{ (p.name or p.token_hint or 'this token') | tojson | forceescape }})">Revoke</button>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="ui-empty pf-empty">No tokens yet. Create one above for a remote machine, SSH, container or CLI.</div>
+        {% endif %}
+      </div>
+      <div class="ui-panel-b set-foot-note">Tokens are user-wide (same permissions as you) and revocation is immediate. Send the token as a <span class="ui-mono">Bearer</span> header in your client's MCP config.</div>
+    </section>
+  </div>
+
+  {# ══════════════ USAGE ══════════════ #}
+  <div class="pf-tab-content" id="activityTab" data-pf-tab="activity" hidden>
+    <section class="ui-panel" id="usage">
+      <div class="ui-panel-h">
+        <div class="set-grow"><h2>Usage this month</h2><div class="ui-sub">Across all your projects</div></div>
+        <div class="ui-right"><button type="button" class="ui-btn is-sm" onclick="Fluxito._openUsageModal()">Breakdown</button></div>
+      </div>
+      <div class="ui-panel-b">
+        <div class="ui-grid is-2 pf-stats">
+          <div class="ui-kpi"><b id="pfToolCalls">—</b><span>tool calls</span></div>
+          <div class="ui-kpi"><b>{{ total_conns or 0 }}</b><span>platforms connected</span></div>
+        </div>
+      </div>
+      <a href="/activity-log" class="ui-row set-link-row">
+        <div class="ui-grow"><b>Open activity log</b><br><small>The full trail of AI tool calls, executions and actions</small></div>
+        <span aria-hidden="true">→</span>
+      </a>
+    </section>
+
+    <section class="ui-panel" id="recent-activity">
+      <div class="ui-panel-h">
+        <div class="set-grow"><h2>Recent notifications</h2></div>
+        <div class="ui-right">
+          {% if unread_notifs > 0 %}<span class="ui-chip is-good">{{ unread_notifs }} new</span>{% endif %}
+        </div>
+      </div>
+      {% if recent_notifs %}
+      <div class="pf-notif-list">
+        {% for n in recent_notifs[:6] %}
+        <a {% if n.action_url %}href="{{ n.action_url }}"{% else %}href="#recent-activity"{% endif %} class="ui-row pf-notif{% if not n.is_read %} unread{% endif %}">
+          <span class="ui-sev{% if not n.is_read %} is-good{% endif %}"></span>
+          <div class="ui-grow pf-notif-body">
+            <b class="pf-notif-title">{{ n.title }}</b>
+            <div class="pf-notif-msg">{{ n.message }}</div>
+          </div>
+          <small class="pf-notif-date">{{ n.created_at | fmt_date }}</small>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="ui-empty pf-empty">No recent notifications.</div>
+      {% endif %}
+    </section>
+  </div>
+
+</div>
+
+{# Usage breakdown modal (page-local layer, opened via SettingsUI) #}
+<div class="set-layer" id="usageModal" hidden>
+  <div class="ui-scrim"></div>
+  <div class="ui-modal" role="dialog" aria-modal="true" aria-labelledby="usageModalTitle">
+    <div class="ui-modal-b">
+      <div class="set-modal-h">
+        <h3 id="usageModalTitle">Usage breakdown</h3>
+        <button type="button" class="ui-btn is-quiet is-sm" data-layer-close aria-label="Close">✕</button>
+      </div>
+      <div id="usageModalBody" class="pf-usage-body"><div class="ui-empty">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<style>
+[data-pf-tab][hidden] { display: none !important; }
+.pf-token-create { display: grid; grid-template-columns: minmax(0, 1fr) 200px auto; gap: 12px; align-items: end; }
+.pf-token-create .ui-field { margin-bottom: 0; }
+.pf-pat-reveal { margin: 16px 0 0; }
+.pf-pat-snippet { margin: 6px 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--card); color: var(--ink); font: 11.5px var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pf-notif { color: inherit; text-decoration: none; }
+.pf-notif:hover { background: var(--card-well); }
+.pf-notif-body b { font-weight: 500; }
+.pf-notif.unread .pf-notif-body b { font-weight: 650; }
+.pf-notif-msg { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-notif-date { flex: none; white-space: nowrap; }
+.pf-logo { width: 18px; height: 18px; flex: none; display: inline-grid; place-items: center; border-radius: 5px; }
+.pf-flux-mark { width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 5px; background: var(--dark-bg); color: #fff; font: italic 11px var(--serif); }
+.ui-pill-opt.is-on .pf-flux-mark { background: #fff; color: var(--ink); }
+.pf-usage-body { max-height: 60vh; overflow-y: auto; }
+.pf-usage-total { text-align: center; padding: 6px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.pf-usage-total b { display: block; font-size: 30px; font-weight: 700; letter-spacing: -0.03em; }
+.pf-usage-total span { font-size: 12.5px; color: var(--muted); }
+.pf-usage-bars { display: flex; align-items: flex-end; gap: 3px; height: 60px; }
+.pf-usage-bars i { flex: 1; min-width: 3px; border-radius: 2px; background: var(--ink); }
+.pf-usage-axis { display: flex; justify-content: space-between; margin-top: 6px; font: 11px var(--mono); color: var(--muted); }
+.pf-usage-tool { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.pf-usage-tool span:first-child { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .pf-token-create { grid-template-columns: minmax(0, 1fr); }
+  .pf-stats.ui-grid.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+  // ── Tab controller (the settings rail drives it through the URL hash) ──
+  (function initProfileTabs() {
+    var TABS = ['general', 'preferences', 'tokens', 'activity'];
+    var ALIAS = {
+      'profile': 'general', 'personal-info': 'general', 'danger': 'general',
+      'account': 'general', 'orgCard': 'general',
+      'briefs': 'preferences', 'client': 'preferences', 'prefs': 'preferences',
+      'mcpTokensCard': 'tokens', 'mcp': 'tokens', 'tokensTab': 'tokens', 'pat': 'tokens', 'pats': 'tokens',
+      'activityTab': 'activity', 'recent-activity': 'activity', 'usage': 'activity',
+      'stats': 'activity', 'notifications': 'activity', 'audit': 'activity'
+    };
+    function tabFor(id) {
+      if (TABS.indexOf(id) !== -1) return id;
+      if (ALIAS[id]) return ALIAS[id];
+      var el = id && document.getElementById(id);
+      var host = el && el.closest('[data-pf-tab]');
+      return host ? host.getAttribute('data-pf-tab') : 'general';
+    }
+    function activate() {
+      var id = (location.hash || '').replace('#', '');
+      var tab = tabFor(id);
+      document.querySelectorAll('[data-pf-tab]').forEach(function(el) {
+        el.hidden = el.getAttribute('data-pf-tab') !== tab;
+      });
+      document.querySelectorAll('#pfTabs .sub-tab').forEach(function(a) {
+        a.classList.toggle('is-active', a.getAttribute('data-tab') === tab);
+      });
+      // Rail highlight: MCP tokens is reached from Profile.
+      document.dispatchEvent(new CustomEvent('settings:tab', { detail: { tab: tab === 'tokens' ? 'general' : tab } }));
+      if (id && id !== tab && TABS.indexOf(id) === -1) {
+        window.setTimeout(function() {
+          var el = document.getElementById(id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      } else if (id) {
+        window.scrollTo(0, 0);
+      }
+    }
+    window.addEventListener('hashchange', activate);
+    activate();
+  })();
+
+  // ── Tool calls this month (real count from the usage endpoint) ──
+  window.Fluxito._usageData = null;
+  function loadUsage() {
+    return fetch('/api/profile/usage', { credentials: 'same-origin' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) {
+        window.Fluxito._usageData = d;
+        var el = document.getElementById('pfToolCalls');
+        if (el) el.textContent = d ? (d.total || 0).toLocaleString() : '—';
+        return d;
+      })
+      .catch(function() { return null; });
+  }
+  loadUsage();
+
+  // ── Password reset (uses the sign-in "forgot password" flow) ──
+  window.Fluxito._sendPasswordReset = async function() {
+    var btn = document.getElementById('sendResetBtn');
+    var email = (document.getElementById('emailField').value || '').trim();
+    if (!email) { Fluxito.toast('Add your email first', 'error'); return; }
+    btn.disabled = true;
+    try {
+      await fetch('/auth/forgot-password', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      });
+      Fluxito.toast('If email sign-in is enabled, a reset link is on its way to ' + email);
+    } catch (e) { Fluxito.toast('Network error', 'error'); }
+    btn.disabled = false;
+  };
+
+  // ── Save Profile ──
+  window.Fluxito._saveProfile = async function() {
+    var btn = document.getElementById('saveProfileBtn');
+    var name = document.getElementById('displayName').value.trim();
+    var email = document.getElementById('emailField').value.trim();
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      var res = await fetch('/api/profile', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: name, email: email })
+      });
+      var data = await res.json().catch(function() { return {}; });
+      if (res.ok && data.ok) {
+        Fluxito.toast('Profile saved');
+        var el = document.getElementById('profileDisplayName');
+        if (el && name) el.textContent = name;
+        var av = document.getElementById('profileAvatar');
+        if (av && name) av.textContent = name.substring(0, 2).toUpperCase();
+      } else {
+        Fluxito.toast(data.error || 'Failed to update profile', 'error');
+      }
+    } catch(e) { Fluxito.toast('Network error', 'error'); }
+    btn.disabled = false; btn.textContent = 'Save';
+  };
+
+  // ── Usage breakdown modal ──
+  window.Fluxito._openUsageModal = async function() {
+    var body = document.getElementById('usageModalBody');
+    SettingsUI.open('usageModal');
+    body.innerHTML = '<div class="ui-empty">Loading…</div>';
+    var data = await loadUsage();
+    if (!data) { body.innerHTML = '<div class="ui-empty">Could not load usage data.</div>'; return; }
+    var byTool = data.by_tool || [], byPlat = data.by_platform || [], byDay = data.by_day || [];
+    if (!byTool.length && !byPlat.length) { body.innerHTML = '<div class="ui-empty">No usage this month yet.</div>'; return; }
+    var total = data.total || 0;
+    var html = '<div class="pf-usage-total"><b>' + total.toLocaleString() + '</b><span>tool calls in ' + esc(data.month) + '</span></div>';
+    if (byPlat.length) {
+      html += '<div class="ui-label">By platform</div>';
+      byPlat.forEach(function(p) {
+        var pct = total ? Math.round(p.count / total * 100) : 0;
+        html += '<div class="ui-bar"><span>' + esc(p.platform) + '</span><i><b style="width:' + pct + '%"></b></i><em>' + p.count.toLocaleString() + '</em></div>';
+      });
+    }
+    if (byTool.length) {
+      html += '<div class="ui-label">By tool</div>';
+      byTool.slice(0, 15).forEach(function(t) {
+        html += '<div class="pf-usage-tool"><span>' + esc(t.tool) + '</span><b>' + t.count.toLocaleString() + '</b></div>';
+      });
+    }
+    if (byDay.length) {
+      var max = Math.max.apply(null, byDay.map(function(d) { return d.count; }));
+      html += '<div class="ui-label">By day</div><div class="pf-usage-bars">';
+      byDay.forEach(function(d) {
+        var h = max ? Math.max(4, Math.round(d.count / max * 56)) : 4;
+        html += '<i title="' + esc(d.date) + ': ' + d.count + ' calls" style="height:' + h + 'px"></i>';
+      });
+      html += '</div><div class="pf-usage-axis"><span>' + esc(byDay[0].date.slice(5)) + '</span><span>' + esc(byDay[byDay.length - 1].date.slice(5)) + '</span></div>';
+    }
+    body.innerHTML = html;
+  };
+
+  // ── Account management ──
+  window.Fluxito._deactivateAccount = async function() {
+    if (!confirm('Deactivate your account? Your data is kept and you can reactivate later.')) return;
+    try {
+      var res = await fetch('/api/account/deactivate', { method: 'POST', credentials: 'same-origin' });
+      var data = await res.json().catch(function() { return {}; });
+      if (res.ok && data.ok) {
+        Fluxito.toast('Account deactivated');
+        setTimeout(function(){ window.location.reload(); }, 800);
+      } else {
+        Fluxito.toast(data.error || 'Failed to deactivate', 'error');
+      }
+    } catch(e) { Fluxito.toast('Network error', 'error'); }
+  };
+
+  window.Fluxito._reactivateAccount = async function() {
+    try {
+      var res = await fetch('/api/account/reactivate', { method: 'POST', credentials: 'same-origin' });
+      var data = await res.json().catch(function() { return {}; });
+      if (res.ok && data.ok) {
+        Fluxito.toast('Account reactivated');
+        setTimeout(function(){ window.location.reload(); }, 800);
+      } else {
+        Fluxito.toast(data.error || 'Failed to reactivate', 'error');
+      }
+    } catch(e) { Fluxito.toast('Network error', 'error'); }
+  };
+
+  window.Fluxito._deleteAccount = async function() {
+    var input = prompt('This permanently deletes your account and all data.\n\nType DELETE to confirm:');
+    if (input !== 'DELETE') {
+      if (input !== null) Fluxito.toast('Deletion cancelled — confirmation text did not match', 'error');
+      return;
+    }
+    try {
+      var res = await fetch('/api/account/delete', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE' })
+      });
+      var data = await res.json().catch(function() { return {}; });
+      if (res.ok && data.ok) {
+        Fluxito.toast('Account deleted. Goodbye.');
+        setTimeout(function(){ window.location.href = '/'; }, 1500);
+      } else {
+        Fluxito.toast(data.error || 'Failed to delete', 'error');
+      }
+    } catch(e) { Fluxito.toast('Network error', 'error'); }
+  };
+
+  // ── Briefing preferences: pills toggle locally, Save persists all three ──
+  window.Fluxito._savePrefs = async function(payload) {
+    try {
+      var res = await fetch('/api/onboarding/preferences', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('failed');
+      Fluxito.toast('Preferences saved');
+      return true;
+    } catch (e) { Fluxito.toast('Failed to save — try again', 'error'); return false; }
+  };
+
+  function single(groupId, attr) {
+    var group = document.getElementById(groupId);
+    if (!group) return;
+    group.querySelectorAll('[' + attr + ']').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        group.querySelectorAll('[' + attr + ']').forEach(function(b) {
+          b.classList.remove('is-on'); b.setAttribute('aria-checked', 'false');
+        });
+        btn.classList.add('is-on'); btn.setAttribute('aria-checked', 'true');
+      });
+    });
+  }
+  single('pfClientGrid', 'data-client');
+  window.Fluxito._savePrefsForm = async function() {
+    var btn = document.getElementById('savePrefsBtn');
+    var client = document.querySelector('#pfClientGrid .is-on');
+    var payload = {};
+    if (client) payload.ai_client = client.dataset.client;
+    btn.disabled = true;
+    await Fluxito._savePrefs(payload);
+    btn.disabled = false;
+  };
+
+  var copyMcpBtn = document.getElementById('pfCopyMcpUrl');
+  if (copyMcpBtn) {
+    copyMcpBtn.addEventListener('click', function() {
+      Fluxito.copy(document.getElementById('pfMcpUrl').textContent, 'MCP URL');
+    });
+  }
+
+  // ── MCP PATs ──
+  window.Fluxito._createMcpPat = async function() {
+    var btn = document.getElementById('mcpCreateBtn');
+    var nameEl = document.getElementById('mcpTokenName');
+    var expEl = document.getElementById('mcpTokenExpiry');
+    var reveal = document.getElementById('mcpPatReveal');
+    if (!nameEl || !nameEl.value.trim()) { Fluxito.toast('Please enter a name for the token', 'error'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+    try {
+      var res = await fetch('/api/profile/tokens', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nameEl.value.trim(), expiry_days: expEl ? parseInt(expEl.value, 10) : 90 })
+      });
+      var data = await res.json().catch(function() { return {}; });
+      if (res.ok && data.token) {
+        document.getElementById('mcpPatPlain').textContent = data.token;
+        var base = (window.location.origin || '') + '/mcp';
+        document.getElementById('mcpPatSnippet').textContent = 'URL: ' + base + '\nAuthorization: Bearer ' + data.token;
+        if (reveal) reveal.style.display = '';
+        Fluxito.toast('Token created — copy it now (shown only once)');
+        Fluxito._addPatToList(data);
+        nameEl.value = '';
+      } else {
+        Fluxito.toast(data.error || 'Failed to create token', 'error');
+      }
+    } catch(e) {
+      Fluxito.toast('Network error', 'error');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Create token'; }
+  };
+
+  window.Fluxito._addPatToList = function(p) {
+    var container = document.getElementById('mcpPatList');
+    if (!container) return;
+    var list = container.querySelector('.pf-pat-list');
+    if (!list) {
+      container.innerHTML = '<div class="pf-pat-list"></div>';
+      list = container.querySelector('.pf-pat-list');
+    }
+    var name = p.name || '(unnamed)';
+    var expText = p.expires_at ? 'expires ' + String(p.expires_at).slice(0, 10) : 'no expiry';
+    var row = document.createElement('div');
+    row.className = 'ui-row pf-pat-row';
+    row.dataset.id = p.id || '';
+    row.innerHTML = '<div class="ui-grow"><b>' + esc(name) + '</b> <span class="ui-mono ui-muted">' + esc(p.token_hint || '') + '</span></div>'
+      + '<small>' + esc(expText) + '</small>'
+      + '<button type="button" class="ui-btn is-quiet is-danger is-sm">Revoke</button>';
+    row.querySelector('button').addEventListener('click', function() { Fluxito._revokeMcpPat(p.id || '', name); });
+    list.appendChild(row);
+  };
+
+  window.Fluxito._revokeMcpPat = async function(id, label) {
+    if (!confirm('Revoke token "' + (label || id) + '"? Any client using it stops working immediately.')) return;
+    try {
+      var res = await fetch('/api/profile/tokens/' + encodeURIComponent(id) + '/revoke', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      var data = await res.json().catch(function() { return {}; });
+      if (res.ok && data.ok) {
+        Fluxito.toast('Token revoked');
+        var row = document.querySelector('.pf-pat-row[data-id="' + id + '"]');
+        if (row && row.parentNode) row.parentNode.removeChild(row);
+        var list = document.querySelector('#mcpPatList .pf-pat-list');
+        if (list && list.children.length === 0) {
+          document.getElementById('mcpPatList').innerHTML = '<div class="ui-empty pf-empty">No tokens yet. Create one above for a remote machine, SSH, container or CLI.</div>';
+        }
+      } else {
+        Fluxito.toast(data.error || 'Failed to revoke', 'error');
+      }
+    } catch(e) { Fluxito.toast('Network error', 'error'); }
+  };
+});
+</script>
+{% endblock %}

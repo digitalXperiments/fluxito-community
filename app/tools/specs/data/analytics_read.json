@@ -1,0 +1,1260 @@
+[
+  {
+    "tool": "analytics_read",
+    "action": "compare_date_ranges",
+    "summary": "GA4-only: compare one or more metrics between a current and previous date range.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Must be ga4; amplitude/adobe have no compare_date_ranges handler."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "metrics",
+        "type": "array",
+        "required": true,
+        "item_type": "object",
+        "example": [
+          "sessions"
+        ],
+        "doc": "Array of metric strings (object form coerced). Checked BEFORE dates."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Current range start (passed as current_start)."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Current range end (passed as current_end)."
+      },
+      {
+        "name": "previous_start",
+        "type": "string",
+        "required": true,
+        "example": "2026-04-01",
+        "doc": "Previous range start."
+      },
+      {
+        "name": "previous_end",
+        "type": "string",
+        "required": true,
+        "example": "2026-04-30",
+        "doc": "Previous range end."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 connector compare_date_ranges dict (per-metric current/previous values + deltas) | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_active_users",
+    "summary": "Amplitude/Mixpanel/PostHog: DAU/WAU/MAU over a date range (cached 120s). Needs dates.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude/Mixpanel/PostHog get_active_users dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_calculated_metrics",
+    "summary": "Adobe-only: list calculated metrics (cached 300s). property_id (rsid) forwarded but NOT required-checked.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": false,
+        "example": "myrsid",
+        "doc": "Adobe rsid; passed through to connector, NOT validated."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe get_calculated_metrics dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_conversion_events",
+    "summary": "GA4-only: conversion events with counts over a date range. Needs property_id + dates.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements this."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 get_conversion_events dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_dimensions",
+    "summary": "Adobe-only: list available dimensions for a report suite (cached 600s). Needs property_id=rsid.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "myrsid",
+        "doc": "Adobe report-suite id (rsid). Required. NOT GA4-prefixed (Adobe branch does not call _normalize_property_id).",
+        "platforms": [
+          "adobe_analytics"
+        ]
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe get_dimensions dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_event_detail",
+    "summary": "GA4-only: detail for a single event over a date range. Needs property_id+dates+event_name.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "GA4 only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "required": true,
+        "example": "purchase",
+        "doc": "Event to inspect. Required (checked after dates)."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 get_event_detail dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_event_properties",
+    "summary": "Amplitude/Mixpanel/PostHog: list properties seen on a given event. Needs event_name.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "required": true,
+        "example": "purchase",
+        "doc": "Amplitude event type. Required."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude/Mixpanel/PostHog get_event_properties dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_funnel",
+    "summary": "Amplitude/Mixpanel/PostHog: funnel conversion across an ordered list of events. Needs dates; events passed via `metrics`.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      },
+      {
+        "name": "metrics",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "view_item",
+          "add_to_cart",
+          "purchase"
+        ],
+        "doc": "OVERLOADED: for get_funnel `metrics` is actually the ordered list of funnel EVENT names, passed as `metrics or []` to the connector. NOT validated as required — empty list is silently allowed."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude/Mixpanel/PostHog get_funnel dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_metrics",
+    "summary": "Adobe-only: list available metrics for a report suite (cached 600s). Needs property_id=rsid.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "myrsid",
+        "doc": "Adobe rsid. Required.",
+        "platforms": [
+          "adobe_analytics"
+        ]
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe get_metrics dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "adobe_workspace_get_project",
+    "summary": "Adobe-only: fetch one Analysis Workspace project by id, including the full definition JSON needed before an edit.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "project_id",
+        "type": "string",
+        "required": true,
+        "example": "6091a10005c7706c0acdd751",
+        "doc": "Adobe Workspace project id (from adobe_workspace_list_projects). Required. Letters, digits, underscore, hyphen only (1-128 chars). NOT a Fluxito project id.",
+        "platforms": [
+          "adobe_analytics"
+        ]
+      },
+      {
+        "name": "expansion",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "definition",
+          "reportSuiteName",
+          "ownerFullName"
+        ],
+        "doc": "Adobe expansion fields. definition is always included even if omitted so the result is editable."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Full Adobe Workspace project object including definition | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_realtime",
+    "summary": "GA4-only: real-time active-user/event snapshot for a property (cached 30s). property_id only.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements this."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required; no dates needed.",
+        "platforms": [
+          "ga4"
+        ]
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 get_realtime_data dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_retention",
+    "summary": "Amplitude/Mixpanel/PostHog: retention analysis over a date range. Needs dates.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude/Mixpanel/PostHog get_retention dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_revenue",
+    "summary": "Amplitude/Mixpanel/PostHog: revenue metrics over a date range. Needs dates.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude/Mixpanel/PostHog get_revenue dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_segments",
+    "summary": "Adobe-only: list segments (cached 300s). property_id (rsid) is forwarded to the connector but NOT required-checked.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": false,
+        "example": "myrsid",
+        "doc": "Adobe rsid, optionally scopes segment list. Passed through; NOT validated (may be None)."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe get_segments dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "get_user_properties",
+    "summary": "Amplitude/Mixpanel/PostHog: list user properties in the taxonomy (cached 300s). No extra params.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude/Mixpanel/PostHog get_user_properties dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_audiences",
+    "summary": "GA4-only: list configured audiences for a property (cached 600s).",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements this."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required (auto-prefixed).",
+        "platforms": [
+          "ga4"
+        ]
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 list_audiences dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_cohorts",
+    "summary": "Amplitude/Mixpanel/PostHog: list saved cohorts (cached 300s). No extra params.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude list_cohorts dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_custom_dimensions",
+    "summary": "GA4-only: list custom dimensions for a property (cached 600s).",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements this."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required.",
+        "platforms": [
+          "ga4"
+        ]
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 list_custom_dimensions dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_custom_metrics",
+    "summary": "GA4-only: list custom metrics for a property (cached 600s).",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements this."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required.",
+        "platforms": [
+          "ga4"
+        ]
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 list_custom_metrics dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_data_streams",
+    "summary": "GA4-only: list data streams (web/app) for a property (cached 600s).",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements this."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required.",
+        "platforms": [
+          "ga4"
+        ]
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 list_data_streams dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_events",
+    "summary": "GA4: events with counts over a date range (needs property_id+dates). Amplitude: full event taxonomy list (no dates).",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "ga4 and amplitude both implement; adobe falls through to Unknown action."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property. Required for platform=ga4 ONLY.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start. Required for ga4 ONLY (Amplitude list_events takes no dates).",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end. Required for ga4 ONLY.",
+        "platforms": [
+          "ga4"
+        ]
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "GA4: list_events dict (events+counts). Amplitude: get_events_list dict (taxonomy). | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_properties",
+    "summary": "GA4-only: list GA4 properties for the connected account (cached 600s). No property_id needed.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Only ga4 implements list_properties; amplitude/adobe fall through to Unknown action."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 list_properties dict (properties[] with id/display_name) | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "adobe_workspace_list_projects",
+    "summary": "Adobe-only: list Analysis Workspace projects (id/name/rsid/owner). Default expansion omits definition. Official query params only: expansion, includeType, locale, limit, page.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "expansion",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "reportSuiteName",
+          "ownerFullName"
+        ],
+        "doc": "Adobe expansion. Default reportSuiteName,ownerFullName. Include definition only when the full Workspace JSON is needed (token-heavy). Official parameter: https://developer.adobe.com/analytics-apis/docs/2.0/guides/endpoints/projects/parameters"
+      },
+      {
+        "name": "include_type",
+        "type": "string",
+        "required": false,
+        "example": "all",
+        "doc": "Adobe includeType (official): all | shared. See https://developer.adobe.com/analytics-apis/docs/2.0/guides/endpoints/projects/parameters"
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 50,
+        "doc": "Page size (Adobe limit; official pagination parameter)."
+      },
+      {
+        "name": "page",
+        "type": "integer",
+        "required": false,
+        "example": 0,
+        "doc": "0-based Adobe page index (official pagination parameter)."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": false,
+        "example": {
+          "locale": "en_US"
+        },
+        "doc": "Optional official extras: locale (en_US, fr_FR, ...). Undocumented Adobe params (filterByIds, ownerId, sortProperty, sortDirection) are not sent."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{projects:[{id,name,rsid,owner,...}], total, page, total_pages, limit} | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "adobe_workspace_build_definition",
+    "summary": "Adobe-only: build a valid Analysis Workspace definition JSON from a compact tables spec. Use this to inspect the JSON, or skip it — adobe_workspace_create_project builds the same thing automatically from config.tables.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": false,
+        "example": "myrsid",
+        "doc": "Report suite id (rsid). Used when config.rsid is omitted.",
+        "platforms": [
+          "adobe_analytics"
+        ]
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rsid": "myrsid",
+          "date_range": "thisMonth",
+          "tables": [
+            {
+              "name": "Traffic",
+              "metrics": ["visits", "pageviews"],
+              "dimension": "page"
+            }
+          ]
+        },
+        "doc": "rsid required (or property_id). Optional date_range (thisMonth, last30Days, or YYYY-MM-DD/YYYY-MM-DD). tables is an array of {name?, metrics[], dimension?}. Bare metric/dimension names are prefixed (visits → metrics/visits)."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{rsid, definition, message} | {error,error_type,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "adobe_workspace_validate_project",
+    "summary": "Adobe-only: validate a Workspace definition (or compact tables spec) against a report suite via POST /projects/validate. Call this before create if you are sending a raw definition.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": false,
+        "example": "myrsid",
+        "doc": "Report suite id (rsid). Used when config.rsid is omitted.",
+        "platforms": [
+          "adobe_analytics"
+        ]
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rsid": "myrsid",
+          "tables": [
+            {
+              "metrics": ["visits"],
+              "dimension": "page"
+            }
+          ]
+        },
+        "doc": "rsid required. Pass either definition (full Workspace JSON) or tables (compact spec). Fluxito expands compact specs before calling Adobe validate."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{valid, rsid, validator_version, message} | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "list_report_suites",
+    "summary": "Adobe-only: list report suites for the Analytics company (cached 600s). Uses discovery/me for globalCompanyId. No property_id needed.",
+    "group": "CATALOG / METADATA",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only; ga4 rejects via validation, amplitude falls through."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe list_report_suites dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "query_events",
+    "summary": "Amplitude/Mixpanel/PostHog: query a single event over a date range. Needs event_name + dates.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Must be amplitude; ga4 rejects via _VALID_GA4_READ_ACTIONS, adobe falls through."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end."
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "required": true,
+        "example": "purchase",
+        "doc": "Amplitude event type to query. Required (checked after dates)."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude query_events dict | {error,message}",
+    "scope": "analytics_read"
+  },
+  {
+    "tool": "analytics_read",
+    "action": "run_report",
+    "summary": "Run an analytics report. GA4: dims/metrics over a date range. Adobe: same with property_id=rsid. Amplitude has no run_report handler.",
+    "group": "REPORTING",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "Which analytics platform. Amplitude routes here but has NO run_report handler -> Unknown action."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property (bare numeric auto-prefixed 'properties/'); for Adobe this is the report-suite id (rsid). Required for ga4 and adobe_analytics.",
+        "platforms": [
+          "ga4",
+          "adobe_analytics"
+        ]
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Report window start (YYYY-MM-DD or GA4 relative)."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Report window end."
+      },
+      {
+        "name": "dimensions",
+        "type": "array",
+        "required": true,
+        "item_type": "object",
+        "example": [
+          "date",
+          "country"
+        ],
+        "doc": "Array of strings. Also accepts GA4 API object form [{\"name\":\"date\"}] (coerced to 'date' via CoercedStrList BeforeValidator)."
+      },
+      {
+        "name": "metrics",
+        "type": "array",
+        "required": true,
+        "item_type": "object",
+        "example": [
+          "sessions",
+          "totalUsers"
+        ],
+        "doc": "Array of strings. Also accepts [{\"name\":\"sessions\"}] or {\"expression\":\"...\"} object form (coerced). GA4 truncates to first 10 metrics."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 100,
+        "doc": "Max rows. GA4 caps at internal _GA4_MAX_REPORT_LIMIT; passed to Adobe as-is."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "adobe_analytics"
+    ],
+    "returns": "GA4: { rows:[{dimensions:[...],metrics:[...]}], row_count, dimension_headers:[...], metric_headers:[...] }. Adobe: connector-defined report dict. | {error,message}",
+    "scope": "analytics_read"
+  }
+]

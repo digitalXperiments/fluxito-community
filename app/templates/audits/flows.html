@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "audits/_head.html" import audit_head, audit_ask_script %}
+{% block title %}{{ page_title }}{% endblock %}
+{% set active = 'audit_flows' %}
+{% set audit_tab = 'flows' %}
+{% if audit_flow_count is not defined %}{% set audit_flow_count = flows | length %}{% endif %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/auditing.css?v={{ asset_hash('css/auditing.css') }}"/>
+<link rel="stylesheet" href="/static/css/audit_flows.css?v={{ asset_hash('css/audit_flows.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<div class="app-main audit-page">
+
+  {{ audit_head(audit_rulebook_count if audit_rulebook_count is defined else none) }}
+
+  {% include "partials/audit_tabs.html" %}
+
+  <div class="ui-panel af-list-panel">
+    <div class="ui-toolbar af-toolbar">
+      <b class="af-toolbar-title">Replay the journey. Trust every tag.</b>
+      <div class="ui-seg af-filter-chips" id="afStatusFilter" role="group" aria-label="Filter by status">
+        <button type="button" class="af-fchip is-active" data-status="all">All</button>
+        <button type="button" class="af-fchip" data-status="passing">Passing</button>
+        <button type="button" class="af-fchip" data-status="failing">Failing</button>
+        <button type="button" class="af-fchip" data-status="error">Error</button>
+      </div>
+      <div class="ui-right">
+        <input type="search" id="afSearch" class="ui-input af-search" placeholder="Filter flows…" autocomplete="off" aria-label="Filter flows"/>
+        <a href="/audits/flows/new" class="ui-btn is-primary">+ New test flow</a>
+      </div>
+    </div>
+
+    <div id="afFlowsMount"></div>
+  </div>
+
+  <div class="ui-note">
+    <span>Test flows drive a real browser through your site, capture dataLayer events and vendor beacons at each step, and alert Slack or email when a check fails.</span>
+  </div>
+
+  {# Empty-state template (cloned by JS when no flows exist) #}
+  <template id="afEmptyTpl">
+    <div class="ui-empty af-empty">
+      <b>No test flows yet</b>
+      Record a checkout, a signup, a key conversion — then replay it and verify every tag fires. Your first flow takes about two minutes to build.
+      <div class="af-empty-act"><a href="/audits/flows/new" class="ui-btn is-primary">+ Build your first flow</a></div>
+    </div>
+  </template>
+
+</div>{# /app-main #}
+{% endblock %}
+
+{% block scripts %}
+<script>window.__AUDIT_FLOWS__ = {{ flows | tojson }};</script>
+<script src="/static/js/audit_flows.js?v={{ asset_hash('js/audit_flows.js') }}" defer></script>
+{{ audit_ask_script() }}
+{% endblock %}

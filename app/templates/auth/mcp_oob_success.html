@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Authorization code — {{ brand().name }}{% endblock %}
+{% block nav %}
+<nav class="mcp-consent-nav">
+  <div class="mcp-consent-nav-inner">
+    <a href="/home" class="mcp-consent-nav-wordmark" aria-label="{{ brand().name }} home">
+      {{ wordmark() }}
+    </a>
+    <div class="mcp-consent-account" title="Remote / headless auth">
+      <div class="mcp-consent-avatar">R</div>
+      <div class="mcp-consent-account-copy">
+        <span>Remote auth</span>
+        <small>Copy the code below</small>
+      </div>
+    </div>
+  </div>
+</nav>
+{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block main %}
+<div class="mcp-consent-shell">
+  <div class="mcp-consent-card" style="max-width:560px">
+    <div class="mcp-consent-brand">
+      <a href="/" aria-label="{{ brand().name }} home">
+        <span class="mcp-consent-wordmark">{{ brand().name }}<span>.</span></span>
+      </a>
+    </div>
+
+    <div class="mcp-consent-icon" aria-hidden="true" style="background:color-mix(in srgb, var(--green) 12%, transparent);border-color:color-mix(in srgb, var(--green) 30%, var(--line));color:var(--green)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </div>
+
+    <div class="mcp-consent-lead" style="text-align:left">
+      <span class="mcp-consent-kicker">Authorization successful</span>
+      <h1 style="font-size:26px">Copy this code</h1>
+      <p style="max-width:none">Paste it back into the terminal or CLI on your remote machine to complete the connection. This code expires in about 10 minutes.</p>
+    </div>
+
+    <div style="margin:16px 0">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Authorization code</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <code id="oobCode" style="flex:1;font-family:var(--mono);font-size:15px;word-break:break-all;background:var(--bg-2);padding:10px 12px;border:1px solid var(--line);border-radius:6px">{{ code }}</code>
+        <button type="button" class="btn" onclick="if (window.Fluxito && Fluxito.copy) { Fluxito.copy(document.getElementById('oobCode').textContent, 'Auth code'); } else { navigator.clipboard.writeText(document.getElementById('oobCode').textContent); }">Copy</button>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--muted);line-height:1.5">
+      Return to the machine running your MCP client and paste the code when prompted.<br>
+      If your client does not support manual code entry, use a Personal Access Token from your Profile instead (recommended for most remote setups).
+    </div>
+
+    <div style="margin-top:18px">
+      <a href="/profile" class="btn" style="width:100%;justify-content:center">Go to Profile (manage tokens)</a>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Reuse most of the consent styles already present in the page via base + consent rules.
+   Only tiny overrides here if the consent CSS isn't loaded for this template. */
+.mcp-consent-shell { min-height: calc(100vh - 120px); display:flex; align-items:center; justify-content:center; padding:48px 16px; }
+.mcp-consent-card { width:100%; max-width:520px; background:var(--bg); border:1px solid var(--line); border-radius:var(--r-l); padding:38px 36px 34px; box-shadow:0 18px 50px -34px color-mix(in srgb, var(--ink) 40%, transparent); }
+</style>
+{% endblock %}

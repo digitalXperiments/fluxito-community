@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}You're invited{% if project_name %} to {{ project_name }}{% endif %} — {{ brand().name }}{% endblock %}
+
+{% block main %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <a href="/"><span class="auth-brand-mark">{{ brand().name }}<span class="auth-brand-dot">.</span></span></a>
+    </div>
+
+    {% if state == 'invalid' %}
+    <div class="auth-lead">
+      <h1>This invitation has <em class="serif-italic">expired.</em></h1>
+      <p>It was already used, revoked, or is more than 14 days old. Ask the person who invited you to send a new one.</p>
+    </div>
+    <a class="btn block" href="/signin">Go to sign in</a>
+
+    {% else %}
+    <div class="auth-lead">
+      <h1>Join <em class="serif-italic">{{ project_name }}.</em></h1>
+      <p>You've been invited as <b>{{ role | capitalize }}</b> · {{ invite_email }}</p>
+    </div>
+
+    {% if state == 'accept' %}
+    <div class="auth-form">
+      <button type="button" class="btn primary block" id="acceptBtn">Accept invitation</button>
+      <a class="btn block" href="/home" style="margin-top:8px">Not now</a>
+      <div id="invMsg" class="auth-message auth-error" style="display:none;"></div>
+    </div>
+
+    {% elif state == 'wrong_account' %}
+    <div class="auth-message auth-error" style="display:block;margin:0 0 18px;">
+      You're signed in as <b>{{ me_email }}</b>, but this invitation is for <b>{{ invite_email }}</b>.
+    </div>
+    <a class="btn primary block" href="/signout?next={{ ('/invite/' ~ token) | urlencode }}">Sign out and continue</a>
+
+    {% elif state == 'sign_in' %}
+    <p class="ui-muted">You already have an account. Sign in as {{ invite_email }} to accept.</p>
+    <a class="btn primary block" href="/signin?next={{ ('/invite/' ~ token) | urlencode }}">Sign in to accept</a>
+
+    {% else %}
+    <a class="btn block" href="/auth/google/start?next={{ ('/invite/' ~ token) | urlencode }}" style="margin-bottom:14px">Continue with Google</a>
+    <form id="regForm" class="auth-form" autocomplete="off">
+      <div class="f-field"><span>Your name</span><input type="text" id="regName" class="f-input" placeholder="Optional" autocomplete="name"></div>
+      <div class="f-field"><span>Email</span><input type="email" class="f-input" value="{{ invite_email }}" readonly></div>
+      <div class="f-field"><span>Choose a password</span><input type="password" id="regPw" class="f-input" placeholder="Min. 8 characters" required minlength="8" autocomplete="new-password"></div>
+      <button type="submit" class="btn primary block" id="regBtn" style="margin-top:6px">Create account &amp; join</button>
+      <div id="invMsg" class="auth-message auth-error" style="display:none;"></div>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  var token = {{ token | tojson }};
+  var msg = document.getElementById('invMsg');
+  function fail(t) { if (msg) { msg.textContent = t; msg.style.display = 'block'; } }
+  async function post(url, body, btn) {
+    btn.disabled = true;
+    try {
+      var r = await fetch(url, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+      var d = await r.json().catch(function () { return {}; });
+      if (!r.ok) throw new Error(d.detail || d.message || 'Something went wrong.');
+      window.location.href = d.redirect || '/home';
+    } catch (e) { fail(e.message); btn.disabled = false; }
+  }
+  var acc = document.getElementById('acceptBtn');
+  if (acc) acc.addEventListener('click', function () { post('/api/invites/by-token/accept', {token: token}, acc); });
+  var reg = document.getElementById('regForm');
+  if (reg) reg.addEventListener('submit', function (e) {
+    e.preventDefault();
+    post('/api/invites/by-token/register', {
+      token: token,
+      display_name: document.getElementById('regName').value,
+      password: document.getElementById('regPw').value
+    }, document.getElementById('regBtn'));
+  });
+})();
+</script>
+{% endblock %}

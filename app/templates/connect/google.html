@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% from "partials/platform_icons.html" import platform_icon %}
+{% block title %}{% if is_new %}Connect Google Suite{% else %}Edit Google Suite{% endif %} — Fluxito{% endblock %}
+{% set active = 'connect' %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/connections.css?v={{ asset_hash('css/connections.css') }}"/>
+<style>
+.g-res-group + .g-res-group { margin-top: 18px; }
+.g-res-h { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.g-res-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; cursor: pointer; }
+.g-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-res-grp { font-size: 12px; }
+</style>
+<main class="app-main cx-flow">
+  <a href="/settings/connections" class="cx-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Connections
+  </a>
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Connections · Google</div>
+      <h1 class="page-title">{% if is_new %}Connect{% else %}Edit{% endif %} <em>Google.</em></h1>
+      {% if editing %}
+      <p class="page-sub">{{ editing.email }} · change services or access levels, then reconnect.</p>
+      {% else %}
+      <p class="page-sub">One Google sign-in, access chosen per service. Fluxito asks Google only for the scopes you tick.</p>
+      {% endif %}
+    </div>
+    <div class="ui-page-actions cx-handshake" aria-hidden="true">
+      <span class="cx-logo"><img src="/static/img/fluxito-mark.svg?v=4" alt="" width="24" height="24"></span>
+      <span class="cx-sep">⇄</span>
+      <span class="cx-logo">{{ platform_icon("google", 24) }}</span>
+    </div>
+  </div>
+
+  <div class="cx-flow-grid">
+    <section class="ui-panel">
+      <div class="ui-panel-h">
+        <h2>Services</h2>
+        <span class="ui-sub">Tick a service and choose its access level</span>
+      </div>
+
+      <div id="googleServicesForm">
+        {# ── GA4 ── #}
+        <div class="cx-gsvc" id="svcCardGA4">
+          <label class="cx-gsvc-check"><input type="checkbox" id="gSvcGA4" aria-label="Enable Google Analytics 4" {% if is_new or (editing and editing.has_ga4) %}checked{% endif %} onchange="toggleCard('GA4')"></label>
+          <span class="cx-logo">{{ platform_icon("ga4", 20) }}</span>
+          <div class="cx-gsvc-body">
+            <b>Google Analytics 4</b>
+            <small>{% if editing and editing.ga4_properties > 0 %}{{ editing.ga4_properties }} propert{{ 'y' if editing.ga4_properties == 1 else 'ies' }} discovered{% else %}Query reports, audiences, and real-time data{% endif %}</small>
+          </div>
+          <select id="gSvcGA4Level" class="ui-input" aria-label="GA4 access level">
+            <option value="read" {% if not editing or not editing.ga4_write %}selected{% endif %}>Read only</option>
+            <option value="write" {% if editing and editing.ga4_write %}selected{% endif %}>Read + Write</option>
+          </select>
+        </div>
+
+        {# ── GTM ── #}
+        <div class="cx-gsvc" id="svcCardGTM">
+          <label class="cx-gsvc-check"><input type="checkbox" id="gSvcGTM" aria-label="Enable Google Tag Manager" {% if is_new or (editing and editing.has_gtm) %}checked{% endif %} onchange="toggleCard('GTM')"></label>
+          <span class="cx-logo">{{ platform_icon("gtm", 20) }}</span>
+          <div class="cx-gsvc-body">
+            <b>Google Tag Manager</b>
+            <small>{% if editing and editing.gtm_containers > 0 %}{{ editing.gtm_containers }} container{{ 's' if editing.gtm_containers != 1 else '' }} discovered{% else %}Manage tags, triggers, and variables{% endif %}</small>
+          </div>
+          <select id="gSvcGTMLevel" class="ui-input" aria-label="Tag Manager access level">
+            <option value="read" {% if not editing or not editing.gtm_write %}selected{% endif %}>Read only</option>
+            <option value="write" {% if editing and editing.gtm_write %}selected{% endif %}>Edit + Publish</option>
+          </select>
+        </div>
+
+        {# ── Google Search Console ── #}
+        <div class="cx-gsvc" id="svcCardGSC">
+          <label class="cx-gsvc-check"><input type="checkbox" id="gSvcGSC" aria-label="Enable Search Console" {% if is_new or (editing and editing.has_gsc) %}checked{% endif %} onchange="toggleCard('GSC')"></label>
+          <span class="cx-logo">{{ platform_icon("search_console", 20) }}</span>
+          <div class="cx-gsvc-body">
+            <b>Google Search Console</b>
+            <small>{% if editing and editing.gsc_sites and editing.gsc_sites > 0 %}{{ editing.gsc_sites }} site{{ 's' if editing.gsc_sites != 1 else '' }} discovered{% else %}Organic search queries, CTR, impressions, and sitemaps{% endif %}</small>
+          </div>
+          <select id="gSvcGSCLevel" class="ui-input" aria-label="Search Console access level">
+            <option value="read" {% if not editing or not editing.gsc_write %}selected{% endif %}>Read only</option>
+            <option value="write" {% if editing and editing.gsc_write %}selected{% endif %}>Read + Sitemap write</option>
+          </select>
+        </div>
+
+        {# ── Google Ads ── #}
+        <div class="cx-gsvc" id="svcCardAds">
+          <label class="cx-gsvc-check"><input type="checkbox" id="gSvcAds" aria-label="Enable Google Ads" {% if is_new or (editing and editing.has_ads) %}checked{% endif %} onchange="toggleCard('Ads')"></label>
+          <span class="cx-logo">{{ platform_icon("google_ads", 20) }}</span>
+          <div class="cx-gsvc-body">
+            <b>Google Ads</b>
+            <small>{% if editing and editing.ads_accounts > 0 %}{{ editing.ads_accounts }} account{{ 's' if editing.ads_accounts != 1 else '' }} discovered{% else %}Campaign performance, keywords, and conversions{% endif %}</small>
+          </div>
+          <span class="ui-chip no-dot">Read only</span>
+        </div>
+
+        {# ── Google Data Manager / Audiences ── #}
+        <div class="cx-gsvc" id="svcCardDataManager">
+          <label class="cx-gsvc-check"><input type="checkbox" id="gSvcDataManager" aria-label="Enable Google Data Manager" {% if editing and editing.has_data_manager %}checked{% endif %} onchange="toggleCard('DataManager')"></label>
+          <span class="cx-logo">{{ platform_icon("google", 18) }}</span>
+          <div class="cx-gsvc-body">
+            <b>Google Data Manager</b>
+            <small>Create audiences and manage audience members</small>
+          </div>
+          <span class="ui-chip no-dot is-accent">Read + Write</span>
+        </div>
+      </div>
+
+      <div class="ui-panel-b" style="border-top:1px solid var(--line)">
+        <div class="ui-note" style="margin-bottom:0">
+          <span>{% if is_new %}You'll be redirected to Google to sign in. Only the scopes for your selected services will be requested.{% else %}Changing services or access levels requires re-authenticating with Google. Your existing data and discovered properties will be preserved.{% endif %}</span>
+        </div>
+        <div class="oi-actions">
+          <button type="button" class="ui-btn is-primary oi-cta g-cta" onclick="connectGoogle()">
+            {{ platform_icon("google", 14) }}
+            {% if is_new %}Continue with Google{% else %}Save &amp; reconnect{% endif %}
+          </button>
+          <a href="/settings/connections" class="ui-btn">Cancel</a>
+        </div>
+      </div>
+    </section>
+
+    {% if editing and can_manage_resources %}
+    <section class="ui-panel g-res" id="gResources" data-conn="{{ editing.id }}" style="grid-column:1/-1">
+      <div class="ui-panel-h">
+        <div class="set-grow">
+          <h2>Linked resources</h2>
+          <div class="ui-sub">This Google sign-in can see these properties, containers and ad accounts. Your AI in this project can only use the ones ticked — untick other clients' resources. New ones appear after you reconnect.</div>
+        </div>
+      </div>
+      <div class="ui-panel-b" id="gResBody"><p class="ui-muted" style="margin:0">Loading…</p></div>
+    </section>
+    {% endif %}
+
+    <aside class="cx-flow-aside">
+      <section class="ui-panel">
+        <div class="ui-panel-h"><h3>Access levels</h3></div>
+        <div class="ui-panel-b">
+          <p>Read only is the default. Write access lets your AI make changes in that service — GTM workspaces, GA4 admin edits, sitemaps — and every write is flagged in the <a href="/activity-log">Activity log</a>.</p>
+          <p>Tokens are encrypted at rest and never sent to your AI or to hosted dashboards.</p>
+        </div>
+        <a href="/tutorials/google-cloud-setup" class="cx-aside-link">Google Cloud setup guide <span>→</span></a>
+        <a href="/settings/connections" class="cx-aside-link">All connections <span>→</span></a>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<script>
+(function () {
+  var host = document.getElementById('gResources');
+  if (!host) return;
+  var conn = host.getAttribute('data-conn');
+  var body = document.getElementById('gResBody');
+  var LABELS = {ga4: 'GA4 properties', gtm: 'GTM containers', ads: 'Google Ads accounts'};
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function render(data) {
+    var html = '';
+    ['ga4', 'gtm', 'ads'].forEach(function (k) {
+      var rows = data[k] || [];
+      if (!rows.length) return;
+      var on = rows.filter(function (r) { return r.linked; }).length;
+      html += '<div class="g-res-group"><div class="g-res-h"><b>' + LABELS[k] + '</b> <span class="ui-muted">' + on + ' of ' + rows.length + ' linked</span></div>';
+      rows.forEach(function (r) {
+        html += '<label class="g-res-row"><input type="checkbox" data-type="' + k + '" data-id="' + esc(r.id) + '"' + (r.linked ? ' checked' : '') + '>' +
+          '<span class="g-res-name">' + esc(r.name) + '</span><span class="ui-mono ui-muted">' + esc(r.resource_id) + '</span>' +
+          (r.group ? '<span class="ui-muted g-res-grp">' + esc(r.group) + '</span>' : '') + '</label>';
+      });
+      html += '</div>';
+    });
+    body.innerHTML = html || '<p class="ui-muted" style="margin:0">Nothing discovered yet — reconnect Google to discover properties, containers and ad accounts.</p>';
+  }
+  function load() {
+    fetch('/api/connections/google/' + conn + '/resources', {credentials: 'same-origin'})
+      .then(function (r) { if (!r.ok) throw new Error('load'); return r.json(); })
+      .then(render)
+      .catch(function () { body.innerHTML = '<p class="ui-muted" style="margin:0">Couldn\'t load linked resources.</p>'; });
+  }
+  body.addEventListener('change', function (e) {
+    var cb = e.target;
+    if (!cb.matches('input[type=checkbox][data-id]')) return;
+    cb.disabled = true;
+    fetch('/api/connections/google/' + conn + '/resources', {
+      method: 'PUT', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({type: cb.getAttribute('data-type'), id: cb.getAttribute('data-id'), linked: cb.checked})
+    }).then(function (r) {
+      if (!r.ok) throw new Error('save');
+      if (window.Fluxito && Fluxito.toast) Fluxito.toast(cb.checked ? 'Linked to this project' : 'Unlinked from this project');
+      load();
+    }).catch(function () {
+      cb.checked = !cb.checked;
+      if (window.Fluxito && Fluxito.toast) Fluxito.toast('Couldn\'t save', 'error');
+    }).finally(function () { cb.disabled = false; });
+  });
+  load();
+})();
+
+function toggleCard(svc) {
+  var checked = document.getElementById('gSvc' + svc).checked;
+  var card = document.getElementById('svcCard' + svc);
+  card.classList.toggle('is-off', !checked);
+}
+
+// Init card states on load
+['GA4', 'DataManager', 'GTM', 'Ads', 'GSC'].forEach(function(svc) { toggleCard(svc); });
+
+function connectGoogle() {
+  var products = [];
+  if (document.getElementById('gSvcGA4').checked) products.push('ga4');
+  if (document.getElementById('gSvcDataManager').checked) products.push('data_manager');
+  if (document.getElementById('gSvcGTM').checked) products.push('gtm');
+  if (document.getElementById('gSvcAds').checked) products.push('ads');
+  if (document.getElementById('gSvcGSC').checked) products.push('gsc');
+
+  if (products.length === 0) {
+    Fluxito.toast('Select at least one service', 'error');
+    return;
+  }
+
+  var writeGA4 = document.getElementById('gSvcGA4').checked && document.getElementById('gSvcGA4Level').value === 'write' ? '1' : '0';
+  var writeGTM = document.getElementById('gSvcGTM').checked && document.getElementById('gSvcGTMLevel').value === 'write' ? '1' : '0';
+  var writeGSC = document.getElementById('gSvcGSC').checked && document.getElementById('gSvcGSCLevel').value === 'write' ? '1' : '0';
+
+  var url = '/api/connections/google/initiate?products=' + products.join(',') + '&write_ga4=' + writeGA4 + '&write_gtm=' + writeGTM + '&write_gsc=' + writeGSC + '&project_id={{ active_project_id or "" }}';
+  window.location.href = url;
+}
+</script>
+{% endblock %}

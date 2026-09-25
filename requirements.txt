@@ -1,0 +1,98 @@
+# Core web framework
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+gunicorn==22.0.0
+# uvicorn[standard] already pulls this; pin the range we test against.
+websockets>=12,<16
+
+# Model Context Protocol (MCP) — Claude integration
+# 1.20+ required — Streamable HTTP transport + fixed Tool.from_function
+# handling of `typing.Any` / union annotations under `from __future__
+# import annotations` (broken in 1.12.x).
+mcp[cli]>=1.20,<2.0
+
+# ── Database & ORM ─────────────────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# ── Cache ──────────────────────────────────────────────────────────────────
+redis[asyncio]==5.2.1
+
+# ── Security & Authentication ─────────────────────────────────────────────
+cryptography==44.0.2
+authlib==1.3.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1                        # passlib 1.7.4 incompatible with bcrypt >=4.1
+
+# ── Google APIs ────────────────────────────────────────────────────────────
+google-auth==2.38.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.161.0
+google-analytics-data==0.18.14
+google-analytics-admin==0.23.2
+google-ads==28.0.0
+google-cloud-bigquery==3.40.1
+google-cloud-storage==2.14.0
+
+# ── Social Media SDKs ──────────────────────────────────────────────────────
+facebook-business==21.0.1
+
+# ── Data Warehouse Connectors ──────────────────────────────────────────────
+redshift-connector==2.1.4
+snowflake-connector-python==3.12.3
+
+# ── JWT token generation (Adobe IMS, generic) ──────────────────────────────
+PyJWT>=2.10.1,<3.0
+
+# ── Pydantic — must be >=2.8.0 for mcp>=1.0 ──────────────────────────────
+# pydantic bumped to match mcp 1.20+ requirements (needs >=2.11)
+pydantic>=2.11,<3.0
+# 2.15 surfaces MCP 1.29's unresolved generic `lifespan` annotation as an
+# IncompleteFieldDefinitionWarning; pytest promotes warnings to errors during
+# app.main collection. Remove the cap once MCP rebuilds its Settings model.
+pydantic-settings>=2.7,<2.15
+
+# ── Markdown parsing (SDR feature — YAML frontmatter extraction) ──────────
+python-frontmatter==1.1.0
+
+# ── Excel export (SDR spreadsheet export) ─────────────────────────────────
+openpyxl==3.1.5
+
+# ── HTTP utilities & configuration ────────────────────────────────────────
+httpx==0.28.1
+python-dotenv==1.0.1
+jinja2==3.1.5
+python-multipart==0.0.20
+
+# ── Anthropic SDK (Haiku/Sonnet for dashboard generation + improvise) ─────────
+anthropic>=0.40.0,<1.0
+
+# ── PDF generation (dashboard export + scheduled reports) ──────────────────
+# Headless Chromium renders the live dashboard view (charts included) to PDF.
+# The Chromium browser binary + its OS deps are installed in the Dockerfile
+# via `playwright install --with-deps chromium`.
+playwright==1.49.0
+
+# ── Email delivery (scheduled reports + Share-PDF emails) ──────────────────
+# aiosmtplib: pure-Python async SMTP client (no native deps).
+# boto3: wrapped in asyncio.to_thread for SES (avoids aiobotocore overhead).
+aiosmtplib==3.0.2
+boto3==1.34.162
+
+# ── Structured logging ────────────────────────────────────────────────────
+structlog==24.4.0
+
+# ── Scheduler for automated reports ─────────────────────────────────────────
+# APScheduler with Redis jobstore prevents double-firing on multi-replica deploys.
+apscheduler==3.10.4
+
+# ── Billing & payments ────────────────────────────────────────────────────
+stripe>=8.0.0
+
+# ── Content rendering ──
+markdown>=3.6
+
+# ── Observability (optional — Sentry error tracking & performance monitoring) ──
+sentry-sdk[fastapi]>=2.0.0

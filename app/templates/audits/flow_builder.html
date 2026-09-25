@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% set active = 'audit_flows' %}
+{% set audit_tab = 'flows' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/auditing.css?v={{ asset_hash('css/auditing.css') }}"/>
+<link rel="stylesheet" href="/static/css/audit_flows.css?v={{ asset_hash('css/audit_flows.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<div class="app-main audit-page" id="afBuilder" data-project-slug="{{ active_project_slug or '' }}">
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow"><a href="/audits/flows" class="au-crumb">Test flows</a> / {{ 'Edit flow' if flow else 'New flow' }}</div>
+      <h1 class="page-title">{% if flow %}{{ flow.name }}{% else %}Replay the journey. <em>Trust every tag.</em>{% endif %}</h1>
+      <p class="page-sub">Define the journey, then attach dataLayer and vendor-beacon assertions to each step. They're checked on every run.</p>
+    </div>
+    <div class="ui-page-actions af-builder-actions">
+      <a href="/audits/flows" class="ui-btn is-quiet">Cancel</a>
+      <button type="button" class="ui-btn is-primary" id="afSaveBtn">Save flow</button>
+    </div>
+  </div>
+
+  <div class="af-builder">
+    {# ── Left / main column ── #}
+    <div class="af-main-col">
+      <div class="ui-panel af-card">
+        <div class="ui-panel-h"><h3>Flow details</h3></div>
+        <div class="ui-panel-b">
+        <div class="af-field">
+          <label class="af-label" for="afName">Name</label>
+          <input type="text" id="afName" class="af-input" placeholder="e.g. Checkout — purchase fires"/>
+        </div>
+        <div class="af-field">
+          <label class="af-label" for="afBaseUrl">Base URL</label>
+          <input type="text" id="afBaseUrl" class="af-input mono" placeholder="https://example.com"/>
+          <div class="af-help">Absolute steps override this; relative navigate steps join to it.</div>
+        </div>
+        <div class="af-field">
+          <label class="af-label">Device</label>
+          <div class="af-seg" id="afDevice">
+            <button type="button" data-device="desktop" class="is-active">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              Desktop
+            </button>
+            <button type="button" data-device="mobile_web">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+              Mobile web
+            </button>
+          </div>
+        </div>
+        <div class="af-field">
+          <label class="af-label" for="afDesc">Description</label>
+          <textarea id="afDesc" class="af-textarea" placeholder="What this flow verifies (optional)"></textarea>
+        </div>
+        </div>
+      </div>
+
+      <div class="ui-panel af-card">
+        <div class="ui-panel-h"><h3>Steps</h3></div>
+        <div class="ui-panel-b">
+        <div class="af-steps-rail" id="afStepsRail"></div>
+        <div id="afStepEditor"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Right column ── #}
+    <div class="af-side-col">
+      <div class="ui-panel af-card">
+        <div class="ui-panel-h"><h3>Schedule</h3></div>
+        <div class="ui-panel-b">
+        <div class="af-preset-row" id="afPresets">
+          <button type="button" class="af-preset" data-cron="0 * * * *">Hourly</button>
+          <button type="button" class="af-preset" data-cron="0 9 * * *">Daily</button>
+          <button type="button" class="af-preset" data-cron="0 9 * * 1">Weekly</button>
+          <button type="button" class="af-preset" data-cron="0 9 1 * *">Monthly</button>
+        </div>
+        <div class="af-field">
+          <label class="af-label" for="afCron">Cron expression</label>
+          <input type="text" id="afCron" class="af-input mono" placeholder="—  (no schedule)"/>
+          <div class="af-help">5-field cron. Runs in the flow's timezone.</div>
+        </div>
+        <div class="af-field">
+          <label class="af-label" for="afTz">Timezone</label>
+          <input type="text" id="afTz" class="af-input mono" placeholder="UTC" value="UTC"/>
+        </div>
+        <button type="button" class="af-mini-add" id="afClearCron">Clear schedule</button>
+        <div class="af-field" style="margin-top:12px;display:flex;align-items:center;gap:10px;">
+          <label class="af-switch"><input type="checkbox" id="afEnabled"><span class="af-slider"></span></label>
+          <span class="af-label" style="margin:0;">Enabled</span>
+        </div>
+        </div>
+      </div>
+
+      <div class="ui-panel af-card">
+        <div class="ui-panel-h"><h3>Notifications</h3></div>
+        <div class="ui-panel-b">
+        <div class="af-field" style="display:flex;align-items:center;gap:10px;">
+          <label class="af-switch"><input type="checkbox" id="afSlackOn"><span class="af-slider"></span></label>
+          <span class="af-label" style="margin:0;">Slack</span>
+        </div>
+        <div id="afSlackWrap" hidden>
+          <div id="afSlackList" class="af-check-list"></div>
+          <div class="af-help" id="afSlackHint"></div>
+        </div>
+
+        <div class="af-field" style="display:flex;align-items:center;gap:10px;margin-top:16px;">
+          <label class="af-switch"><input type="checkbox" id="afEmailOn"><span class="af-slider"></span></label>
+          <span class="af-label" style="margin:0;">Email</span>
+        </div>
+        <div id="afEmailWrap" hidden>
+          <div class="af-field">
+            <label class="af-label" for="afEmailSender">Sender</label>
+            <select id="afEmailSender" class="af-select"></select>
+          </div>
+          <div class="af-field">
+            <label class="af-label" for="afRecipients">Recipients</label>
+            <input type="text" id="afRecipients" class="af-input" placeholder="alice@example.com, bob@example.com"/>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ui-panel af-card">
+        <div class="ui-panel-h"><h3>Groups</h3></div>
+        <div class="ui-panel-b">
+        <div class="af-chip-row" id="afGroups"></div>
+        <input type="text" id="afGroupInput" class="af-input af-input-sm" placeholder="Add a tag + Enter" style="margin-top:8px;"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>{# /app-main #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.__FLOW__ = {{ (flow if flow else None) | tojson }};
+  window.__VENDORS__ = {{ vendors | tojson }};
+</script>
+<script src="/static/js/flow_builder.js?v={{ asset_hash('js/flow_builder.js') }}" defer></script>
+{% endblock %}

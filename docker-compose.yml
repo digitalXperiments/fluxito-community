@@ -1,0 +1,154 @@
+name: fluxito
+
+services:
+  # ── nginx reverse proxy ────────────────────────────────────────────────────
+  # Single external entry point on port 8000. Proxies all traffic to FastAPI.
+  # Point ngrok (or any tunnel) at port 8000 as before — no changes needed.
+  nginx:
+    container_name: fluxito-nginx
+    image: ghcr.io/digitalxperiments/fluxito-community-nginx:${FLUXITO_VERSION:-latest}
+    ports:
+      - "8000:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  app:
+    container_name: fluxito-app
+    image: ghcr.io/digitalxperiments/fluxito-community:${FLUXITO_VERSION:-latest}
+    # No external port — nginx proxies to app:8001 internally
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/fluxito
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=${APP_ENV:-development}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8000}
+      - UPDATER_URL=http://updater:9000
+      - UPDATER_TOKEN=${UPDATER_TOKEN:-}
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8001/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  updater:
+    container_name: fluxito-updater
+    image: ghcr.io/digitalxperiments/fluxito-community-updater:${FLUXITO_VERSION:-latest}
+    environment:
+      - UPDATER_TOKEN=${UPDATER_TOKEN:-}
+      - COMPOSE_FILE=/compose/docker-compose.yml
+      - ENV_FILE=/compose/.env
+      - STATE_FILE=/state/update.json
+      - APP_SERVICE=app
+      - HEALTH_TIMEOUT=180
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/compose/docker-compose.yml:ro
+      - ./.env:/compose/.env
+      - update_state:/state
+    restart: unless-stopped
+
+  db:
+    container_name: fluxito-db
+    image: postgres:15
+    environment:
+      POSTGRES_DB: fluxito
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    # ── PostgreSQL tuning — conservative defaults for self-hosting ──
+    # Works on machines with 2 GB+ RAM. Tune up for production.
+    # See: https://wiki.postgresql.org/wiki/Performance_Optimization
+    command: >
+      postgres
+        -c max_connections=100
+        -c shared_buffers=256MB
+        -c effective_cache_size=512MB
+        -c work_mem=4MB
+        -c maintenance_work_mem=64MB
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+        -c wal_buffers=16MB
+        -c checkpoint_completion_target=0.9
+        -c log_min_duration_statement=1000
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fluxito"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    container_name: fluxito-redis
+    image: redis:7-alpine
+    # AOF persistence ensures durability.
+    #
+    # Eviction policy rationale:
+    #   ``allkeys-lru`` (previous) evicted ANY key under pressure, which meant
+    #   session tokens and rate-limit buckets could silently disappear —
+    #   users mysteriously logged out, rate limiting silently off.
+    #
+    #   ``volatile-ttl`` only considers keys that have a TTL AND picks the
+    #   one with the soonest expiry first. Cache entries carry short TTLs
+    #   (minutes); session tokens carry long TTLs (1h access / 30d refresh).
+    #   Under pressure the cache gets thrown away before any auth state
+    #   does, which is exactly the fallback behavior we want.
+    #
+    # Maxmemory bumped 512MB → 1GB to give real headroom and keep the
+    # eviction path cold in normal operation.
+    command: >
+      redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 1gb
+        --maxmemory-policy volatile-ttl
+        --tcp-backlog 511
+        --timeout 300
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+volumes:
+  postgres_data:
+  redis_data:
+  update_state:

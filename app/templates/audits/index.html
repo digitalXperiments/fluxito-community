@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% from "audits/_head.html" import audit_head, audit_ask_script, plat_name %}
+{% block title %}{{ page_title }}{% endblock %}
+{% set active = 'audits' %}
+{% set audit_tab = 'runs' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/auditing.css?v={{ asset_hash('css/auditing.css') }}"/>
+{% endblock %}
+
+{% block main %}
+{% macro tier_of(score) -%}
+{%- if score is none -%}unknown{%- elif score >= 90 -%}excellent{%- elif score >= 70 -%}good{%- elif score >= 50 -%}fair{%- else -%}poor{%- endif -%}
+{%- endmacro %}
+{% macro sev_cls(sev) -%}
+{{ 'bad' if sev == 'critical' else ('warn' if sev == 'warning' else 'info') }}
+{%- endmacro %}
+{% macro type_label(t) -%}
+{{ audit_type_labels.get(t) or ((t or 'audit') | replace('_', ' ') | title) }}
+{%- endmacro %}
+{% set by_labels = {'claude': 'AI client', 'schedule': 'Schedule', 'manual': 'Manual'} %}
+
+<div class="app-main audit-page">
+
+  {% set latest = runs[0] if runs else none %}
+  {% set n_books = platforms_summary | length %}
+
+  {{ audit_head(n_books) }}
+
+  {% include "partials/audit_tabs.html" %}
+
+  {# ── Live / in-progress run card ──────────────────────────
+     Guarded on `active_run`, populated by the /audits route from the
+     most recent AuditRun with status='running'. Only `title`/`status`
+     are real today — there's no progress-telemetry surface yet, so
+     progress_pct/found_so_far/checking_current stay unset and these
+     sub-sections render their built-in fallbacks (indeterminate sweep
+     bar, no found/checking columns). See TODO in auditing_routes.py. #}
+  {% if active_run %}
+  <div class="ui-panel au-live" id="activeRunCard">
+    <div class="ui-panel-h">
+      <span class="au-live-dot" aria-hidden="true"></span>
+      <h3>{{ active_run.title or 'Audit running' }}</h3>
+      <span class="ui-right"><span class="ui-chip is-accent">{{ active_run.progress_label or ((active_run.progress_pct ~ '%') if active_run.progress_pct is defined else 'Running') }}</span></span>
+    </div>
+    <div class="ui-panel-b">
+      <div class="au-live-track"><div class="au-live-fill{% if active_run.progress_pct is defined %} is-determinate{% endif %}" {% if active_run.progress_pct is defined %}style="width:{{ active_run.progress_pct }}%"{% endif %}></div></div>
+      {% if active_run.found_so_far or active_run.checking_current %}
+      <div class="ui-grid is-2 au-live-cols">
+        {% if active_run.found_so_far %}
+        <div>
+          <div class="ui-label">Found so far</div>
+          {% for item in active_run.found_so_far %}
+          <div class="au-live-row"><span class="ui-sev is-{{ sev_cls(item.severity) }}"></span>{{ item.message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if active_run.checking_current %}
+        <div>
+          <div class="ui-label">Currently checking</div>
+          <div class="au-live-row">{{ active_run.checking_current }}</div>
+          {% if active_run.checking_next %}<div class="ui-muted">next: {{ active_run.checking_next }}</div>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if runs %}
+  {# Latest-run counts reflect OPEN findings (resolved/snoozed excluded) when
+     the run has itemised findings; otherwise the recorded counts. Score stays. #}
+  {% if latest_open_counts %}
+  {% set crit = latest_open_counts.critical %}
+  {% set warn = latest_open_counts.warning %}
+  {% set info = latest_open_counts.info %}
+  {% else %}
+  {% set crit = latest.critical or 0 %}
+  {% set warn = latest.warning or 0 %}
+  {% set info = latest.info or 0 %}
+  {% endif %}
+  {% set n_triaged = latest_open_counts.hidden if latest_open_counts else 0 %}
+  {% set issues = crit + warn + info %}
+  {% set passed = latest.passed or 0 %}
+  {% set tier = tier_of(latest.score) %}
+
+  <div class="au-main">
+
+    {# ── Latest run ── #}
+    <div class="ui-panel au-latest">
+      <div class="au-latest-top">
+        <div class="ui-ring au-ring is-{{ tier }}" style="--v:{{ latest.score if latest.score is not none else 0 }}">
+          <span>{{ latest.score if latest.score is not none else '—' }}<small>score · {{ tier if tier != 'unknown' else 'n/a' }}</small></span>
+        </div>
+        <div class="au-latest-copy">
+          <div class="au-kicker">Latest run · {{ type_label(latest.audit_type) }} · {{ latest.created_at | fmt_date('%b %d, %H:%M') }}</div>
+          <div class="au-headline"><span id="auIssuesN">{{ issues }}</span> <span id="auIssuesWord">issue{{ 's' if issues != 1 }}</span> found · {{ passed }} check{{ 's' if passed != 1 }} passed</div>
+          <div class="au-chips">
+            <span class="ui-chip is-bad"><span id="auChipCritical">{{ crit }}</span> critical</span>
+            <span class="ui-chip is-warn"><span id="auChipWarning">{{ warn }}</span> warning</span>
+            <span class="ui-chip is-info"><span id="auChipInfo">{{ info }}</span> info</span>
+          </div>
+          <p class="au-triage-note" id="auTriageNote"{% if not n_triaged %} hidden{% endif %}><span id="auTriageNoteN">{{ n_triaged }}</span> resolved or snoozed · <a href="/audits/run/{{ latest.id }}">review in report</a></p>
+          <div class="au-meta">
+            {{ latest.title or 'Audit run' }}{% if latest.url_tested %} · <span class="ui-mono">{{ latest.url_tested[:48] }}</span>{% endif %}{% if latest.pages_tested is not none %} · {{ latest.pages_tested }} page{{ 's' if latest.pages_tested != 1 }}{% endif %} · triggered by {{ by_labels.get(latest.triggered_by, latest.triggered_by) }}{% if latest.duration_ms %} · {{ (latest.duration_ms / 1000) | round(1) }}s{% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# ── Open findings ──────────────────────────────────────
+         Guarded on `open_findings`, populated by the /audits route
+         from the latest run's AuditFinding rows where passed=false,
+         ordered by severity (critical first). Click → drawer. #}
+      <div class="au-top-findings" id="openFindingsList">
+        {% if open_findings %}
+        {% for f in open_findings[:3] %}
+        <div class="ui-finding is-click" data-severity="{{ f.severity or 'info' }}" data-finding-idx="{{ loop.index0 }}" role="button" tabindex="0">
+          <span class="ui-sev is-{{ sev_cls(f.severity) }}"></span>
+          <div class="ui-grow">
+            <b>{{ f.message or f.rule_id or 'Finding' }}</b>
+            <p>{{ [plat_name(f.platform) if f.platform else none, f.event, f.remediation] | reject('none') | reject('equalto', '') | join(' · ') | truncate(140) }}</p>
+          </div>
+          <span class="ui-chip no-dot is-{{ sev_cls(f.severity) }}">{{ f.severity or 'info' }}</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="ui-finding"><span class="ui-sev is-good"></span><div class="ui-grow"><b>No open findings on the latest run.</b><p>{{ 'Everything left is resolved or snoozed.' if n_triaged else 'Every check in this run passed.' }}</p></div></div>
+        {% endif %}
+      </div>
+      <a href="/audits/run/{{ latest.id }}" class="ui-btn au-open-report" id="auOpenReport">{% if open_findings | length > 3 %}Open full report · {{ open_findings | length - 3 }} more finding{{ 's' if open_findings | length - 3 != 1 }} →{% else %}Open full report →{% endif %}</a>
+    </div>
+
+    {# ── Latest score by type + history ── #}
+    <div class="ui-panel">
+      <div class="ui-panel-h"><h3>Latest score by type</h3></div>
+      <div class="ui-panel-b">
+        {% set scored = score_summary | map(attribute='audit_type') | list %}
+        {% for domain in score_summary %}
+        {% set s = domain.score %}
+        <div class="ui-bar">
+          <span>{{ type_label(domain.audit_type) }}</span>
+          {% if s is none %}
+          <span class="ui-muted">no score</span><em></em>
+          {% else %}
+          <i><b class="{{ 'is-bad' if s < 50 else ('is-warn' if s < 85 else '') }}" style="width:{{ s }}%"></b></i><em>{{ s }}</em>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% for t, label in audit_type_labels.items() if t not in scored and t != 'full_suite' %}
+        <div class="ui-bar"><span>{{ label }}</span><span class="au-notrun">not run yet</span><em></em></div>
+        {% endfor %}
+
+        {# Score history for the latest run's type — real completed runs, oldest → newest #}
+        {% set hist = ((runs | selectattr('audit_type', 'equalto', latest.audit_type) | rejectattr('score', 'none') | list)[:10]) | reverse | list %}
+        {% if hist | length >= 2 %}
+        {% set scores = hist | map(attribute='score') | list %}
+        {% set lo = [((scores | min) - 10) // 10 * 10, 0] | max %}
+        {% set W = 300 %}{% set H = 110 %}
+        {% set ns = namespace(d='', dots='', lx=0, ly=0) %}
+        {% for r in hist %}
+          {% set x = 12 + loop.index0 * (W - 24) / (hist | length - 1) %}
+          {% set y = H - 18 - (r.score - lo) / (100 - lo) * (H - 34) %}
+          {% set ns.d = ns.d ~ ('M' if loop.first else 'L') ~ (x | round(1)) ~ ',' ~ (y | round(1)) %}
+          {% set ns.dots = ns.dots ~ '<circle cx="' ~ (x | round(1)) ~ '" cy="' ~ (y | round(1)) ~ '" r="' ~ ('4.5' if loop.last else '3') ~ '" class="' ~ ('is-last' if loop.last else '') ~ '"><title>' ~ (r.created_at | fmt_date('%b %d')) ~ ' · ' ~ r.score ~ '</title></circle>' %}
+          {% if loop.last %}{% set ns.lx = x %}{% set ns.ly = y %}{% endif %}
+        {% endfor %}
+        <div class="ui-label">{{ type_label(latest.audit_type) }} · score history</div>
+        <svg class="au-hist" viewBox="0 0 {{ W }} {{ H }}" width="100%" role="img" aria-label="{{ type_label(latest.audit_type) }} score history: {{ scores | join(', ') }}">
+          <path d="{{ ns.d }}"/>
+          {{ ns.dots | safe }}
+          <text x="{{ (ns.lx - 10) | round(1) }}" y="{{ [ns.ly - 10, 12] | max | round(1) }}">{{ scores[-1] }}</text>
+        </svg>
+        <div class="au-hist-axis"><span>{{ hist[0].created_at | fmt_date('%b %d') }}</span><span>{{ hist[-1].created_at | fmt_date('%b %d') }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Past runs ── #}
+  <div class="ui-panel">
+    <div class="ui-panel-h"><h3>Past runs</h3><span class="ui-sub">Every run keeps its report.</span></div>
+    <div class="au-table-wrap">
+      <table class="ui-table au-runs-tbl">
+        <thead><tr><th>When</th><th>Type</th><th class="ui-hide-sm">Scope</th><th>Score</th><th class="ui-hide-sm">Findings</th><th class="ui-hide-sm">By</th><th></th></tr></thead>
+        <tbody>
+        {% for run in runs %}
+        <tr class="is-click" data-href="/audits/run/{{ run.id }}">
+          <td class="au-nowrap">{{ run.created_at | fmt_date('%b %d, %H:%M') if run.created_at else '—' }}</td>
+          <td>{{ type_label(run.audit_type) }}</td>
+          <td class="ui-hide-sm"><span>{{ run.title or 'Audit run' }}</span>{% if run.url_tested %}<div class="ui-mono ui-muted au-trunc">{{ run.url_tested[:48] }}</div>{% endif %}</td>
+          <td><b>{{ run.score if run.score is not none else '—' }}</b></td>
+          <td class="ui-hide-sm au-nowrap"><span class="au-n is-bad" title="critical">{{ run.critical or 0 }}</span> · <span class="au-n is-warn" title="warning">{{ run.warning or 0 }}</span> · <span class="au-n is-info" title="info">{{ run.info or 0 }}</span></td>
+          <td class="ui-hide-sm ui-muted">{{ by_labels.get(run.triggered_by, run.triggered_by) }}</td>
+          <td class="au-right"><a class="au-report-link" href="/audits/run/{{ run.id }}">Report →</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  {# ── Empty state ── #}
+  <div class="ui-panel">
+    <div class="ui-empty au-empty">
+      <b>No audit runs yet</b>
+      Ask your AI to run a tag audit, live tag test, or data quality check. Results appear here automatically.
+      <div class="au-empty-act"><button type="button" class="ui-btn is-primary" id="runAuditBtn2" data-audit-ask="run">Run audit</button></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── How auditing works ── #}
+  <div class="ui-note au-howto">
+    <span>
+      <b>How auditing works —</b>
+      ask your AI to <code>run_audit</code>, <code>tag_rulebook</code>, or <code>live_tag_test</code>. It uses Fluxito's Rule Books ({{ n_books }} platforms, 183+ rules) as context, and every audit your AI runs is saved here automatically. No server-side browsers — your AI does the heavy lifting.
+    </span>
+  </div>
+
+  {# ── Ask your AI client ── #}
+  {% set audit_prompts = [
+    {
+      'title': 'Run a tag audit',
+      'prompt': 'Run a full audit of my connected tag manager. Prioritize consent, duplicate firing, broken triggers, and missing required parameters. Save the results here.',
+      'note': 'Your AI runs tag_rulebook and live_tag_test.'
+    },
+    {
+      'title': 'Investigate risk',
+      'prompt': 'Review my open audit findings, group related issues, and explain the likely business impact with supporting evidence.',
+      'note': 'Synthesizes findings across tags and analytics.'
+    },
+    {
+      'title': 'Draft safe fixes',
+      'prompt': 'For the highest-risk audit findings, draft safe fixes in a workspace for my review. Do not publish or change production.',
+      'note': 'Creates stageable patches for GTM without publishing.'
+    }
+  ] %}
+  <section class="ui-grid is-3 au-prompts" id="ask-ai" aria-label="Ask your AI client">
+    {% for p in audit_prompts %}
+    <div class="ui-panel au-prompt">
+      <span class="au-prompt-k">{{ '%02d' | format(loop.index) }} · {{ p.title }}</span>
+      <q>{{ p.prompt }}</q>
+      <small>{{ p.note }}</small>
+      <button type="button" class="ui-btn au-prompt-btn" data-copy="{{ p.prompt }}" data-copy-label="Prompt copied">Copy prompt</button>
+    </div>
+    {% endfor %}
+  </section>
+
+</div>{# /app-main #}
+
+<script>
+  window.__AUDIT_PAGE__ = {
+    findings: {{ open_findings | tojson }},
+    latestRunId: {{ (latest.id if latest else none) | tojson }},
+    canTriage: {{ can_triage | tojson }}
+  };
+</script>
+{{ audit_ask_script(run_prompts=audit_prompts | map(attribute='prompt') | list) }}
+{% endblock %}

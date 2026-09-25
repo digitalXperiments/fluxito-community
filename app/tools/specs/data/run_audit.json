@@ -1,0 +1,1917 @@
+[
+  {
+    "tool": "run_audit",
+    "action": "adobe_audit_consent_mode",
+    "summary": "Heuristic Adobe Launch consent audit: detects known CMP extension, AEP Web SDK (alloy), consent-named data elements, consent-named rules. Cannot inspect per-rule consent conditions.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id (overloaded onto container_id)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ action:'audit_consent_mode', platform:'adobe_launch', property_id, summary{critical,warning,info,total_findings,detected_cmp_vendor,has_aep_web_sdk}, findings:[{severity,code,message,evidence?}], scope_note } | { error, message } on fetch failure"
+  },
+  {
+    "tool": "run_audit",
+    "action": "adobe_audit_report_suite",
+    "summary": "Adobe report-suite audit (cached 300s). property_id=rsid required.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "myrsid",
+        "doc": "Adobe report-suite id (rsid). Required. Passed as property_id; NOT auto-prefixed."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe audit_report_suite findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "adobe_check_data_quality",
+    "summary": "Adobe data-quality check over a lookback window. property_id=rsid required; days_back optional (default 30).",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "myrsid",
+        "doc": "Adobe report-suite id (rsid). Required."
+      },
+      {
+        "name": "days_back",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Lookback window in days. Defaults 30."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe check_data_quality findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "adobe_launch_audit_property",
+    "summary": "Adobe Launch property health score / config review (delegated to connector launch.audit_property; cached 300s).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id (overloaded onto container_id)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...audit } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "adobe_launch_get_publish_history",
+    "summary": "Retrieve Adobe Launch publish/deployment history for a property (delegated to connector; not cached).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id (overloaded onto container_id)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...publish history } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "amplitude_check_event_volume_anomalies",
+    "summary": "Amplitude event-volume anomaly check over a lookback window. days_back optional (default 30).",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "days_back",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Lookback window in days. Defaults 30."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude check_event_volume_anomalies findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "amplitude_check_taxonomy_health",
+    "summary": "Amplitude taxonomy-health audit (cached 300s). No params beyond connection.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Amplitude check_taxonomy_health findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "audit_score_history",
+    "summary": "run_audit route → save_audit_result(get_score_history). Score trend over N days. (Underlying handler has a broken SQL bind — see defects.)",
+    "group": "AUDIT PERSISTENCE (save / fetch results)",
+    "params": [
+      {
+        "name": "days",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Lookback window (non-functional — see defect)."
+      }
+    ],
+    "returns": "{ history:[{audit_type, data_points:[{score, date}]}], days }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "audit_score_summary",
+    "summary": "run_audit route → save_audit_result(get_score_summary). Latest score per audit_type.",
+    "group": "AUDIT PERSISTENCE (save / fetch results)",
+    "params": [],
+    "returns": "{ domains:[{audit_type, score, critical, warning, last_run}], project_id }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "ga4_audit_conversion_events",
+    "summary": "GA4 audit of conversion events (cached 300s). property_id required; dates OPTIONAL (default 30daysAgo..today). Overlays SDR compliance if an approved SDR exists.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property. Required."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": false,
+        "example": "2026-05-01",
+        "doc": "Optional; defaults to '30daysAgo' if omitted."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": false,
+        "example": "today",
+        "doc": "Optional; defaults to 'today'."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 audit_conversion_events dict, optionally with added `sdr_compliance` overlay | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "ga4_audit_custom_definitions",
+    "summary": "GA4 audit of custom dimensions/metrics (cached 300s). property_id required.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property. Required."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 audit_custom_definitions findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "ga4_audit_data_streams",
+    "summary": "GA4 audit of data streams config (cached 300s). property_id required.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property (bare numeric auto-prefixed 'properties/'). Required."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 audit_data_streams findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "ga4_audit_ecommerce",
+    "summary": "GA4 e-commerce tracking audit over a date range (cached 300s). Needs property_id + start_date + end_date.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property. Required."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start. Required (unlike audit_conversion_events, NO default)."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end. Required."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 audit_ecommerce findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "ga4_check_data_anomalies",
+    "summary": "GA4 anomaly detection over a lookback window (cached 300s). property_id required; days_back + sensitivity optional.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property. Required."
+      },
+      {
+        "name": "days_back",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Lookback window in days. Defaults 30."
+      },
+      {
+        "name": "sensitivity",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "example": "high",
+        "doc": "Anomaly sensitivity. Enum low|medium|high; defaults medium."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 check_data_anomalies findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "ga4_schema_validator",
+    "summary": "GA4 event-schema validation over a date range (cached 300s). Needs property_id + start_date + end_date.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property. Required."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Window start. Required."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Window end. Required."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 schema_validator findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "get_audit_run",
+    "summary": "run_audit route → save_audit_result(get_run). params.run_id required.",
+    "group": "AUDIT PERSISTENCE (save / fetch results)",
+    "params": [
+      {
+        "name": "run_id",
+        "type": "string",
+        "required": true,
+        "example": "550e8400-e29b-41d4-a716-446655440000",
+        "doc": "AuditRun UUID."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 20,
+        "doc": "Findings per page."
+      },
+      {
+        "name": "offset",
+        "type": "integer",
+        "required": false,
+        "example": 0,
+        "doc": "Findings offset."
+      }
+    ],
+    "returns": "{ ...run fields, findings:[...], findings_page:{...} } | not_found",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_audit_consent_mode",
+    "summary": "10-check Consent Mode v2 / GDPR / CCPA audit over the GTM container (CMP present, 4 v2 types, defaults-before-measurement, GA4/Ads/pixel gating, known vendor, region defaults, SGTM forwarding, data redaction).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ action:'audit_consent_mode', container{account_id,container_id}, score, summary{critical,warning,info,total_findings,detected_cmp_vendor,has_server_side_tagging}, findings:[{check,severity,category,message,recommendation,evidence}], scope_note }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_audit_container",
+    "summary": "Full container health score: orphan tags (no firing trigger), orphaned triggers, SDR-compliance gaps; score = 100 - 20*critical - 5*warning.",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ score, total_tags, total_triggers, total_variables, issues:[{severity,category,issue}], sdr_compliance? }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_benchmark_health",
+    "summary": "Score container against best practices across 6 weighted dimensions (size, hygiene, GA4 readiness, trigger/variable efficiency, security) with letter grades and quick wins.",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ overall_score, overall_grade, container_id, dimensions{6 keys each {score,grade,detail}}, quick_wins[] }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_check_ga4_implementation",
+    "summary": "Count GA4 config tags (googtag/gaawc) and flag duplicates (double-counting risk).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ config_tag_count, has_duplicate_config, config_tags:[{name,type}] }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_dependency_map",
+    "summary": "Tag→trigger edge list (each edge {tag, fires_on:<resolved trigger name>}).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ edges:[{tag, fires_on}], total_tags }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_diagnose_conversion_discrepancy",
+    "summary": "Cross-reference GTM conversion-related tags against GA4 conversion/event data; flag paused/triggerless tags and GA4 conversions with no matching GTM tag.",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "ga4_property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property ID (auto-prefixes 'properties/'). Required."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-05-01",
+        "doc": "GA4 window start; defaults to '30daysAgo'."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-06-01",
+        "doc": "GA4 window end; defaults to 'today'."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ container_id, ga4_property, date_range, gtm_conversion_tags, conversion_tags[], discrepancies_found, discrepancies[], orphan_ga4_conversions[], ga4_conversion_events_total, summary{...} }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_explain_tag",
+    "summary": "Plain-English explanation of one tag: type description, measurement ID, resolved firing/blocking trigger names, paused status.",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "42",
+        "doc": "Tag ID to explain."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ tag_name, tag_type, type_description, explanation, firing_triggers[], blocking_triggers[], is_paused, parameters{} }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_find_tracking_regression",
+    "summary": "Diff the live container version vs the previous one to find removed/paused tags, lost triggers, removed triggers; optional GA4 event cross-reference.",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Start date (used for the optional GA4 cross-reference window). Required by guard."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": true,
+        "example": "2026-06-01",
+        "doc": "End date. Required by guard."
+      },
+      {
+        "name": "ga4_property_id",
+        "type": "string",
+        "required": false,
+        "example": "123456789",
+        "doc": "If provided, cross-references GTM event tags against GA4 event counts (auto-prefixes 'properties/')."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ container_id, versions_compared{current,previous}, regressions_found, regressions[], ga4_event_gaps, summary{tags_removed,tags_paused,triggers_broken,triggers_deleted} } | {regressions:[], message:'Not enough published versions...'}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_generate_audit_report",
+    "summary": "Comprehensive container roll-up (tag/trigger type breakdowns, orphans, paused, UA, HTML, unused triggers/vars, GA4 config) with weighted score; 25s internal timeout.",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ score, container_id, account_id, summary{}, tag_type_breakdown{}, trigger_type_breakdown{}, findings{critical,warning,info}, issues[], highlights{} } | { error, message:'Audit timed out...' }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_simulate_event",
+    "summary": "Show which triggers and tags would fire for a given event type (matches custom triggers by type + built-in triggers by event name).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "event_type",
+        "type": "string",
+        "required": true,
+        "example": "page_view",
+        "doc": "Event type / name to simulate (case-insensitive; spaces normalized to underscores)."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ event_type, triggers_firing[], tags_firing[] }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "gtm_suggest_improvements",
+    "summary": "Heuristic hygiene recommendations (UA migration, orphans, duplicate GA4 config, custom HTML, unused triggers/vars, paused tags, plus a static Consent Mode v2 reminder).",
+    "group": "TAG MANAGER",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ container_id, total_recommendations, recommendations:[{priority,category,title,detail,effort}] }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "list_audit_runs",
+    "summary": "run_audit route → save_audit_result(list_runs). Paginated runs for the project.",
+    "group": "AUDIT PERSISTENCE (save / fetch results)",
+    "params": [
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 20,
+        "doc": "Max runs."
+      },
+      {
+        "name": "offset",
+        "type": "integer",
+        "required": false,
+        "example": 0,
+        "doc": "Offset."
+      },
+      {
+        "name": "audit_type_filter",
+        "type": "string",
+        "required": false,
+        "example": "tag_audit",
+        "doc": "Optional audit_type filter (unvalidated)."
+      }
+    ],
+    "returns": "{ runs:[...], count, limit, offset }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_analyze_captures",
+    "summary": "run_audit route → live_tag_test(analyze_captures). params.network_captures required; session_id optional.",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [
+      {
+        "name": "network_captures",
+        "type": "array",
+        "required": true,
+        "item_type": "object",
+        "example": [
+          {
+            "step": "clicked Add to Cart",
+            "requests": [
+              {
+                "url": "https://www.google-analytics.com/g/collect",
+                "method": "POST",
+                "body": "en=add_to_cart"
+              }
+            ]
+          }
+        ],
+        "doc": "Capture groups [{step, requests:[{url,method,body}]}]."
+      },
+      {
+        "name": "session_id",
+        "type": "string",
+        "required": false,
+        "example": "ltt_abc123",
+        "doc": "Optional — enables SDR gap-check + session persistence."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "tiktok_pixel",
+      "snap_pixel",
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "{ session_id, overall_score, critical, warning, info, passed, sdr_gaps, unmatched_requests, platforms_detected, per_platform, findings, save_hint }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_finish_session",
+    "summary": "run_audit route → live_tag_test(finish_session). params.session_id required; notes optional.",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [
+      {
+        "name": "session_id",
+        "type": "string",
+        "required": true,
+        "example": "ltt_abc123",
+        "doc": "Session id to finalize."
+      },
+      {
+        "name": "notes",
+        "type": "string",
+        "required": false,
+        "example": "Tested on staging.",
+        "doc": "Notes stored before finishing."
+      }
+    ],
+    "returns": "Full session dict + summary | not_found",
+    "scope": "analysis:read",
+    "reversible": true
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_get_plan",
+    "summary": "run_audit route → live_tag_test(get_test_plan). params.url required.",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "example": "https://shop.example.com/product/123",
+        "doc": "Page URL to test."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "tiktok_pixel",
+      "snap_pixel",
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "{ session_id, url, sdr_context, rule_books_active, sdr_platforms, pre_conditions, capture_instructions, interaction_steps, next_step }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_get_sdr_context",
+    "summary": "run_audit route → live_tag_test(get_sdr_context). params.url optional.",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": false,
+        "example": "https://shop.example.com/product/123",
+        "doc": "Optional URL filter."
+      }
+    ],
+    "returns": "{ events:[...], total } | {events:[], total:0, note:'No active project...'}",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_list_plans",
+    "summary": "run_audit route → live_tag_test(list_test_plans). Requires active project (soft note otherwise).",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [],
+    "returns": "{ plans:[...], count } | {plans:[], count:0, note} | {plans:[], count:0, error}",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_save_plan",
+    "summary": "run_audit route → live_tag_test(save_test_plan). INSERT a reusable test plan. A WRITE via run_audit under read scope.",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [
+      {
+        "name": "plan",
+        "type": "object",
+        "required": true,
+        "example": {
+          "name": "PDP add-to-cart",
+          "url_patterns": [
+            "/product/"
+          ],
+          "interaction_steps": [
+            "Navigate",
+            "Click Add to Cart"
+          ],
+          "expected_platforms": [
+            "ga4"
+          ]
+        },
+        "doc": "Plan dict (all keys optional; empty {} → 'Untitled Plan')."
+      }
+    ],
+    "returns": "{ success:true, message:'Test plan saved.' } | {error_type:'db_error', message}",
+    "scope": "analysis:read",
+    "reversible": false
+  },
+  {
+    "tool": "run_audit",
+    "action": "live_tag_start_session",
+    "summary": "run_audit route → live_tag_test(start_session). params.url required.",
+    "group": "LIVE TAG TEST (browser, computer-use)",
+    "params": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "example": "https://shop.example.com/checkout",
+        "doc": "URL the session is for."
+      }
+    ],
+    "returns": "{ session_id, status:'active', url }",
+    "scope": "analysis:read",
+    "reversible": true
+  },
+  {
+    "tool": "run_audit",
+    "action": "marketing_audit_budget_utilization",
+    "summary": "Google Ads budget pacing / spend-efficiency audit over a date range.",
+    "group": "PAID MARKETING + AUTOMATION",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "123-456-7890",
+        "doc": "Google customer id. Validated up front in marketing_audit (platform!=marketo requires account_id). NOTE: platform is NOT injected by the route, so the caller must also pass platform='google' in params or the audit returns 'Unknown platform'."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "google"
+        ],
+        "example": "google",
+        "doc": "Required in params — the AUDIT_ROUTES entry has NO extra_kwargs, so platform defaults to None and marketing_audit returns missing_required_param unless the caller supplies it."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD. Validated."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD. Validated."
+      }
+    ],
+    "platforms": [
+      "google"
+    ],
+    "returns": "{ findings: [...severity+recommendation] } | {error,...}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "marketing_audit_quality_scores",
+    "summary": "Google Ads quality-score drill-down, optionally scoped to one campaign.",
+    "group": "PAID MARKETING + AUTOMATION",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "google"
+        ],
+        "example": "google",
+        "doc": "Required in params — route injects no platform. Must be 'google'."
+      },
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "123-456-7890",
+        "doc": "Google customer id. Validated up front."
+      },
+      {
+        "name": "campaign_id",
+        "type": "string",
+        "required": false,
+        "example": "987654321",
+        "doc": "Optional — restrict the quality-score audit to one campaign."
+      }
+    ],
+    "platforms": [
+      "google"
+    ],
+    "returns": "{ findings: [...] } | {error,...}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "marketo_audit_instance",
+    "summary": "Adobe Marketo: API usage vs quota + program inventory audit.",
+    "group": "PAID MARKETING + AUTOMATION",
+    "params": [],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "{ findings / usage / program_inventory } | _no_marketo() {error_type:'connection_missing'} | error"
+  },
+  {
+    "tool": "run_audit",
+    "action": "marketo_check_data_quality",
+    "summary": "Adobe Marketo: null-field rates on core lead fields.",
+    "group": "PAID MARKETING + AUTOMATION",
+    "params": [],
+    "platforms": [
+      "marketo"
+    ],
+    "returns": "{ findings / null_rates } | _no_marketo() | error"
+  },
+  {
+    "tool": "run_audit",
+    "action": "save_audit_result",
+    "summary": "run_audit route → save_audit_result(save). Persist an AuditRun + findings to the Fluxito UI. A DB WRITE reachable via run_audit under the analysis:READ scope. params.audit_type required.",
+    "group": "AUDIT PERSISTENCE (save / fetch results)",
+    "params": [
+      {
+        "name": "audit_type",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "tag_audit",
+          "live_tag_test",
+          "data_quality",
+          "sdr_compliance",
+          "platform_health",
+          "seo",
+          "warehouse",
+          "full_suite"
+        ],
+        "example": "tag_audit",
+        "doc": "Audit domain."
+      },
+      {
+        "name": "findings",
+        "type": "array",
+        "required": false,
+        "item_type": "object",
+        "example": [
+          {
+            "severity": "critical",
+            "platform": "facebook_pixel",
+            "message": "content_ids missing"
+          }
+        ],
+        "doc": "Finding dicts (severity-keyed)."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "required": false,
+        "example": "Tag Audit",
+        "doc": "Run title."
+      },
+      {
+        "name": "score",
+        "type": "integer",
+        "required": false,
+        "example": 72,
+        "doc": "0-100."
+      },
+      {
+        "name": "url_tested",
+        "type": "string",
+        "required": false,
+        "example": "https://shop.example.com",
+        "doc": "Tested URL."
+      },
+      {
+        "name": "ltt_session_id",
+        "type": "string",
+        "required": false,
+        "example": "ltt_abc123",
+        "doc": "LTT session id."
+      },
+      {
+        "name": "raw_summary",
+        "type": "string",
+        "required": false,
+        "example": "...",
+        "doc": "Summary (truncated 50000)."
+      },
+      {
+        "name": "duration_ms",
+        "type": "integer",
+        "required": false,
+        "example": 4200,
+        "doc": "Duration ms."
+      }
+    ],
+    "returns": "{ success:true, audit_run_id, view_url, audit_type, title, score, critical, warning, info, passed, findings_saved, message } | db_error",
+    "scope": "analysis:read",
+    "reversible": false
+  },
+  {
+    "tool": "run_audit",
+    "action": "seo_ctr_outliers",
+    "summary": "Queries/pages whose CTR is >=50% below the peer-median CTR for their average-position bucket. Requires site_url + date range.",
+    "group": "SEO / SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "dimension",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "query",
+          "page"
+        ],
+        "example": "query",
+        "doc": "query|page — actually used here as both the GSC fetch dimension and the output key."
+      },
+      {
+        "name": "min_impressions",
+        "type": "integer",
+        "required": false,
+        "example": 100,
+        "doc": "Minimum impressions to be considered (default 100). Applied."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 50,
+        "doc": "Max outliers returned."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "{ site_url, start_date, end_date, dimension, peer_median_ctr_by_bucket, count, outliers:[...] }",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "seo_gsc_ga4_cross_reference",
+    "summary": "Joins top GSC organic landing pages with GA4 Organic-Search engagement/conversion metrics. Requires site_url + date range + ga4_property_id AND a GA4 connection.",
+    "group": "SEO / SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "ga4_property_id",
+        "type": "string",
+        "required": true,
+        "example": "123456789",
+        "doc": "GA4 property ID for the join. Required."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 50,
+        "doc": "Number of top GSC pages to join (GSC fetch uses max(limit*3,100), join keeps max(limit,1))."
+      }
+    ],
+    "platforms": [
+      "gsc",
+      "ga4"
+    ],
+    "returns": "{ site_url, ga4_property_id, start_date, end_date, definition, pages:[{page, path, gsc_clicks, gsc_impressions, gsc_ctr, gsc_position, ga4_sessions, ga4_engaged_sessions, ga4_engagement_rate, ga4_conversions, ga4_revenue, ga4_match}], matched_count, total_pages }",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "seo_sitemap_health",
+    "summary": "Summary of sitemap status (errors/warnings/pending counts + lists) for a GSC site. Requires only site_url.",
+    "group": "SEO / SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "{ site_url, total_sitemaps, pending_count, with_errors_count, with_warnings_count, errors:[...], warnings:[...], pending:[...], all_sitemaps:[...] }",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "seo_striking_distance",
+    "summary": "Queries ranking in avg position 8-20 (near page 1) with traction. Requires site_url + date range.",
+    "group": "SEO / SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "min_impressions",
+        "type": "integer",
+        "required": false,
+        "example": 100,
+        "doc": "Minimum impressions a query must have to be considered (default 100). Applied here."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 50,
+        "doc": "Max queries returned."
+      },
+      {
+        "name": "dimension",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "query",
+          "page"
+        ],
+        "example": "query",
+        "doc": "In the shared signature but IGNORED by striking_distance — the query is hardcoded to dimensions=['query']."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "{ site_url, start_date, end_date, definition, count, queries:[...] }",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "seo_top_movers",
+    "summary": "Biggest GSC click/position gainers + losers vs a comparison window. Requires site_url + both date windows.",
+    "group": "SEO / SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property. Checked before action-specific params."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "Current-window start, YYYY-MM-DD."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "Current-window end."
+      },
+      {
+        "name": "compare_start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-04-01",
+        "doc": "Prior-window start."
+      },
+      {
+        "name": "compare_end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-04-30",
+        "doc": "Prior-window end."
+      },
+      {
+        "name": "dimension",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "query",
+          "page"
+        ],
+        "example": "query",
+        "doc": "query|page (Literal-enforced; default 'query'). Used as the join key for both windows."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 50,
+        "doc": "Top-N gainers and Top-N losers returned (each list truncated to limit)."
+      },
+      {
+        "name": "min_impressions",
+        "type": "integer",
+        "required": false,
+        "example": 100,
+        "doc": "Accepted by the tool signature but UNUSED by top_movers — no impressions filter is applied here."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "{ site_url, current_window, prior_window, dimension, top_gainers:[...], top_losers:[...] }",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_audit_rulebooks",
+    "summary": "run_audit route → tag_rulebook(audit_against_rulebooks). Bulk-validate a list of GTM tags. params.tags required.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "tags",
+        "type": "array",
+        "required": true,
+        "item_type": "object",
+        "example": [
+          {
+            "type": "gaawe",
+            "name": "GA4 Purchase"
+          }
+        ],
+        "doc": "Array of raw GTM tag dicts."
+      },
+      {
+        "name": "include_passed",
+        "type": "boolean",
+        "required": false,
+        "example": false,
+        "doc": "Include passing findings."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "tiktok_pixel",
+      "google_ads_conversion"
+    ],
+    "returns": "{ tags_audited, platforms_detected, unidentified_tags, overall_score, critical, warning, info, passed, per_platform:[...], custom_rules_applied, note }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_delete_custom_rule",
+    "summary": "run_audit route → tag_rulebook(delete_custom_rule). Soft-delete (is_active=FALSE) a custom rule. A destructive WRITE via run_audit under read scope.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "rule_id",
+        "type": "string",
+        "required": true,
+        "example": "fb.content_ids",
+        "doc": "rule_id to soft-delete."
+      }
+    ],
+    "returns": "{ success: true, rule_id, action: 'deleted' } | not_found",
+    "scope": "analysis:read",
+    "reversible": false
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_get_event_spec",
+    "summary": "run_audit route → tag_rulebook(get_event_spec). params.platform + params.event_name required.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "example": "ga4",
+        "doc": "Platform slug."
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "required": true,
+        "example": "purchase",
+        "doc": "Event name."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "tiktok_pixel"
+    ],
+    "returns": "{ platform, display_name, event:{...} } | not_found",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_get_platform_spec",
+    "summary": "run_audit route → tag_rulebook(get_platform_spec). params.platform required.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "example": "ga4",
+        "doc": "Platform slug (passed inside run_audit params)."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "adobe_analytics",
+      "amplitude",
+      "mixpanel",
+      "posthog",
+      "tiktok_pixel"
+    ],
+    "returns": "rb.serialize(include_events=True) | not_found error",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_identify_type",
+    "summary": "run_audit route → tag_rulebook(identify_tag_type). NOTE the public run_audit action is 'tag_identify_type' but the legacy action is 'identify_tag_type' (word order differs).",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "tag_dict",
+        "type": "object",
+        "required": true,
+        "example": {
+          "type": "gaawe",
+          "name": "GA4 Purchase"
+        },
+        "doc": "Raw GTM tag object."
+      }
+    ],
+    "returns": "IdentificationResult.as_dict()",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_list_custom_rules",
+    "summary": "run_audit route → tag_rulebook(list_custom_rules). Requires active project.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [],
+    "returns": "{ custom_rules:[...], count, hint }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_list_platforms",
+    "summary": "run_audit route → tag_rulebook(list_platforms). Identical handler to the direct tag_rulebook tool; reachable under analysis:read scope.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "adobe_analytics",
+      "amplitude",
+      "tiktok_pixel",
+      "snap_pixel",
+      "pinterest_tag",
+      "linkedin_insight",
+      "twitter_pixel",
+      "microsoft_uet",
+      "criteo",
+      "floodlight",
+      "google_ads_conversion",
+      "google_ads_remarketing",
+      "gtm_spec",
+      "segment",
+      "mixpanel",
+      "hotjar",
+      "ga4_standard",
+      "ga4_config"
+    ],
+    "returns": "{ platforms:[...], total, hint }",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_save_custom_rule",
+    "summary": "run_audit route → tag_rulebook(save_custom_rule). UPSERT a custom rule. A WRITE exposed through a tool named run_audit under read scope.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "rule",
+        "type": "object",
+        "required": true,
+        "example": {
+          "rule_id": "fb.content_ids",
+          "name": "FB content_ids required",
+          "severity": "critical"
+        },
+        "doc": "Rule dict (rule_id + name required; severity defaults 'warning')."
+      }
+    ],
+    "returns": "{ success: true, action: 'created'|'updated', rule_id } | validation_error",
+    "scope": "analysis:read",
+    "reversible": true
+  },
+  {
+    "tool": "run_audit",
+    "action": "tag_validate_payload",
+    "summary": "run_audit route → tag_rulebook(validate_payload). params.platform + event_name + payload required.",
+    "group": "TAG RULE BOOK (connector-independent)",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "example": "facebook_pixel",
+        "doc": "Platform slug."
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "required": true,
+        "example": "Purchase",
+        "doc": "Event name."
+      },
+      {
+        "name": "payload",
+        "type": "object",
+        "required": true,
+        "example": {
+          "currency": "USD",
+          "value": 49.99
+        },
+        "doc": "Flat param dict (empty {} accepted)."
+      }
+    ],
+    "platforms": [
+      "ga4",
+      "facebook_pixel",
+      "tiktok_pixel"
+    ],
+    "returns": "ValidationResult.as_dict()",
+    "scope": "analysis:read"
+  },
+  {
+    "tool": "run_audit",
+    "action": "warehouse_audit_dataset",
+    "summary": "BigQuery-only: scans up to 50 tables in a dataset (concurrency 5, 15s/table timeout) and returns per-table row/byte/column counts. RS/SF have no audit_dataset action (they use audit_schema).",
+    "group": "WAREHOUSE",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Must be 'bigquery' (only bigquery's _VALID_AUDIT_ACTIONS has audit_dataset)."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "analytics_123",
+        "doc": "Dataset to audit. Required."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "BQ auto-selects when single."
+      }
+    ],
+    "platforms": [
+      "bigquery"
+    ],
+    "returns": "{ dataset_id, project_id, table_count, tables_scanned, tables:[{table_id,table_type,num_rows,num_bytes,column_count, error?}], warning? }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "warehouse_audit_schema",
+    "summary": "Redshift/Snowflake schema audit. dataset_id names the schema (falls back to connection default_schema). No BigQuery audit_schema.",
+    "group": "WAREHOUSE",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "redshift",
+        "doc": "Must be 'redshift' or 'snowflake'."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": false,
+        "example": "public",
+        "doc": "Schema name (named dataset_id). Defaults to creds['default_schema'] when omitted."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Resolved per engine; no single auto-select."
+      }
+    ],
+    "platforms": [
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "{ ...schema audit fields ... } from rs/sf.audit_schema | connection_missing"
+  },
+  {
+    "tool": "run_audit",
+    "action": "warehouse_check_clustering_health",
+    "summary": "Snowflake-ONLY clustering health for a table (SYSTEM$CLUSTERING_INFORMATION). Requires dataset_id(schema)+table_id. Not available for bigquery or redshift.",
+    "group": "WAREHOUSE",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "snowflake",
+        "doc": "Must be 'snowflake'."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "public",
+        "doc": "Schema name (named dataset_id). Required."
+      },
+      {
+        "name": "table_id",
+        "type": "string",
+        "required": true,
+        "example": "events",
+        "doc": "Table name. Required."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Snowflake connection id."
+      }
+    ],
+    "platforms": [
+      "snowflake"
+    ],
+    "returns": "{ ...clustering info ... } from sf.check_clustering_health | {error, message}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "warehouse_check_empty_tables",
+    "summary": "BigQuery-ONLY: lists tables with num_rows==0 in a dataset (sequential get_table_schema per table). No RS/SF equivalent action.",
+    "group": "WAREHOUSE",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Must be 'bigquery'."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "analytics_123",
+        "doc": "Dataset to scan. Required."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "BQ auto-selects when single."
+      }
+    ],
+    "platforms": [
+      "bigquery"
+    ],
+    "returns": "{ dataset_id, empty_table_count, empty_tables:[{table_id,num_bytes}] }"
+  },
+  {
+    "tool": "run_audit",
+    "action": "warehouse_check_table_health",
+    "summary": "Redshift-ONLY table health (sort/dist/skew). Requires dataset_id(schema)+table_id. NOT available for bigquery or snowflake.",
+    "group": "WAREHOUSE",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "redshift",
+        "doc": "Must be 'redshift'. snowflake/bigquery have no check_table_health."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "public",
+        "doc": "Schema name (named dataset_id). Required."
+      },
+      {
+        "name": "table_id",
+        "type": "string",
+        "required": true,
+        "example": "events",
+        "doc": "Table name. Required."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Redshift connection id."
+      }
+    ],
+    "platforms": [
+      "redshift"
+    ],
+    "returns": "{ ...sort/dist/skew health ... } from rs.check_table_health | {error, message}"
+  },
+  {
+    "tool": "run_audit",
+    "action": "warehouse_find_stale_tables",
+    "summary": "Finds tables not modified within days_stale. All three engines. BQ fans out get_table_schema per table comparing modified_time to cutoff; RS/SF delegate to connector with a schema arg.",
+    "group": "WAREHOUSE",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Which engine."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "analytics_123",
+        "doc": "BigQuery: REQUIRED (else 'dataset_id is required for action find_stale_tables'). RS/SF: optional schema, defaults to default_schema.",
+        "platforms": [
+          "bigquery"
+        ]
+      },
+      {
+        "name": "days_stale",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Staleness threshold in days. ACTUAL PARAM NAME is days_stale (function signature)."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "BQ auto-selects when single."
+      }
+    ],
+    "platforms": [
+      "bigquery",
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "BQ: { dataset_id, days_stale_threshold, stale_table_count, stale_tables:[{table_id,last_modified,num_rows}] }. RS/SF: connector-shaped result."
+  },
+  {
+    "tool": "run_audit",
+    "action": "mixpanel_check_taxonomy_health",
+    "summary": "Mixpanel taxonomy-health audit (cached 300s). No params beyond connection.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [],
+    "platforms": [
+      "mixpanel"
+    ],
+    "returns": "Mixpanel check_taxonomy_health findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "mixpanel_check_event_volume_anomalies",
+    "summary": "Mixpanel event-volume anomaly check over a lookback window. days_back optional (default 30).",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "days_back",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Lookback window in days. Defaults 30."
+      }
+    ],
+    "platforms": [
+      "mixpanel"
+    ],
+    "returns": "Mixpanel check_event_volume_anomalies findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "posthog_check_taxonomy_health",
+    "summary": "PostHog taxonomy-health audit (cached 300s). No params beyond connection.",
+    "group": "PRODUCT ANALYTICS",
+    "params": [],
+    "platforms": [
+      "posthog"
+    ],
+    "returns": "PostHog check_taxonomy_health findings dict | {error,message}",
+    "scope": "run_audit"
+  },
+  {
+    "tool": "run_audit",
+    "action": "posthog_check_event_volume_anomalies",
+    "summary": "PostHog event-volume anomaly check over a lookback window. days_back optional (default 30).",
+    "group": "PRODUCT ANALYTICS",
+    "params": [
+      {
+        "name": "days_back",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Lookback window in days. Defaults 30."
+      }
+    ],
+    "platforms": [
+      "posthog"
+    ],
+    "returns": "PostHog check_event_volume_anomalies findings dict | {error,message}",
+    "scope": "run_audit"
+  }
+]

@@ -1,0 +1,54 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Mixpanel" %}
+{% set platform_slug = "mixpanel" %}
+{% set platform_desc = "Connect your Mixpanel project for product analytics insights and event data." %}
+
+{% block platform_body %}
+<form id="mixpanelForm" onsubmit="return submitMixpanel(event)">
+  {% if editing %}<input type="hidden" id="mixEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="mixName">Display name</label>
+    <input class="input" id="mixName" required placeholder="e.g. Production analytics" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="mixApiKey">API Secret</label>
+    <input class="input" id="mixApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your Mixpanel API Secret{% endif %}" value=""/>
+    <div class="label-hint">Find your API Secret in Mixpanel → Project Settings → API Secret</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="mixSecretKey">Service Token</label>
+    <input class="input" type="password" id="mixSecretKey" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current token' if editing else 'Your Mixpanel Service Token' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing service token</div>
+    {% else %}<div class="label-hint">Service Token is found in the same location as API Secret</div>{% endif %}
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Mixpanel' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitMixpanel(e){
+  e.preventDefault();
+  const editId = document.getElementById('mixEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('mixName').value.trim();
+  const api_key = document.getElementById('mixApiKey').value.trim();
+  const secret_key = document.getElementById('mixSecretKey').value.trim();
+
+  const url = isEdit ? '/api/connections/mixpanel/' + editId.value : '/api/connections/mixpanel';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, secret_key})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,113 @@
+# ── VCS (version control) ──────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── Python — bytecode, cache, virtual environments ──────────────────────────
+__pycache__/
+*.py[cod]           # .pyc, .pyo, .pyd
+*.so
+*.egg
+*.egg-info/
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pyenv/
+
+# ── Build & distribution ──────────────────────────────────────────────────
+build/
+dist/
+wheels/
+*.whl
+sdist/
+
+# ── Testing, coverage, type-checking ──────────────────────────────────────
+tests/
+pytest.xml
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+requirements-dev.txt
+
+# ── Secrets & local environment (CRITICAL: never ship into image) ────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+credentials/
+service-account*.json
+google-credentials*.json
+client_secret*.json
+
+# ── Editor & IDE ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ── OS junk ────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Documentation ────────────────────────────────────────────────────────────
+*.md
+!README.md
+!CHANGELOG.md
+!docs/tutorials/*.md
+
+# ── Deployment & tooling ──────────────────────────────────────────────────
+fly.toml
+.github/
+# nginx.conf must stay in the build context so Dockerfile.nginx can bake it
+# into the fluxito-nginx image. (It also ends up in the app image via COPY . . —
+# harmless: ~4KB, no secrets, never executed.)
+!nginx.conf
+docker-compose.yml
+
+# ── Logs & runtime artifacts ──────────────────────────────────────────────
+*.log
+logs/
+*.pid
+*.seed
+
+# ── Node (if frontend assets/tooling used) ────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Database files (should not be in repo) ────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Misc temporary / dev files ────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+*.orig
+.cache/

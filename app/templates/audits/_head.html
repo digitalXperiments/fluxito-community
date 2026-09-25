@@ -1,0 +1,43 @@
+{# Shared Audit page head (Runs / Test flows / Vendors & rules tabs).
+   Usage: {% from "audits/_head.html" import audit_head, audit_ask_script %}
+          {{ audit_head(rulebook_count) }} … {{ audit_ask_script() }}
+   "Run audit" opens the Ask-your-AI prompts (audits run from the AI
+   client over MCP); handled by /static/js/auditing.js. #}
+{% set _plat_names = {'ga4': 'GA4', 'gtm': 'GTM', 'ua': 'UA', 'meta': 'Meta', 'meta_pixel': 'Meta Pixel', 'meta_capi': 'Meta CAPI', 'google_ads': 'Google Ads', 'tiktok': 'TikTok', 'tiktok_pixel': 'TikTok Pixel', 'linkedin': 'LinkedIn', 'linkedin_insight': 'LinkedIn Insight', 'x': 'X', 'x_pixel': 'X Pixel', 'bing_uet': 'Bing UET', 'microsoft_uet': 'Microsoft UET', 'sdr': 'SDR', 'seo': 'SEO'} %}
+{% macro plat_name(p) -%}
+{{ _plat_names.get(p) or ((p or '') | replace('_', ' ') | title) }}
+{%- endmacro %}
+
+{% macro audit_head(rulebook_count=none) %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">04 / Find what’s broken</div>
+    <h1 class="page-title">Your entire container. <em>Audited in minutes.</em></h1>
+    <p class="page-sub">Audits your AI runs against {% if rulebook_count %}{{ rulebook_count }} platform rule books{% else %}every platform rule book{% endif %} — saved here with every finding.</p>
+  </div>
+  <div class="ui-page-actions">
+    <button type="button" class="ui-btn" data-audit-ask="fix">Ask AI to fix</button>
+    <button type="button" class="ui-btn is-primary" id="runAuditBtn" data-audit-ask="run">Run audit</button>
+  </div>
+</div>
+{% endmacro %}
+
+{% set _run_prompts = [
+  'Run a full audit of my connected tag manager. Prioritize consent, duplicate firing, broken triggers, and missing required parameters. Save the results here.',
+  'Run my checkout test flow and explain which step failed and why.',
+  'Review my open audit findings, group related issues, and explain the likely business impact with supporting evidence.'
+] %}
+{% set _fix_prompts = [
+  'Fix the critical and warning findings from my latest Fluxito audit in a new GTM workspace, run a live tag test, and show me the draft. Do not publish.',
+  'For the highest-risk audit findings, draft safe fixes in a workspace for my review. Do not publish or change production.',
+  'Compare my latest audit with the previous one and tell me what regressed.'
+] %}
+
+{% macro audit_ask_script(run_prompts=none, fix_prompts=none, extra=none) %}
+<script>
+  window.__AUDIT_PAGE__ = Object.assign(window.__AUDIT_PAGE__ || {}, {
+    prompts: { run: {{ (run_prompts or _run_prompts) | tojson }}, fix: {{ (fix_prompts or _fix_prompts) | tojson }} }
+  });
+</script>
+<script src="/static/js/auditing.js?v={{ asset_hash('js/auditing.js') }}" defer></script>
+{% endmacro %}

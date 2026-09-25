@@ -1,0 +1,84 @@
+{# Shared settings rail — real-page navigation (no iframe).
+   Groups (Studio prototype): Account (Profile, Preferences, Usage) ·
+   Project · {name} (General, Members & roles, Notification channels
+   [owner/admin], API limits, OAuth apps [owner/admin]). Connections, AI & MCP and Activity log are
+   top-level sidebar items; instance OAuth apps live in the Admin panel.
+   Items that point at an in-page tab carry data-rail-section + data-rail-hash;
+   on their own page a click only changes the hash (the page's tab controller
+   listens for hashchange), elsewhere it is a normal link. Pages announce the
+   tab they are showing with a `settings:tab` event so the highlight follows
+   aliases too (e.g. #roles → Members & roles, #tokens → Profile).
+   Expects `settings_section` set by the page; role flags (
+   active_project_slug, user_project_role) are injected globally by
+   templating.render(). On a project's own settings page the rail follows
+   that project, not the (possibly different) active one. #}
+{% if settings_section == 'project' and project is defined and project and project.slug %}
+{% set active_project_slug = project.slug %}
+{% set active_project_name = project.name %}
+{% endif %}
+<nav class="settings-rail set-rail" aria-label="Settings sections">
+
+  <div class="settings-rail-group">
+    <p class="fx-tiny settings-rail-group-label">Account</p>
+    <a href="/profile" class="settings-tab" data-rail-section="account" data-rail-hash="general" aria-label="Profile">Profile</a>
+    <a href="/profile#preferences" class="settings-tab" data-rail-section="account" data-rail-hash="preferences" aria-label="Preferences">Preferences</a>
+    <a href="/profile#activity" class="settings-tab" data-rail-section="account" data-rail-hash="activity" aria-label="Usage">Usage</a>
+    {% if chat_enabled() %}
+    <a href="/settings/ai" class="settings-tab {% if settings_section == 'ai' %}is-active{% endif %}" {% if settings_section == 'ai' %}aria-current="page"{% endif %} aria-label="AI provider settings">AI providers</a>
+    {% endif %}
+  </div>
+
+  {% if active_project_slug %}
+  <div class="settings-rail-group">
+    <p class="fx-tiny settings-rail-group-label" title="{{ active_project_name or '' }}">Project{% if active_project_name %} · {{ active_project_name }}{% endif %}</p>
+    <a href="/project/{{ active_project_slug }}/settings" class="settings-tab" data-rail-section="project" data-rail-hash="general" aria-label="Project settings">General</a>
+    <a href="/project/{{ active_project_slug }}/settings#members" class="settings-tab" data-rail-section="project" data-rail-hash="members" aria-label="Members and roles">Members &amp; roles</a>
+    {% if user_project_role in ['owner', 'admin'] %}
+    <a href="/project/{{ active_project_slug }}/settings#notifications" class="settings-tab" data-rail-section="project" data-rail-hash="notifications" aria-label="Notification channels">Notification channels</a>
+    {% endif %}
+    <a href="/project/{{ active_project_slug }}/settings#limits" class="settings-tab" data-rail-section="project" data-rail-hash="limits" aria-label="API limits">API limits</a>
+    {% if user_project_role in ['owner', 'admin'] %}
+    <a href="/project/{{ active_project_slug }}/settings#oauth" class="settings-tab" data-rail-section="project" data-rail-hash="oauth" aria-label="OAuth apps">OAuth apps</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</nav>
+<script>
+(function () {
+  var section = {{ (settings_section or '') | tojson }};
+  var links = document.querySelectorAll('.settings-rail [data-rail-section]');
+  var current = null;  // tab announced by the page (settings:tab)
+  function mark(tab) {
+    var hit = false;
+    links.forEach(function (a) {
+      var on = a.dataset.railSection === section && a.dataset.railHash === tab;
+      if (on) hit = true;
+      a.classList.toggle('is-active', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    // Keep the active item visible when the rail is a horizontal strip.
+    if (hit) {
+      var el = document.querySelector('.settings-rail .settings-tab.is-active');
+      var rail = el && el.closest('.settings-rail');
+      if (rail && rail.scrollWidth > rail.clientWidth) {
+        rail.scrollLeft = el.offsetLeft - (rail.clientWidth - el.offsetWidth) / 2;
+      }
+    }
+  }
+  function sync() { mark(current || (location.hash || '').replace('#', '') || 'general'); }
+  // Same-page rail links only switch the page's own tab (hash) — no reload.
+  links.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      if (a.dataset.railSection !== section) return;
+      e.preventDefault();
+      var hash = '#' + a.dataset.railHash;
+      if (location.hash === hash) { window.dispatchEvent(new HashChangeEvent('hashchange')); return; }
+      location.hash = hash;
+    });
+  });
+  document.addEventListener('settings:tab', function (e) { current = e.detail && e.detail.tab; sync(); });
+  window.addEventListener('hashchange', function () { current = null; setTimeout(sync, 0); });
+  sync();
+})();
+</script>

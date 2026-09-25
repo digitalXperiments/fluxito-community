@@ -1,0 +1,812 @@
+[
+  {
+    "tool": "analytics_write",
+    "action": "create_audience",
+    "summary": "GA4-only: create an audience. Requires full analytics OAuth scope + config with display_name, membership_duration_days, filter_clauses.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "GA4 only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property (auto-prefixed). Used by connector; NOT explicitly required-checked in this action (passed as-is, may be None).",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "display_name": "Cart abandoners",
+          "membership_duration_days": 30,
+          "filter_clauses": []
+        },
+        "doc": "Must contain keys display_name, membership_duration_days, filter_clauses (existence-checked via 'k not in config', so falsy values like 0 are allowed)."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "VIP segment",
+        "doc": "Optional audience description."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 create_audience dict | {error,message} | insufficient_scope error",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "create_calculated_metric",
+    "summary": "Adobe-only: create a calculated metric. Requires full scope (GA4 scope-gate does NOT apply to adobe) + config{name, rsid, definition}.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only. NOTE: routed by public action name but handler lives in adobe branch; ga4 branch has no create_calculated_metric."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "name": "Revenue per Visit",
+          "rsid": "myrsid",
+          "definition": {}
+        },
+        "doc": "Must contain truthy name, rsid, definition (checked via 'not config.get(k)'). definition is the Adobe calc-metric definition object."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "",
+        "doc": "Optional description."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe create_calculated_metric dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "create_custom_dimension",
+    "summary": "GA4-only: create a custom dimension. Requires full scope + config{display_name, parameter_name, scope}.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "GA4 only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property (auto-prefixed). Passed to connector; not explicitly required-checked.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "display_name": "Membership Level",
+          "parameter_name": "membership_level",
+          "scope": "USER"
+        },
+        "doc": "Must contain truthy display_name, parameter_name, scope (checked via 'not config.get(k)'). scope is GA4 dimension scope (EVENT|USER|ITEM)."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "",
+        "doc": "Optional dimension description."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 create_custom_dimension dict | {error,message} | insufficient_scope",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "create_custom_metric",
+    "summary": "GA4-only: create a custom metric. Requires full scope + config{display_name, parameter_name}. Whole config dict is forwarded to the connector.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "GA4 only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property (auto-prefixed). Passed to connector; not explicitly required-checked.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "display_name": "Cart Value",
+          "parameter_name": "cart_value"
+        },
+        "doc": "Must contain truthy display_name and parameter_name. The ENTIRE config dict is passed to ga4.create_custom_metric (so extra keys like measurement_unit/scope flow through unvalidated)."
+      },
+      {
+        "name": "config.measurement_unit / config.scope / others",
+        "type": "object",
+        "required": false,
+        "example": {
+          "measurement_unit": "CURRENCY"
+        },
+        "doc": "Any extra config keys are forwarded verbatim to the connector (unvalidated passthrough)."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 create_custom_metric dict | {error,message} | insufficient_scope",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "create_segment",
+    "summary": "Adobe-only: create a segment. Requires config{name, rsid, definition}.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "name": "Mobile buyers",
+          "rsid": "myrsid",
+          "definition": {}
+        },
+        "doc": "Must contain truthy name, rsid, definition. definition is the Adobe segment definition object."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "",
+        "doc": "Optional description."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe create_segment dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "adobe_workspace_create_project",
+    "summary": "Adobe-only: create an Analysis Workspace project. Prefer config{name, rsid, tables:[{metrics, dimension?}]}. Fluxito builds a valid Workspace definition (do NOT invent raw definition JSON). Optional date_range (thisMonth, last30Days, YYYY-MM-DD/YYYY-MM-DD). A raw definition is accepted if it already contains workspaces+version. Validates against the report suite before POST unless config.validate=false.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "name": "Weekly traffic",
+          "rsid": "myrsid",
+          "date_range": "thisMonth",
+          "tables": [
+            {
+              "name": "Traffic",
+              "metrics": ["visits", "pageviews"],
+              "dimension": "page"
+            }
+          ]
+        },
+        "doc": "Required: name, rsid. Preferred: tables (array of {name?, metrics[], dimension?}) — Fluxito expands this into Adobe's Workspace JSON. Alternative: a full definition with workspaces+version. Incomplete definitions (e.g. {version:31} only) are expanded to a Visits/thisMonth template. Optional description, tags, shares, date_range, validate (default true)."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "",
+        "doc": "Optional project description."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{success, project_id, name, rsid, message} | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "adobe_workspace_copy_project",
+    "summary": "Adobe-only: duplicate a Workspace project (GET source with definition, POST under a new name using writable fields only). Requires config{project_id, name}. project_id must match [A-Za-z0-9_-]{1,128}.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "project_id": "6091a10005c7706c0acdd751",
+          "name": "Weekly traffic (copy)"
+        },
+        "doc": "Must contain a valid project_id (source; letters/digits/_/- only) and name (new project name). Copy posts only writable fields — never owner/type/created/modified from the GET."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{success, project_id, name, rsid, copied_from, message} | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "delete_calculated_metric",
+    "summary": "Adobe-only: delete a calculated metric by id. IRREVERSIBLE real delete. Requires config.metric_id.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "metric_id": "cm12345"
+        },
+        "doc": "Must contain truthy metric_id."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe delete_calculated_metric dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": false
+  },
+  {
+    "tool": "analytics_write",
+    "action": "delete_segment",
+    "summary": "Adobe-only: delete a segment by id. IRREVERSIBLE real delete. Requires config.segment_id.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "segment_id": "s12345"
+        },
+        "doc": "Must contain truthy segment_id."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe delete_segment dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": false
+  },
+  {
+    "tool": "analytics_write",
+    "action": "adobe_workspace_delete_project",
+    "summary": "Adobe-only: permanently hide/delete one Analysis Workspace project. IRREVERSIBLE. Requires an explicit config.project_id matching [A-Za-z0-9_-]{1,128} — no wildcard, path, or bulk delete.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "project_id": "6091a10005c7706c0acdd751"
+        },
+        "doc": "Must contain a valid project_id (letters, digits, underscore, hyphen; 1-128 chars). Values such as '*', '../projects', or ids containing '/' are rejected before any HTTP call."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{success, project_id, message} | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_write",
+    "reversible": false
+  },
+  {
+    "tool": "analytics_write",
+    "action": "mark_event_as_conversion",
+    "summary": "GA4-only: mark/unmark an event as a conversion (key event). Requires full scope + config.event_name.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "ga4",
+        "doc": "GA4 only."
+      },
+      {
+        "name": "property_id",
+        "type": "string",
+        "required": true,
+        "example": "properties/123456789",
+        "doc": "GA4 property (auto-prefixed). Passed to connector; not explicitly required-checked.",
+        "platforms": [
+          "ga4"
+        ]
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "event_name": "purchase",
+          "is_conversion": true
+        },
+        "doc": "Must contain event_name. Optional is_conversion (defaults true)."
+      },
+      {
+        "name": "config.is_conversion",
+        "type": "boolean",
+        "required": false,
+        "example": false,
+        "doc": "Whether to MARK (true) or UNMARK (false) the event as a conversion. Defaults true."
+      }
+    ],
+    "platforms": [
+      "ga4"
+    ],
+    "returns": "GA4 mark_event_as_conversion dict | {error,message} | insufficient_scope",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "update_segment",
+    "summary": "Adobe-only: update a segment by id. Requires config.segment_id; name/description/definition optional.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "segment_id": "s12345",
+          "name": "New name"
+        },
+        "doc": "Must contain truthy segment_id. name/description/definition optional updates."
+      },
+      {
+        "name": "config.name",
+        "type": "string",
+        "required": false,
+        "example": "Updated segment",
+        "doc": "Optional new name."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "",
+        "doc": "Optional new description."
+      },
+      {
+        "name": "config.definition",
+        "type": "object",
+        "required": false,
+        "example": {},
+        "doc": "Optional new definition."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "Adobe update_segment dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "adobe_workspace_update_project",
+    "summary": "Adobe-only: edit a Workspace project via Adobe's documented partial PUT. A rename is PUT {name}. To rebuild visualizations pass config.tables (Fluxito builds the definition). Set merge_definition=true to GET+merge a partial definition. project_id must match [A-Za-z0-9_-]{1,128}.",
+    "group": "ADOBE WORKSPACE",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "adobe_analytics",
+        "doc": "Adobe only."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "project_id": "6091a10005c7706c0acdd751",
+          "name": "Renamed project"
+        },
+        "doc": "Must contain a valid project_id (letters/digits/_/- only). Optional name, description, rsid, owner, definition, tables, date_range, tags, shares. tables rebuilds the Workspace definition (preferred over inventing raw definition JSON). Only writable fields are PUT."
+      },
+      {
+        "name": "config.tables",
+        "type": "array",
+        "required": false,
+        "item_type": "object",
+        "example": [
+          {
+            "name": "Traffic",
+            "metrics": ["visits"],
+            "dimension": "page"
+          }
+        ],
+        "doc": "Compact freeform tables. When set, Fluxito builds a full Workspace definition and PUTs it."
+      },
+      {
+        "name": "config.name",
+        "type": "string",
+        "required": false,
+        "example": "Renamed project",
+        "doc": "Optional new name."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "",
+        "doc": "Optional new description."
+      },
+      {
+        "name": "config.rsid",
+        "type": "string",
+        "required": false,
+        "example": "myrsid",
+        "doc": "Optional new report suite id."
+      },
+      {
+        "name": "config.definition",
+        "type": "object",
+        "required": false,
+        "example": {
+          "version": "31"
+        },
+        "doc": "Definition object sent as-is in the partial PUT; it may replace the stored definition subtree (Adobe's partial-update contract is top-level, not a recursive merge inside definition). Use merge_definition=true when you only want to change nested fields and keep the rest of the stored definition."
+      },
+      {
+        "name": "config.merge_definition",
+        "type": "boolean",
+        "required": false,
+        "example": false,
+        "doc": "Opt-in. When true and definition is provided, GET the current definition, deep-merge the caller's keys into that subtree, and PUT {definition: merged, ...other caller fields}. Never resends owner/type/modified or the full GET representation."
+      },
+      {
+        "name": "config.owner",
+        "type": "object",
+        "required": false,
+        "example": {
+          "id": 622291
+        },
+        "doc": "Optional owner object sent as a caller-supplied partial-PUT field. Not fetched or merged from GET unless you include it here."
+      }
+    ],
+    "platforms": [
+      "adobe_analytics"
+    ],
+    "returns": "{success, project_id, name, rsid, updated_fields, merged_definition, message} | {error,error_type,message,adobe_error_code?}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "create_event_type",
+    "summary": "Amplitude/Mixpanel/PostHog: create an event type definition. Requires config.event_type.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "event_type": "purchase",
+          "description": "User completed checkout",
+          "category": "ecommerce"
+        },
+        "doc": "Must contain truthy event_type. description and category optional."
+      },
+      {
+        "name": "config.description",
+        "type": "string",
+        "required": false,
+        "example": "User completed checkout",
+        "doc": "Optional event description."
+      },
+      {
+        "name": "config.category",
+        "type": "string",
+        "required": false,
+        "example": "ecommerce",
+        "doc": "Optional event category."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Platform-specific create_event_type dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "update_event_type",
+    "summary": "Amplitude/Mixpanel/PostHog: update an event type definition. Requires config.event_type.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "event_type": "purchase",
+          "new_name": "checkout_complete",
+          "description": "Updated description"
+        },
+        "doc": "Must contain truthy event_type. new_name, description, category optional."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Platform-specific update_event_type dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": true
+  },
+  {
+    "tool": "analytics_write",
+    "action": "delete_event_type",
+    "summary": "Amplitude/Mixpanel/PostHog: delete/hide an event type. IRREVERSIBLE. Requires config.event_type.",
+    "group": "",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics"
+        ],
+        "example": "amplitude",
+        "doc": "Amplitude, Mixpanel, or PostHog."
+      },
+      {
+        "name": "config",
+        "type": "object",
+        "required": true,
+        "example": {
+          "event_type": "purchase"
+        },
+        "doc": "Must contain truthy event_type."
+      }
+    ],
+    "platforms": [
+      "amplitude",
+      "mixpanel",
+      "posthog"
+    ],
+    "returns": "Platform-specific delete_event_type dict | {error,message}",
+    "scope": "analytics_write",
+    "reversible": false
+  }
+]

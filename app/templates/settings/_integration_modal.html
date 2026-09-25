@@ -1,0 +1,84 @@
+{# ── OAuth app credentials modal ─────────────────────────────────────────
+   Single modal; integrations.js fills it per platform via IntgUI.openModal()
+   and toggles `.is-open` on the backdrop. Styled like the shared ui-modal.
+   ──────────────────────────────────────────────────────────────────────── #}
+<div class="modal-backdrop intg-backdrop" id="intgModalBackdrop" aria-modal="true" role="dialog" aria-labelledby="intgModalTitle">
+  <div class="intg-modal" id="intgModal">
+
+    <div class="intg-modal-head" id="intgModalHead">
+      <div class="intg-modal-title-row">
+        <span class="intg-modal-logo" id="intgModalBadge" aria-hidden="true"></span>
+        <div>
+          <h3 class="intg-modal-title" id="intgModalTitle">OAuth app credentials</h3>
+          <p class="intg-modal-sub">From the platform's developer console. Used when users connect this platform.</p>
+        </div>
+      </div>
+      <button type="button" class="intg-modal-close" aria-label="Close" onclick="IntgUI.closeModal()">✕</button>
+    </div>
+
+    <div class="intg-modal-body">
+
+      <div class="intg-step">
+        <div class="intg-step-num">1</div>
+        <div class="intg-step-content">
+          <div class="intg-step-title">Open the developer console</div>
+          <div class="intg-step-links">
+            <a id="intgConsoleLink" href="#" target="_blank" rel="noopener" class="ui-btn is-sm">Open console ↗</a>
+            <span class="intg-guide-link" id="intgGuideLink" style="display:none"><a id="intgGuideAnchor" href="#" target="_blank" rel="noopener">Setup guide →</a></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="intg-step">
+        <div class="intg-step-num">2</div>
+        <div class="intg-step-content">
+          <div class="intg-step-title">Register these redirect URIs</div>
+          <div id="intgRedirectUris" class="intg-uri-list"></div>
+        </div>
+      </div>
+
+      <div class="intg-step">
+        <div class="intg-step-num">3</div>
+        <div class="intg-step-content">
+          <div class="intg-step-title">Enter your app credentials</div>
+          <form id="intgForm" onsubmit="IntgUI.handleSave(event)" autocomplete="off">
+            <label class="ui-field">
+              <span>Client ID</span>
+              <input type="text" name="client_id" id="intgClientId" class="ui-input ui-mono" required placeholder="Paste your client ID">
+            </label>
+
+            <label class="ui-field">
+              <span>Client secret</span>
+              <span class="intg-secret-wrap">
+                <input type="password" name="client_secret" id="intgClientSecret" class="ui-input" required placeholder="Paste your client secret">
+                <button type="button" class="intg-secret-toggle" aria-label="Show or hide secret" onclick="IntgUI.toggleSecret()">
+                  <svg id="intgSecretEye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </span>
+            </label>
+
+            {# Google only: optional developer token #}
+            <div id="intgDevTokenWrap" style="display:none">
+              <label class="ui-field">
+                <span>Google Ads developer token <small class="ui-muted">(optional — Google Ads only)</small></span>
+                <input type="text" name="developer_token" id="intgDevToken" class="ui-input ui-mono" placeholder="Paste developer token if using Google Ads">
+              </label>
+            </div>
+
+            <div id="intgTestResult" style="display:none" class="intg-test-result"></div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="intg-modal-footer">
+      <button type="button" class="ui-btn is-quiet" onclick="IntgUI.testCredentials()">Test saved credentials</button>
+      <span class="intg-foot-gap"></span>
+      <button type="button" class="ui-btn is-quiet is-danger" id="intgRemoveBtn" style="display:none" onclick="IntgUI.removeFromModal()">Remove</button>
+      <button type="button" class="ui-btn" onclick="IntgUI.closeModal()">Cancel</button>
+      <button type="submit" form="intgForm" class="ui-btn is-primary" id="intgSaveBtn">Save</button>
+    </div>
+
+  </div>
+</div>

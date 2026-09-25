@@ -1,0 +1,112 @@
+{# ⌘K command palette — pages, copyable prompts and quick actions.
+   Included once from base.html for signed-in, non-embedded pages. Also wires
+   the top-bar MCP endpoint pill (copy to clipboard). Server-side routes still
+   enforce permissions; the palette only lists destinations. #}
+{% set _perms = (user.permissions if user and user.permissions else {"full": True, "tools": {}}) %}
+<div class="cmdk-scrim" id="cmdkScrim" hidden></div>
+<div class="cmdk" id="cmdk" role="dialog" aria-modal="true" aria-label="Search and jump" hidden>
+  <input class="cmdk-input" id="cmdkInput" type="text" placeholder="Search pages, prompts and actions…" autocomplete="off" spellcheck="false">
+  <div class="cmdk-list" id="cmdkList" role="listbox"></div>
+  <div class="cmdk-foot"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></div>
+</div>
+<script>
+(function () {
+  var MCP_URL = {{ (base_url ~ '/mcp') | tojson }};
+  var items = [
+    ['Pages', 'Home', '/home'],
+    {% if chat_enabled() %}['Pages', 'Chat', '/chat'],{% endif %}
+    {% if _perms.full or _perms.tools.get('analysis') %}['Pages', 'Audit · Runs', '/audits'], ['Pages', 'Audit · Test flows', '/audits/flows'], ['Pages', 'Audit · Vendors & rules', '/audits/vendors'],{% endif %}
+    {% if _perms.full or _perms.tools.get('knowledge') %}['Pages', 'Context · KPI library', '/kpi-library'], ['Pages', 'Context · Business context', '/business-context'],{% endif %}
+    ['Pages', 'AI & MCP', '/ai'],
+    ['Pages', 'Connections', '/settings/connections'],
+    ['Pages', 'Activity log', '/activity-log'],
+    ['Pages', 'Settings · Profile', '/profile#general'],
+    ['Pages', 'Settings · Preferences', '/profile#preferences'],
+    {% if active_project_slug %}['Pages', 'Settings · Project', '/project/{{ active_project_slug }}/settings#general'], ['Pages', 'Settings · Members & roles', '/project/{{ active_project_slug }}/settings#members'], ['Pages', 'Settings · Notification channels', '/project/{{ active_project_slug }}/settings#notifications'],{% endif %}
+    ['Pages', 'Tutorials & help', '/tutorials'],
+    ['Actions', 'Copy MCP endpoint', function () { copyText(MCP_URL, 'MCP endpoint copied'); }],
+    ['Actions', 'Add Fluxito to an AI client', '/ai#clients'],
+    ['Actions', 'Create an access token', '/ai#tokens'],
+    ['Actions', 'Connect a platform', '/settings/connections'],
+    {% if active_project_slug %}['Actions', 'Invite a member', '/project/{{ active_project_slug }}/settings#members'],{% endif %}
+    ['Actions', 'Replay onboarding', '/tutorial?replay=1'],
+    ['Prompts · Audit', 'Audit our GTM container against the GA4, Meta and Google Ads rule books, then save the audit.', null],
+    ['Prompts · Analyse', 'Compare paid spend and conversions across our ad platforms for the last 30 days.', null],
+    ['Prompts · Context', 'List our approved KPIs and compute last month\'s value for each.', null]
+  ];
+
+  var scrim = document.getElementById('cmdkScrim');
+  var box = document.getElementById('cmdk');
+  var input = document.getElementById('cmdkInput');
+  var list = document.getElementById('cmdkList');
+  var shown = [], sel = 0;
+
+  function toast(msg) {
+    if (window.Fluxito && typeof window.Fluxito.toast === 'function') { window.Fluxito.toast(msg); return; }
+    var host = document.querySelector('.toast-host');
+    if (!host) return;
+    var t = document.createElement('div');
+    t.className = 'toast'; t.textContent = msg; host.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2400);
+  }
+  function copyText(text, msg) {
+    var done = function () { toast(msg || 'Copied'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
+    else done();
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function render(q) {
+    q = (q || '').toLowerCase().trim();
+    shown = items.filter(function (it) { return !q || (it[0] + ' ' + it[1]).toLowerCase().indexOf(q) !== -1; }).slice(0, 16);
+    sel = 0;
+    var group = '', html = '';
+    shown.forEach(function (it, i) {
+      if (it[0] !== group) { group = it[0]; html += '<div class="cmdk-group">' + esc(group) + '</div>'; }
+      var hint = it[2] === null ? 'Copy' : (typeof it[2] === 'function' ? 'Run' : 'Go');
+      html += '<button type="button" class="cmdk-item' + (i === 0 ? ' is-active' : '') + '" data-i="' + i + '" role="option"><span>' + esc(it[1]) + '</span><small>' + hint + '</small></button>';
+    });
+    list.innerHTML = html || '<div class="cmdk-empty">No results</div>';
+  }
+  function run(i) {
+    var it = shown[i]; if (!it) return;
+    close();
+    if (it[2] === null) copyText(it[1], 'Prompt copied — paste it into your AI client');
+    else if (typeof it[2] === 'function') it[2]();
+    else window.location.href = it[2];
+  }
+  function open() { scrim.hidden = false; box.hidden = false; input.value = ''; render(''); setTimeout(function () { input.focus(); }, 10); }
+  function close() { scrim.hidden = true; box.hidden = true; }
+  function move(d) {
+    var btns = list.querySelectorAll('.cmdk-item'); if (!btns.length) return;
+    sel = (sel + d + btns.length) % btns.length;
+    btns.forEach(function (b, i) { b.classList.toggle('is-active', i === sel); });
+    btns[sel].scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('input', function () { render(input.value); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); run(sel); }
+    else if (e.key === 'Escape') { close(); }
+  });
+  list.addEventListener('click', function (e) { var b = e.target.closest('.cmdk-item'); if (b) run(+b.dataset.i); });
+  scrim.addEventListener('click', close);
+  var opener = document.getElementById('paletteOpen');
+  if (opener) opener.addEventListener('click', open);
+
+  // ⌘K / Ctrl+K opens the palette. Registered in the capture phase so it
+  // wins over page-level shortcuts; pages with a focused composer keep ⌘K.
+  window.addEventListener('keydown', function (e) {
+    if (!((e.metaKey || e.ctrlKey) && e.key && e.key.toLowerCase() === 'k')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (box.hidden) open(); else close();
+  }, true);
+
+  document.addEventListener('click', function (e) {
+    var pill = e.target.closest('[data-copy-mcp]');
+    if (pill) copyText(pill.getAttribute('data-copy-mcp'), 'MCP endpoint copied — paste it into your AI client');
+  });
+})();
+</script>

@@ -1,0 +1,682 @@
+[
+  {
+    "tool": "tagmanager_read",
+    "action": "get_container_summary",
+    "summary": "Container overview (counts, last-published, workspace count) for one container (cached 300s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ ...summary fields } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "get_property",
+    "summary": "Get one Adobe Launch property by ID (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id (overloaded onto container_id param)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...property } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "get_rule",
+    "summary": "Get one Adobe Launch rule by ID (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "RL1234abcd",
+        "doc": "Adobe Launch rule_id (overloaded onto tag_id param)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...rule } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "get_data_element",
+    "summary": "Get one Adobe Launch data element by ID (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "DE1234abcd",
+        "doc": "Adobe Launch data_element_id (overloaded onto tag_id param)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...data_element } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_rule_components",
+    "summary": "List all rule components for an Adobe Launch rule (cached 300s). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "RL1234abcd",
+        "doc": "Adobe Launch rule_id (overloaded onto tag_id param)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ rule_id, rule_components: [...], total } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "get_rule_component",
+    "summary": "Get one Adobe Launch rule component by ID (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "RC1234abcd",
+        "doc": "Adobe Launch rule_component_id (overloaded onto tag_id param)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ ...rule_component } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "get_tag_detail",
+    "summary": "Get raw detail for one GTM tag by tag_id (cached 300s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "tag_id",
+        "type": "string",
+        "required": true,
+        "example": "42",
+        "doc": "Tag ID."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID; defaults to '0'."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ ...tag fields } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_accounts",
+    "summary": "Enumerate GTM accounts the connected Google user can access (cached 600s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform; defaults to gtm. list_accounts only valid for gtm."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ accounts: [...] } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_builds",
+    "summary": "List builds for an Adobe Launch library (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": true,
+        "example": "LB1234abcd",
+        "doc": "Adobe Launch library_id (overloaded onto workspace_id param; '0'/empty rejected)."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ builds: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_companies",
+    "summary": "List Adobe Launch (Reactor) companies accessible to the org (cached 600s). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "Tag platform; defaults to adobe_launch for list_companies."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ companies: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_containers",
+    "summary": "List GTM containers, optionally filtered by account_id (cached 600s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": false,
+        "example": "6001234567",
+        "doc": "GTM account ID. If omitted, cache key uses 'all'; connector receives None."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ containers: [...] } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_data_elements",
+    "summary": "List data elements for an Adobe Launch property (cached 300s). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ data_elements: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_environments",
+    "summary": "List environments for an Adobe Launch property (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ environments: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_extensions",
+    "summary": "List extensions installed on an Adobe Launch property (cached 300s). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ extensions: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_libraries",
+    "summary": "List libraries for an Adobe Launch property (not cached). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ libraries: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_properties",
+    "summary": "List Adobe Launch properties for a company (cached 300s). Auto-resolves company if account_id is omitted. Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch; route does not inject it."
+      },
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": false,
+        "example": "CO1234abcd",
+        "doc": "Adobe company_id (overloaded onto account_id param). If omitted, automatically resolved from the organization's companies."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ properties: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_rules",
+    "summary": "List rules for an Adobe Launch property (cached 300s). Requires platform=adobe_launch.",
+    "group": "ADOBE LAUNCH",
+    "params": [
+      {
+        "name": "platform",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "adobe_launch"
+        ],
+        "example": "adobe_launch",
+        "doc": "MUST be passed as adobe_launch."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "PR1234abcd",
+        "doc": "Adobe Launch property_id."
+      }
+    ],
+    "platforms": [
+      "adobe_launch"
+    ],
+    "returns": "{ rules: [...] } | no_adobe_launch_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_tags",
+    "summary": "List tags in a container workspace, normalized with firing_triggers names (cached 300s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID; defaults to '0' (latest published/default workspace)."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ tags: [...] } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_triggers",
+    "summary": "List triggers in a container workspace (cached 300s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID; defaults to '0'."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ triggers: [...] } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_variables",
+    "summary": "List variables in a container workspace (cached 300s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "workspace_id",
+        "type": "string",
+        "required": false,
+        "example": "3",
+        "doc": "Workspace ID; defaults to '0'."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ variables: [...] } | no_gtm_response | {error,message}"
+  },
+  {
+    "tool": "tagmanager_read",
+    "action": "list_workspaces",
+    "summary": "List workspaces in a container (cached 300s).",
+    "group": "GTM",
+    "params": [
+      {
+        "name": "account_id",
+        "type": "string",
+        "required": true,
+        "example": "6001234567",
+        "doc": "GTM account ID."
+      },
+      {
+        "name": "container_id",
+        "type": "string",
+        "required": true,
+        "example": "12345678",
+        "doc": "GTM container ID."
+      },
+      {
+        "name": "platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "gtm",
+          "adobe_launch"
+        ],
+        "example": "gtm",
+        "doc": "Tag platform."
+      }
+    ],
+    "platforms": [
+      "gtm"
+    ],
+    "returns": "{ workspaces: [...] } | no_gtm_response | {error,message}"
+  }
+]

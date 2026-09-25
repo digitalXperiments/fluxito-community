@@ -1,0 +1,316 @@
+[
+  {
+    "tool": "warehouse_read",
+    "action": "get_table_schema",
+    "summary": "Returns column list + types (+ BQ stats) for a table. BQ requires dataset_id+table_id; RS/SF require table_id and use dataset_id-or-default_schema as the schema.",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Which engine."
+      },
+      {
+        "name": "table_id",
+        "type": "string",
+        "required": true,
+        "example": "events",
+        "doc": "Table name. Required for all engines."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "analytics_123",
+        "doc": "BigQuery: REQUIRED (with table_id). RS/SF: optional schema, defaults to connection default_schema.",
+        "platforms": [
+          "bigquery"
+        ]
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "BQ auto-selects when single."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": false,
+        "example": "public",
+        "doc": "RS/SF schema name; defaults to creds['default_schema']."
+      }
+    ],
+    "platforms": [
+      "bigquery",
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "{ schema: [ {name/column_name, type, ...} ], num_rows?, num_bytes?, modified_time? } | {error, message}"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "get_warehouse_usage",
+    "summary": "ROUTED BUT UNCALLABLE via warehouse_read: WAREHOUSE_READ_ROUTES maps get_warehouse_usage -> ('warehouse_read','get_warehouse_usage'), but legacy warehouse_read has NO such handler (it lives in warehouse_audit, Snowflake-only). Rejected by _VALID_ACTIONS for every engine.",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "snowflake",
+        "doc": "Engine (irrelevant \u2014 fails action-validation)."
+      }
+    ],
+    "returns": "{error:true, message:\"Unknown action 'get_warehouse_usage' for <engine> warehouse_read. Valid actions: ...\"}"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "list_connections",
+    "summary": "Lists the user's connected warehouses of the given engine (one of three branch shapes; no connection required).",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Which warehouse engine. Selects the per-engine branch."
+      }
+    ],
+    "platforms": [
+      "bigquery",
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "{ connections: [ { connection_id, display_name, connection_status, created_at, ...engine-specific: BQ(project_id,datasets[]) | RS(database,default_schema) | SF(warehouse,database,default_schema) } ] }"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "list_databases",
+    "summary": "Lists Snowflake databases. Snowflake-only (Redshift's _VALID_ACTIONS has no list_databases).",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "snowflake",
+        "doc": "Must be 'snowflake'. Not valid for bigquery or redshift."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Resolved via _get_snowflake_conn; NOT auto-selected when single (only BQ has the single-connection auto-select)."
+      }
+    ],
+    "platforms": [
+      "snowflake"
+    ],
+    "returns": "{ databases: [...] } | _no_snowflake_response() | connector error"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "list_datasets",
+    "summary": "Lists BigQuery datasets for the resolved connection (cached META_TTL). BigQuery-only.",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Must be 'bigquery'; rejected with 'Unknown action' for redshift/snowflake."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Auto-selected when the user has exactly one BQ connection (see _get_bq_conn smart default)."
+      }
+    ],
+    "platforms": [
+      "bigquery"
+    ],
+    "returns": "{ datasets: [...] } | {error, message} from bq_connector.list_datasets"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "list_schemas",
+    "summary": "Lists schemas. Redshift uses creds only; Snowflake requires creds['database']. Not valid for BigQuery.",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "redshift",
+        "doc": "Must be 'redshift' or 'snowflake'."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Resolved per engine; no single-connection auto-select for RS/SF."
+      }
+    ],
+    "platforms": [
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "{ schemas: [...] } | connection_missing | connector error"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "list_tables",
+    "summary": "Lists tables in a dataset/schema. BQ requires dataset_id; RS/SF fall back to the connection's default_schema when dataset_id omitted.",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Which engine."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": true,
+        "example": "analytics_123",
+        "doc": "BigQuery: REQUIRED. Redshift/Snowflake: optional \u2014 names the schema; falls back to connection default_schema.",
+        "platforms": [
+          "bigquery"
+        ]
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "BQ auto-selects when single; RS/SF resolved by id."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": false,
+        "example": "public",
+        "doc": "For RS/SF this is really the SCHEMA name (named dataset_id). Defaults to creds['default_schema']."
+      }
+    ],
+    "platforms": [
+      "bigquery",
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "{ tables: [ {table_id, table_type, ...} ] } | {error, message} | connection_missing"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "list_warehouses",
+    "summary": "Lists Snowflake compute warehouses. Snowflake-only.",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "snowflake",
+        "doc": "Must be 'snowflake'."
+      },
+      {
+        "name": "connection_id",
+        "type": "string",
+        "required": false,
+        "example": "uuid",
+        "doc": "Resolved via _get_snowflake_conn."
+      }
+    ],
+    "platforms": [
+      "snowflake"
+    ],
+    "returns": "{ warehouses: [...] } | _no_snowflake_response() | connector error"
+  },
+  {
+    "tool": "warehouse_read",
+    "action": "preview_table",
+    "summary": "ROUTED BUT UNCALLABLE via warehouse_read: the public WAREHOUSE_READ_ROUTES maps preview_table -> ('warehouse_read','preview_table'), but legacy warehouse_read has NO preview_table handler \u2014 it is rejected by _VALID_ACTIONS for every engine. (The real preview_table lives in warehouse_query.)",
+    "group": "",
+    "params": [
+      {
+        "name": "engine",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Engine (irrelevant \u2014 action fails action-validation regardless)."
+      },
+      {
+        "name": "dataset_id",
+        "type": "string",
+        "required": false,
+        "example": "analytics_123",
+        "doc": "Documented for preview_table but never reached."
+      },
+      {
+        "name": "table_id",
+        "type": "string",
+        "required": false,
+        "example": "events",
+        "doc": "Documented for preview_table but never reached."
+      }
+    ],
+    "returns": "{error:true, message:\"Unknown action 'preview_table' for <engine> warehouse_read. Valid actions: ...\"}"
+  }
+]

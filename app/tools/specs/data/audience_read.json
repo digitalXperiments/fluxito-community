@@ -1,0 +1,61 @@
+[
+  {
+    "tool": "audience_read",
+    "action": "list_audiences",
+    "summary": "List Google Data Manager UserLists.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "parent", "type": "string", "doc": "accountTypes/{account_type}/accounts/{account_id}."},
+      {"name": "account_type", "type": "string", "doc": "Account type used with account_id, for example GOOGLE_ADS."},
+      {"name": "account_id", "type": "string", "doc": "Product account ID used with account_type."},
+      {"name": "page_size", "type": "integer", "example": 100},
+      {"name": "page_token", "type": "string"},
+      {"name": "filter", "type": "string"}
+    ],
+    "returns": "{ userLists: [...], nextPageToken? }",
+    "scope": "audience_read"
+  },
+  {
+    "tool": "audience_read",
+    "action": "list_user_lists",
+    "summary": "Alias of list_audiences.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "parent", "type": "string"},
+      {"name": "account_type", "type": "string"},
+      {"name": "account_id", "type": "string"},
+      {"name": "page_size", "type": "integer"},
+      {"name": "page_token", "type": "string"},
+      {"name": "filter", "type": "string"}
+    ],
+    "returns": "{ userLists: [...], nextPageToken? }",
+    "scope": "audience_read"
+  },
+  {
+    "tool": "audience_read",
+    "action": "get_audience",
+    "summary": "Get one Google Data Manager UserList.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [{"name": "name", "type": "string", "required": true, "example": "accountTypes/GOOGLE_ADS/accounts/123/userLists/456"}],
+    "returns": "UserList resource",
+    "scope": "audience_read"
+  },
+  {
+    "tool": "audience_read",
+    "action": "get_user_list",
+    "summary": "Alias of get_audience.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [{"name": "name", "type": "string", "required": true}],
+    "returns": "UserList resource",
+    "scope": "audience_read"
+  },
+  {
+    "tool": "audience_read",
+    "action": "get_request_status",
+    "summary": "Get the status of an audience-member ingestion or removal request.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [{"name": "request_id", "type": "string", "required": true}],
+    "returns": "Request status resource",
+    "scope": "audience_read"
+  }
+]

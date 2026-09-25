@@ -1,0 +1,129 @@
+[
+  {
+    "tool": "audience_write",
+    "action": "create_audience",
+    "summary": "Create a Google Data Manager UserList audience.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "parent", "type": "string"},
+      {"name": "account_type", "type": "string"},
+      {"name": "account_id", "type": "string"},
+      {"name": "config", "type": "object", "required": true, "doc": "UserList fields such as display_name, description, membership_duration."}
+    ],
+    "returns": "Created UserList resource",
+    "scope": "audience_write",
+    "mutates": true
+  },
+  {
+    "tool": "audience_write",
+    "action": "create_user_list",
+    "summary": "Alias of create_audience.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "parent", "type": "string"},
+      {"name": "account_type", "type": "string"},
+      {"name": "account_id", "type": "string"},
+      {"name": "config", "type": "object", "required": true}
+    ],
+    "returns": "Created UserList resource",
+    "scope": "audience_write",
+    "mutates": true
+  },
+  {
+    "tool": "audience_write",
+    "action": "update_audience",
+    "summary": "Update a Google Data Manager UserList.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "name", "type": "string", "required": true},
+      {"name": "config", "type": "object", "required": true},
+      {"name": "update_mask", "type": "string"}
+    ],
+    "returns": "Updated UserList resource",
+    "scope": "audience_write",
+    "mutates": true
+  },
+  {
+    "tool": "audience_write",
+    "action": "update_user_list",
+    "summary": "Alias of update_audience.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "name", "type": "string", "required": true},
+      {"name": "config", "type": "object", "required": true},
+      {"name": "update_mask", "type": "string"}
+    ],
+    "returns": "Updated UserList resource",
+    "scope": "audience_write",
+    "mutates": true
+  },
+  {
+    "tool": "audience_write",
+    "action": "delete_audience",
+    "summary": "Delete a Google Data Manager UserList.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [{"name": "name", "type": "string", "required": true}],
+    "returns": "Empty response",
+    "scope": "audience_write",
+    "mutates": true,
+    "reversible": false
+  },
+  {
+    "tool": "audience_write",
+    "action": "delete_user_list",
+    "summary": "Alias of delete_audience.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [{"name": "name", "type": "string", "required": true}],
+    "returns": "Empty response",
+    "scope": "audience_write",
+    "mutates": true,
+    "reversible": false
+  },
+  {
+    "tool": "audience_write",
+    "action": "ingest_audience_members",
+    "summary": "Ingest members into Data Manager audiences.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "audience_members", "type": "array", "required": true, "item_type": "object"},
+      {"name": "destinations", "type": "array", "required": true, "item_type": "object"},
+      {"name": "encoding", "type": "string", "enum": ["HEX", "BASE64"]},
+      {"name": "consent", "type": "object"},
+      {"name": "terms_of_service", "type": "object"},
+      {"name": "validate_only", "type": "boolean"}
+    ],
+    "returns": "{ requestId, fieldWarnings? }",
+    "scope": "audience_write",
+    "mutates": true
+  },
+  {
+    "tool": "audience_write",
+    "action": "remove_audience_members",
+    "summary": "Remove specified members from Data Manager audiences.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "audience_members", "type": "array", "required": true, "item_type": "object"},
+      {"name": "destinations", "type": "array", "required": true, "item_type": "object"},
+      {"name": "encoding", "type": "string", "enum": ["HEX", "BASE64"]},
+      {"name": "validate_only", "type": "boolean"}
+    ],
+    "returns": "{ requestId, fieldWarnings? }",
+    "scope": "audience_write",
+    "mutates": true
+  },
+  {
+    "tool": "audience_write",
+    "action": "remove_all_audience_members",
+    "summary": "Remove all members from Data Manager destinations.",
+    "group": "GOOGLE DATA MANAGER",
+    "params": [
+      {"name": "destinations", "type": "array", "required": true, "item_type": "object"},
+      {"name": "remove_as_of_time", "type": "string"},
+      {"name": "validate_only", "type": "boolean"}
+    ],
+    "returns": "{ requestId, fieldWarnings? }",
+    "scope": "audience_write",
+    "mutates": true,
+    "reversible": false
+  }
+]

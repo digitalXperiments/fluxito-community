@@ -1,0 +1,842 @@
+{% macro wordmark() %}{% if brand().logo_url %}<img src="{{ brand().logo_url }}" alt="{{ brand().name }}" class="wordmark-logo" style="height:22px;width:auto;vertical-align:middle">{% elif brand().name == 'Fluxito' %}<img src="/static/img/fluxito-mark.svg?v=4" alt="" class="wordmark-mark" width="24" height="24"><span class="wordmark-text">Fluxito</span>{% else %}{{ brand().name }}{% endif %}{% endmacro %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% if gtm_container_id() %}
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','{{ gtm_container_id() }}');</script>
+  <!-- End Google Tag Manager -->
+  {% endif %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#F6F1E8"/>
+  <title>{% block title %}{{ brand().name }}{% endblock %}</title>
+  {% block meta %}
+  <meta name="description" content="{% block description %}Connect GA4, GTM, Google Ads, Meta, TikTok, Snap, and BigQuery to any AI. Live marketing analytics, one interface.{% endblock %}"/>
+  <link rel="canonical" href="{% block canonical_url %}{{ base_url }}{{ (request.url.path if request and request.url else '') or '/' }}{% endblock %}"/>
+
+  <!-- Open Graph / LinkedIn / Facebook -->
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}"/>
+  <meta property="og:site_name" content="{{ brand().name }}"/>
+  <meta property="og:url" content="{% block og_url %}{{ self.canonical_url() }}{% endblock %}"/>
+  <meta property="og:title" content="{% block og_title %}{{ brand().name }} — Marketing analytics for AI{% endblock %}"/>
+  <meta property="og:description" content="{% block og_description %}Connect every marketing platform to any AI over MCP.{% endblock %}"/>
+  <meta property="og:image" content="{% block og_image %}{{ base_url }}/static/img/og-preview.png{% endblock %}"/>
+  <meta property="og:image:secure_url" content="{% block og_image_secure %}{{ self.og_image() }}{% endblock %}"/>
+  <meta property="og:image:type" content="image/png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="{% block og_image_alt %}{{ self.og_title() }}{% endblock %}"/>
+  <link rel="image_src" href="{{ self.og_image() }}"/>
+
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}"/>
+  <meta name="twitter:title" content="{% block twitter_title %}{{ self.og_title() }}{% endblock %}"/>
+  <meta name="twitter:description" content="{% block twitter_description %}{{ self.og_description() }}{% endblock %}"/>
+  <meta name="twitter:image" content="{% block twitter_image %}{{ self.og_image() }}{% endblock %}"/>
+  <meta name="twitter:image:alt" content="{% block twitter_image_alt %}{{ self.og_image_alt() }}{% endblock %}"/>
+  {% endblock %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css?v={{ asset_hash('css/app.css') }}"/>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png?v=4"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png?v=4"/>
+  <script>
+    // restore collapsed-sidebar preference before paint (no FOUC) — Ledger is light-only, no theme detection needed
+    (function(){
+      try { if (localStorage.getItem('fx-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed'); } catch(e) {}
+    })();
+  </script>
+  {% if brand().accent %}
+  <style>:root{ --accent: {{ brand().accent }}; --accent-hover: {{ brand().accent }}; }</style>
+  {% endif %}
+  <style>
+    .beta-pill {
+      display: inline-block; margin-left: 8px; padding: 2px 7px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; font-family: var(--mono, monospace);
+      color: var(--accent-hover);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 999px; vertical-align: middle; line-height: 1.4;
+    }
+    .sidebar-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0 8px;
+      align-items: center;
+    }
+    html.sidebar-collapsed .sidebar-header {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      padding: 14px 4px;
+    }
+    .sidebar-header .sidebar-logo-mark {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      align-self: center;
+    }
+    .sidebar-brand-row {
+      display: inline-flex;
+      align-items: center;
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .version-chip {
+      font-family: var(--mono); font-size: 10px; color: var(--muted, #888);
+      grid-column: 2;
+      grid-row: 2;
+      cursor: default;
+    }
+    html.sidebar-collapsed .version-chip {
+      display: none;
+    }
+    .sidebar-header .sidebar-collapse-btn {
+      grid-column: 3;
+      grid-row: 1 / 3;
+      align-self: center;
+    }
+  </style>
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="{% if user and not embed %}has-sidebar{% endif %}{% if embed %} embed{% endif %}"{% if active %} data-page="{{ active }}"{% endif %}{% if section %} data-section="{{ section }}"{% endif %}{% if active_project_id %} data-project-id="{{ active_project_id }}"{% endif %}>
+  {% if gtm_container_id() %}
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_container_id() }}"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  {% endif %}
+  {# ── Page-loading overlay ──────────────────────────────────────────────
+     Opt in by setting  {% set page_loading = true %}  in a child template.
+     The overlay shows immediately on page load and is dismissed by calling
+     window.__dismissPageLoader() from JS, or automatically on DOMContentLoaded
+     for server-rendered pages. #}
+  {% if page_loading is defined and page_loading %}
+  <div id="pageLoader" style="position:fixed;inset:0;z-index:9999;background:var(--bg, #FFFFFF);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+    <style>#pageLoader .pl-spin{width:36px;height:36px;border:2px solid var(--line, #EFEFF2);border-top-color:var(--ink, #0B0B0E);border-radius:50%;animation:pl-spin .8s linear infinite}@keyframes pl-spin{to{transform:rotate(360deg)}}#pageLoader.fade-out{opacity:0;transition:opacity .2s ease}</style>
+    <div class="pl-spin"></div>
+    <div style="font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted, #71717A);">{{ page_loading_text|default('Loading…') }}</div>
+  </div>
+  <script>
+    window.__pageLoaderText = {{ page_loading_text|default('Loading…')|tojson }};
+    window.__dismissPageLoader = function(){
+      var el = document.getElementById('pageLoader');
+      if (!el || el.dataset.dismissed) return;
+      el.dataset.dismissed = '1';
+      el.classList.add('fade-out');
+      setTimeout(function(){ el.style.display = 'none'; }, 200);
+    };
+    // Re-show loader on refresh / navigating away so the user sees it
+    // while the browser waits for the new server response.
+    window.addEventListener('beforeunload', function(){
+      var el = document.getElementById('pageLoader');
+      if (el) {
+        el.classList.remove('fade-out');
+        el.dataset.dismissed = '';
+        el.style.display = 'flex';
+      }
+    });
+    window.addEventListener('pageshow', function(e){
+      // bfcache restore — dismiss immediately since content is already there
+      if (e.persisted && window.__dismissPageLoader) window.__dismissPageLoader();
+    });
+  </script>
+  {% endif %}
+
+  {% block nav %}
+  {% if user %}
+  {# ══════════════════════════════════════════════════════════════════════
+     LOGGED-IN: left sidebar navigation
+     ══════════════════════════════════════════════════════════════════════ #}
+  {% if not embed %}
+  <aside class="sidebar">
+    {# ── Header: wordmark ── #}
+    <div class="sidebar-header">
+      <a href="/home" class="sidebar-logo-mark" aria-label="{{ brand().name }} home" title="{{ brand().name }}">{% if brand().logo_url %}<img src="{{ brand().logo_url }}" alt="{{ brand().name }}">{% elif brand().name == 'Fluxito' %}f{% else %}{{ brand().name[0] | upper }}{% endif %}</a>
+      <div class="sidebar-brand-row">
+        <a href="/home" class="wordmark">
+          {{ wordmark() }}
+        </a>
+        {% if brand().name == 'Fluxito' %}<span class="beta-pill" title="Fluxito community edition">Community</span>{% endif %}
+      </div>
+      <span class="version-chip" id="version-chip" data-current="{{ app_version }}" title="Version {{ app_version }}">v{{ app_version }}</span>
+      <button type="button" id="sidebarCollapse" class="sidebar-collapse-btn" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+      </button>
+    </div>
+
+    {# ── Project switcher (same data, compact form) ── #}
+    {% if active_project_name %}
+    <div class="sidebar-project" data-nav-group>
+      <button type="button" class="sidebar-project-btn" aria-haspopup="true" aria-expanded="false">
+        <span class="sidebar-project-icon" style="background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:10px;font-weight:600;border-radius:5px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">{{ active_project_name[0] | upper }}</span>
+        <div class="sidebar-project-info">
+          <span class="sidebar-project-name">{{ active_project_name }}</span>
+          <span class="sidebar-project-meta">{{ user_project_role | default('OWNER') | upper }}</span>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="sidebar-project-menu">
+        <div class="proj-switcher-header">Switch project</div>
+        {% for p in nav_projects %}
+        <div class="proj-switcher-row {% if p.id == active_project_id %}is-active{% endif %}">
+          <a href="/api/project/switch/{{ p.slug }}"
+             class="proj-switcher-item {% if p.id == active_project_id %}is-active{% endif %}"
+             data-pid="{{ p.id }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20V4a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/></svg>
+            <span>{{ p.name }}</span>
+            {% if p.id == active_project_id %}
+            <svg class="proj-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {% endif %}
+          </a>
+          <a href="/project/{{ p.slug }}/settings" class="proj-switcher-gear" title="Project settings" aria-label="Settings for {{ p.name }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </a>
+        </div>
+        {% endfor %}
+        <div class="proj-switcher-divider"></div>
+        <a href="/projects" class="proj-switcher-item proj-switcher-manage">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Create project</span>
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Nav items ──
+       Grouped: Home · Chat · Audit · Knowledge (Context) · Workspace
+       (AI & MCP, Connections, Activity, Settings). Audit and Context keep
+       their tool-permission gates. #}
+    {% set perms = (user.permissions if user and user.permissions else {"full": True, "tools": {}}) %}
+    {% set is_admin = user and (user_project_role in ['owner','admin']) %}
+    {% set nav_settings = settings_section in ['account','project','integrations','ai'] or (active in ['settings','profile','projects','system_settings','integrations'] and settings_section not in ['connections','activity']) %}
+    <nav class="sidebar-nav" aria-label="Primary">
+      <a href="/home" data-label="Home" class="sidebar-item {% if active=='home' %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span class="sidebar-item-label">Home</span>
+        {% if sidebar_tasks_count %}<span class="sidebar-badge">{{ sidebar_tasks_count }}</span>{% endif %}
+      </a>
+      {% if chat_enabled() %}
+      <a href="/chat" data-label="Chat" class="sidebar-item {% if active=='chat' %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="sidebar-item-label">Chat</span>
+      </a>
+      {% endif %}
+
+      {% if perms.full or perms.tools.get('analysis') %}
+      <p class="sidebar-section">Data quality</p>
+      <a href="/audits" data-label="Audit" class="sidebar-item {% if active in ['audits','audit','audit_flows','audit_vendors'] %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span class="sidebar-item-label">Audit</span>
+      </a>
+      {% endif %}
+
+      {% if perms.full or perms.tools.get('knowledge') %}
+      <p class="sidebar-section">Knowledge</p>
+      {% endif %}
+      {% if perms.full or perms.tools.get('knowledge') %}
+      <a href="/context" data-label="Context" class="sidebar-item {% if active in ['context','kpi_library','business_context'] %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="sidebar-item-label">Context</span>
+      </a>
+      {% endif %}
+
+      <p class="sidebar-section">Workspace</p>
+      <a href="/ai" data-label="AI &amp; MCP" class="sidebar-item {% if active=='ai_mcp' %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <span class="sidebar-item-label">AI &amp; MCP</span>
+      </a>
+      <a href="/settings/connections" data-label="Connections" class="sidebar-item {% if settings_section=='connections' or active in ['connect','connections'] %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7H6a4 4 0 0 0 0 8h3"/><path d="M15 7h3a4 4 0 0 1 0 8h-3"/><line x1="8" y1="11" x2="16" y2="11"/></svg>
+        <span class="sidebar-item-label">Connections</span>
+      </a>
+      <a href="/activity-log" data-label="Activity log" class="sidebar-item {% if settings_section=='activity' %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span class="sidebar-item-label">Activity log</span>
+      </a>
+      <a href="/settings" data-label="Settings" class="sidebar-item {% if nav_settings %}is-active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3m0 18v-2m7-7h2M3 12h2m11.3-6.3 1.4-1.4M4.9 19.1l1.4-1.4m0-11.4L4.9 4.9m14.2 14.2-1.4-1.4"/></svg>
+        <span class="sidebar-item-label">Settings</span>
+      </a>
+    </nav>
+
+    {# ── Bottom: beta card, help, admin, profile ── #}
+    <div class="sidebar-bottom">
+      {% if brand().name == 'Fluxito' %}
+      <div class="sidebar-beta">
+        <p class="sidebar-beta-title"><span class="beta-pill">Community</span>Community edition</p>
+        <p class="sidebar-beta-sub">Tracking plans, dashboards and more are on Fluxito Cloud.</p>
+        <a class="sidebar-beta-btn" href="https://fluxito.app" target="_blank" rel="noopener">Try Fluxito Cloud</a>
+      </div>
+      {% endif %}
+      <div class="sidebar-cluster sidebar-cluster-settings">
+        <a href="/tutorials" data-label="Tutorials &amp; help" class="sidebar-item {% if active == 'tutorials' %}is-active{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="sidebar-item-label">Tutorials &amp; help</span>
+        </a>
+        {% if is_superadmin %}
+        <a href="/admin" data-label="Admin Panel" class="sidebar-item {% if active in ['admin','platform_activity','platform_projects'] %}is-active{% endif %}" aria-label="Admin panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="sidebar-item-label">Admin Panel</span>
+          <span class="sidebar-badge sidebar-badge-quiet">Super</span>
+        </a>
+        {% endif %}
+      </div>
+      <div class="sidebar-user" data-nav-group>
+        <button class="sidebar-user-btn" type="button" aria-haspopup="true" aria-expanded="false">
+          <div class="sidebar-user-avatar">{{ (user.display_name or user.email)[:2] | upper }}</div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">{{ user.display_name or 'Account' }}</span>
+            <span class="sidebar-user-email">{{ user.email }}</span>
+          </div>
+          <svg class="sidebar-user-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="sidebar-user-menu">
+          <a href="/profile#general" class="sidebar-user-menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile
+          </a>
+          <a href="/profile#preferences" class="sidebar-user-menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+            Preferences
+          </a>
+          <a href="/tutorial?replay=1" class="sidebar-user-menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Replay onboarding
+          </a>
+          <a href="/signout" class="sidebar-user-menu-item is-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  {# ── Mobile top bar (visible on ≤768px) ── #}
+  <div class="mobile-topbar">
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Open navigation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a href="/home" class="wordmark logo" style="font-size:18px">
+      {{ wordmark() }}
+    </a>
+  </div>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <script>
+  (function(){
+    var toggle = document.getElementById('sidebarToggle');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    var sidebar = document.querySelector('.sidebar');
+    if (!toggle || !sidebar) return;
+    function openSidebar() {
+      sidebar.classList.add('is-open');
+      backdrop.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('is-open');
+      backdrop.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    toggle.addEventListener('click', openSidebar);
+    if (backdrop) backdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeSidebar();
+    });
+  })();
+  </script>
+  {% endif %}{# /not embed #}
+
+  {% else %}
+  {# ══════════════════════════════════════════════════════════════════════
+     LOGGED-OUT: minimal top nav (marketing site lives in a separate static repo) #}
+  <nav class="nav nav-landing">
+    <div class="nav-inner">
+      <a href="/" class="wordmark" style="font-size:20px">
+        {{ wordmark() }}
+      </a>
+      <div class="nav-spacer"></div>
+      <div class="nav-right">
+        <a href="/signin" class="btn ghost sm">Sign in</a>
+      </div>
+    </div>
+  </nav>
+  {% endif %}
+  {% endblock %}
+
+  {% if user and not embed and announcement() %}
+  <div class="announcement-banner" role="status">
+    <span class="announcement-dot" aria-hidden="true"></span>
+    <span>{{ announcement() }}</span>
+  </div>
+  <style>
+    .announcement-banner {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 18px; font-size: 13px; line-height: 1.45;
+      background: color-mix(in srgb, var(--blue) 10%, var(--bg));
+      border-bottom: 1px solid color-mix(in srgb, var(--blue) 24%, var(--line));
+      color: var(--ink);
+    }
+    .announcement-dot {
+      width: 7px; height: 7px; border-radius: 99px; flex-shrink: 0;
+      background: var(--blue);
+    }
+  </style>
+  {% endif %}
+
+  <div class="main">
+    {% block app_topbar %}
+    {% if user and not embed %}
+    {% set _crumbs = {'home':'Home','chat':'Chat','audits':'Audit','audit':'Audit','audit_flows':'Audit · Test flows','audit_vendors':'Audit · Vendors & rules','context':'Context','kpi_library':'Context · KPI library','business_context':'Context · Business context','ai_mcp':'AI & MCP','connect':'Connections','tutorials':'Tutorials & help','admin':'Admin panel','projects':'Projects'} %}
+    {% set _sections = {'account':'Settings · Profile','project':'Settings · Project','integrations':'Settings · OAuth apps','connections':'Connections','activity':'Activity log','ai':'Settings · AI providers'} %}
+    <header class="app-topbar">
+      <div class="app-crumbs">
+        {% if active_project_name %}<span class="app-crumb-project">{{ active_project_name }}</span><span class="app-crumb-sep" aria-hidden="true">/</span>{% endif %}
+        <span class="app-crumb-page">{% block crumb scoped %}{{ _sections.get(settings_section) or _crumbs.get(active) or 'Fluxito' }}{% endblock %}</span>
+      </div>
+      <div class="app-topbar-right">
+        <button type="button" class="app-mcp-pill" data-copy-mcp="{{ base_url }}/mcp" title="Copy your MCP endpoint">
+          <span class="app-mcp-dot" aria-hidden="true"></span><span class="app-mcp-label">MCP endpoint</span><span class="app-mcp-url">{{ base_url | replace('https://','') | replace('http://','') }}/mcp</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        </button>
+        <button type="button" class="app-icon-btn" id="paletteOpen" aria-label="Search and jump (⌘K)" title="Search and jump (⌘K)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <div class="sidebar-bell app-bell" id="notifGroup" data-nav-group>
+          <button class="app-icon-btn sidebar-notif-item" type="button" id="notifToggle" aria-haspopup="true" aria-expanded="false" aria-label="Notifications">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-dot" id="notifDot" style="display:none"></span>
+          </button>
+          <div class="notif-popover" id="notifPopover" role="menu" aria-label="Notifications">
+            <div class="notif-pop-header">
+              <span class="notif-pop-title">Notifications</span>
+              <span class="notif-pop-markall" id="notifMarkAll">Mark all read</span>
+              <button type="button" class="notif-pop-close" aria-label="Close notifications" onclick="document.getElementById('notifToggle').click()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="notif-pop-body" id="notifList">
+              <div class="notif-empty">
+                <p class="notif-empty-title">All caught up</p>
+                <p class="notif-empty-sub">Test-flow alerts and system events will appear here.</p>
+              </div>
+            </div>
+            <div class="notif-pop-footer"><a href="/activity-log">View all activity →</a></div>
+          </div>
+        </div>
+      </div>
+    </header>
+    {% endif %}
+    {% endblock app_topbar %}
+    {% if user and not embed %}
+    {# Pending project invitations — accepted or declined right here. #}
+    <div id="invBanner" class="inv-banner" hidden></div>
+    <script>
+    (function () {
+      var host = document.getElementById('invBanner');
+      if (!host) return;
+      function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+      function render(list) {
+        if (!list.length) { host.hidden = true; host.innerHTML = ''; return; }
+        host.innerHTML = list.map(function (i) {
+          return '<div class="inv-row"><span><b>' + esc(i.invited_by) + '</b> invited you to <b>' + esc(i.project_name) +
+            '</b> as ' + esc(i.role) + '.</span><span class="inv-actions">' +
+            '<button type="button" class="ui-btn is-sm is-primary" data-inv="' + esc(i.id) + '" data-act="accept">Accept</button>' +
+            '<button type="button" class="ui-btn is-sm is-quiet" data-inv="' + esc(i.id) + '" data-act="decline">Decline</button></span></div>';
+        }).join('');
+        host.hidden = false;
+      }
+      function load() {
+        fetch('/api/invites/mine', {credentials: 'same-origin'}).then(function (r) { return r.ok ? r.json() : {invites: []}; })
+          .then(function (d) { render(d.invites || []); }).catch(function () {});
+      }
+      host.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-inv]');
+        if (!b) return;
+        b.disabled = true;
+        var act = b.getAttribute('data-act');
+        fetch('/api/invites/' + b.getAttribute('data-inv') + '/' + act, {method: 'POST', credentials: 'same-origin'})
+          .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.detail || 'Failed'); return d; }); })
+          .then(function () { if (act === 'accept') { window.location.href = '/home'; } else { load(); } })
+          .catch(function (err) { b.disabled = false; if (window.Fluxito && Fluxito.toast) Fluxito.toast(err.message, 'error'); });
+      });
+      load();
+    })();
+    </script>
+    <style>
+    .inv-banner { margin: 12px 24px 0; display: grid; gap: 8px; }
+    .inv-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft, #F6E3DA); font-size: 13.5px; }
+    .inv-actions { display: inline-flex; gap: 6px; }
+    </style>
+    {% endif %}
+    {% block main %}{% endblock %}
+  </div>
+  {% if user and not embed %}
+  {% include "partials/command_palette.html" %}
+  {% endif %}
+
+  {% block footer %}
+  {% if not user %}
+  <footer class="site-footer">
+    <div class="container">
+      <div class="sf-grid">
+        <div class="sf-brand">
+          <a href="/" class="wordmark sf-wordmark">{{ wordmark() }}</a>
+          <p class="sf-tagline">An open-source MCP server that connects your marketing and analytics platforms to any AI, with tracking audits built in.</p>
+        </div>
+        <div class="sf-col">
+          <h3 class="sf-col-title">Product</h3>
+          <a class="sf-link" href="https://fluxito.app" target="_blank" rel="noopener">Fluxito Cloud</a>
+          <a class="sf-link" href="/tutorials">Tutorials</a>
+        </div>
+        {% if brand().name == 'Fluxito' %}
+        <div class="sf-col">
+          <h3 class="sf-col-title">Open source</h3>
+          <a class="sf-link" href="https://github.com/digitalXperiments/fluxito-community" target="_blank" rel="noopener">GitHub</a>
+          <a class="sf-link" href="https://github.com/digitalXperiments/fluxito-community#self-hosting" target="_blank" rel="noopener">Self-host guide</a>
+          <a class="sf-link" href="https://github.com/digitalXperiments/fluxito-community/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+        </div>
+        {% endif %}
+        <div class="sf-col">
+          <h3 class="sf-col-title">Access</h3>
+          <a class="sf-link" href="/signin">Sign in</a>
+          <a class="sf-link" href="/privacy">Privacy policy</a>
+          <a class="sf-link" href="/terms">Terms of service</a>
+        </div>
+      </div>
+      <div class="sf-bottom">
+        <span>{{ brand().name }}{% if brand().name == 'Fluxito' %} · Apache-2.0 · open-source MCP server{% endif %}</span>
+        <span class="sf-bottom-links">
+          <a href="/privacy">Privacy</a>
+          <span style="opacity:0.4">·</span>
+          <a href="/terms">Terms</a>
+          {% if brand().name == 'Fluxito' %}
+          <span style="opacity:0.4">·</span>
+          <a href="https://github.com/digitalXperiments/fluxito-community" target="_blank" rel="noopener">github.com/digitalXperiments/fluxito-community</a>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <style>
+    /* Dark Ledger footer — (#201B14 slab). */
+    .site-footer {
+      background: var(--dark-bg);
+      border-top: 1px solid var(--dark-line);
+      padding: 56px 0 32px;
+      margin-top: 0;
+    }
+    .sf-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1fr) minmax(220px, 1fr);
+      gap: 48px;
+      align-items: start;
+    }
+    .sf-brand { max-width: 420px; }
+    .sf-wordmark {
+      display: inline-flex;
+      color: var(--dark-text);
+      font-size: 22px;
+      margin-bottom: 14px;
+      text-decoration: none;
+    }
+    .sf-tagline {
+      font-size: 13.5px; color: var(--dark-muted); line-height: 1.65;
+      margin: 0;
+      max-width: 320px;
+    }
+    .sf-col-title {
+      font-family: var(--mono);
+      font-size: 11px; font-weight: 400; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted);
+      margin: 0 0 10px;
+    }
+    .sf-col { display: flex; flex-direction: column; gap: 10px; }
+    .sf-link {
+      font-size: 13.5px; color: var(--dark-muted);
+      text-decoration: none; transition: color .15s ease;
+    }
+    .sf-link:hover { color: var(--dark-text); }
+    .sf-text {
+      color: var(--dark-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .sf-bottom {
+      margin-top: 44px; padding-top: 22px;
+      border-top: 1px solid var(--ink-2);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px;
+      font-family: var(--mono);
+      font-size: 11.5px; color: var(--muted);
+    }
+    .sf-bottom-links a {
+      color: var(--muted); text-decoration: none;
+    }
+    .sf-bottom-links a:hover { color: var(--dark-text); }
+
+    @media (max-width: 900px) {
+      .sf-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      .sf-brand { max-width: 100%; grid-column: 1 / -1; }
+      .sf-bottom { flex-direction: column; gap: 8px; text-align: center; }
+    }
+    @media (max-width: 480px) {
+      .sf-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+  {% endif %}
+  {% endblock %}
+
+  <div class="toast-host"></div>
+  <script src="/static/js/app.js?v={{ asset_hash('js/app.js') }}" defer></script>
+  <script>
+    // Top-nav dropdowns (project switcher, user menu). Use fixed positioning so
+    // menus can escape the sidebar on short laptop screens without causing
+    // scroll jumps or clipping when the nav is scrolled.
+    (function(){
+      function positionFloatingMenu(group, menu) {
+        var btn = group.querySelector('button[aria-haspopup]') || group.querySelector('button');
+        if (!btn || !menu) return;
+        var br = btn.getBoundingClientRect();
+        var gap = 4;
+        menu.style.position = 'fixed';
+        var collapsed = document.documentElement.classList.contains('sidebar-collapsed') && window.matchMedia('(min-width: 769px)').matches;
+        if (menu.classList.contains('notif-popover') && group.closest('.app-topbar')) {
+          // Top-bar bell: CSS anchors the dropdown under the button
+          // (.app-bell .notif-popover); just drop any fixed positioning.
+          menu.style.position = '';
+          return;
+        } else if (menu.classList.contains('notif-popover')) {
+          // Notifications open as a full-height slide-over panel flush
+          // against the sidebar's right edge (drawer pattern) — never a
+          // floating card. Width/height come from CSS; JS only sets the
+          // left edge so it tracks the expanded/collapsed rail width.
+          var rail = (group.closest('.sidebar') || group).getBoundingClientRect();
+          var left = window.matchMedia('(min-width: 769px)').matches ? rail.right : 0;
+          menu.style.left = left + 'px';
+          menu.style.top = '0px';
+          menu.style.bottom = '0px';
+          menu.style.width = Math.min(380, window.innerWidth - left) + 'px';
+          return;
+        } else if (collapsed) {
+          var rail = group.closest('.sidebar');
+          var railRight = rail ? rail.getBoundingClientRect().right : br.right;
+          var cw = 240;
+          menu.style.left = Math.min(railRight + gap, window.innerWidth - cw - 8) + 'px';
+          menu.style.width = cw + 'px';
+        } else {
+          menu.style.left = br.left + 'px';
+          menu.style.width = br.width + 'px';
+        }
+        if (group.classList.contains('sidebar-user') || group.classList.contains('sidebar-bell')) {
+          // Opens upwards from near bottom of sidebar
+          menu.style.top = 'auto';
+          menu.style.bottom = (window.innerHeight - br.top + gap) + 'px';
+        } else {
+          // Opens downwards (project switcher etc.)
+          menu.style.bottom = 'auto';
+          menu.style.top = (br.bottom + gap) + 'px';
+        }
+      }
+      function clearFloatingPosition(menu) {
+        if (!menu) return;
+        menu.style.position = '';
+        menu.style.left = '';
+        menu.style.right = '';
+        menu.style.top = '';
+        menu.style.bottom = '';
+        menu.style.width = '';
+      }
+      function init(){
+        var groups = document.querySelectorAll('[data-nav-group]');
+        groups.forEach(function(g){
+          var btn = g.querySelector('button[aria-haspopup]') || g.querySelector('.nav-group-btn') || g.querySelector('button');
+          if (!btn) return;
+          btn.addEventListener('click', function(ev){
+            ev.stopPropagation();
+            var wasOpen = g.classList.contains('is-open');
+            var menu = g.querySelector('.sidebar-user-menu, .sidebar-project-menu, .notif-popover');
+            groups.forEach(function(x){
+              x.classList.remove('is-open');
+              var b = x.querySelector('button[aria-haspopup]');
+              if (b) b.setAttribute('aria-expanded','false');
+              clearFloatingPosition(x.querySelector('.sidebar-user-menu, .sidebar-project-menu, .notif-popover'));
+            });
+            if (!wasOpen) {
+              g.classList.add('is-open');
+              btn.setAttribute('aria-expanded','true');
+              if (menu) positionFloatingMenu(g, menu);
+            } else {
+              btn.setAttribute('aria-expanded','false');
+            }
+          });
+        });
+        document.addEventListener('click', function(ev){
+          if (ev.target.closest('[data-nav-group]')) return;
+          groups.forEach(function(x){
+            x.classList.remove('is-open');
+            var b = x.querySelector('button[aria-haspopup]');
+            if (b) b.setAttribute('aria-expanded','false');
+            clearFloatingPosition(x.querySelector('.sidebar-user-menu, .sidebar-project-menu, .notif-popover'));
+          });
+        });
+        document.addEventListener('keydown', function(ev){
+          if (ev.key === 'Escape') {
+            groups.forEach(function(x){
+              x.classList.remove('is-open');
+              clearFloatingPosition(x.querySelector('.sidebar-user-menu, .sidebar-project-menu, .notif-popover'));
+            });
+          }
+        });
+        // Reposition open menu on resize (rare but keeps it attached)
+        window.addEventListener('resize', function(){
+          var openGroup = document.querySelector('[data-nav-group].is-open');
+          if (openGroup) {
+            var m = openGroup.querySelector('.sidebar-user-menu, .sidebar-project-menu, .notif-popover');
+            if (m) positionFloatingMenu(openGroup, m);
+          }
+        });
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+  </script>
+  {# ── CSRF auto-header: reads csrf_token cookie, attaches to all fetch() calls ── #}
+  <script>
+  (function(){
+    var _origFetch = window.fetch;
+    window.fetch = function(url, opts) {
+      opts = opts || {};
+      var method = (opts.method || 'GET').toUpperCase();
+      if (['POST','PUT','PATCH','DELETE'].indexOf(method) !== -1) {
+        var csrf = (document.cookie.match('(^|; )csrf_token=([^;]*)') || [])[2];
+        if (csrf) {
+          opts.headers = opts.headers || {};
+          if (opts.headers instanceof Headers) {
+            if (!opts.headers.has('X-CSRF-Token')) opts.headers.set('X-CSRF-Token', decodeURIComponent(csrf));
+          } else {
+            var hasCsrfHeader = Object.keys(opts.headers).some(function(key) {
+              return key.toLowerCase() === 'x-csrf-token';
+            });
+            if (!hasCsrfHeader) opts.headers['X-CSRF-Token'] = decodeURIComponent(csrf);
+          }
+        }
+      }
+      return _origFetch.call(this, url, opts);
+    };
+  })();
+  </script>
+  {% if user and not embed %}
+  {# ── Notifications popover (markup lives next to the bell above; this is
+       just its styling — behavior is wired in app.js#initNotifications,
+       open/close + fixed positioning is handled by the shared
+       [data-nav-group] script above). ── #}
+  <style>
+  .sidebar-bell{ position:relative; }
+
+  /* Full-height slide-over drawer, flush against the sidebar's right edge.
+     JS (positionFloatingMenu) sets left/width; top/bottom are 0. */
+  .notif-popover{
+    display:none;
+    flex-direction:column;
+    background:var(--card);
+    border:none; border-right:1px solid var(--line-2);
+    border-radius:0;
+    box-shadow:12px 0 32px -18px rgba(11,11,14,.25);
+    z-index:70; overflow:hidden;
+  }
+  .sidebar-bell.is-open .notif-popover{
+    display:flex;
+    animation:notif-slide-in .16s ease-out;
+  }
+  @keyframes notif-slide-in{
+    from{ transform:translateX(-8px); opacity:0; }
+    to{ transform:translateX(0); opacity:1; }
+  }
+
+  .notif-pop-header{
+    display:flex; align-items:center; gap:12px;
+    padding:17px 18px; border-bottom:1px solid var(--line-3);
+    flex-shrink:0;
+  }
+  .notif-pop-title{ font-size:14.5px; font-weight:700; color:var(--ink); flex:1; }
+  .notif-pop-markall{
+    font-family:var(--mono); font-size:11px; color:var(--accent-hover);
+    cursor:pointer; white-space:nowrap;
+  }
+  .notif-pop-markall:hover{ text-decoration:underline; }
+  .notif-pop-close{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px; flex-shrink:0;
+    border:none; border-radius:7px; background:transparent;
+    color:var(--muted); cursor:pointer;
+  }
+  .notif-pop-close:hover{ background:var(--bg-2); color:var(--ink); }
+
+  .notif-pop-body{ flex:1; min-height:0; overflow-y:auto; }
+
+  .notif-empty{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:40px 24px; height:100%;
+  }
+  .notif-empty-icon{
+    width:52px; height:52px; border-radius:14px;
+    background:var(--bg-2); display:flex; align-items:center;
+    justify-content:center; margin-bottom:14px;
+  }
+  .notif-empty-title{ font-weight:600; color:var(--ink); margin:0 0 4px; font-size:13.5px; }
+  .notif-empty-sub{ color:var(--muted); font-size:12.5px; margin:0; line-height:1.5; }
+
+  .notif-item{
+    display:flex; gap:12px; padding:15px 18px;
+    border-bottom:1px solid var(--line-3);
+    text-decoration:none; color:inherit; cursor:pointer;
+    transition:background .12s;
+  }
+  .notif-item:last-child{ border-bottom:none; }
+  .notif-item:hover{ background:var(--bg-2); }
+  .notif-item.is-unread{ background:color-mix(in srgb, var(--accent) 5%, transparent); }
+  .notif-item.is-unread:hover{ background:color-mix(in srgb, var(--accent) 9%, transparent); }
+  .notif-item-icon{
+    width:26px; height:26px; border-radius:7px; flex-shrink:0;
+    background:var(--ink); color:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .notif-item-icon.is-error{ background:var(--bad); }
+  .notif-item-icon.is-warning{ background:var(--warn); }
+  .notif-item-icon.is-success{ background:var(--good); }
+  .notif-item-body{ flex:1; min-width:0; }
+  .notif-item-title{ font-size:13px; color:var(--ink-2); line-height:1.5; }
+  .notif-item-title strong{ font-weight:700; color:var(--ink); }
+  .notif-item-time{ font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .notif-item-dot{
+    width:7px; height:7px; border-radius:99px; background:var(--accent);
+    margin-top:5px; flex-shrink:0; align-self:flex-start;
+  }
+
+  .notif-pop-footer{
+    padding:12px 18px; border-top:1px solid var(--line-3); text-align:center;
+    flex-shrink:0;
+  }
+  .notif-pop-footer a{
+    font-family:var(--mono); font-size:11px; color:var(--accent-hover); text-decoration:none;
+  }
+  .notif-pop-footer a:hover{ text-decoration:underline; }
+  </style>
+  {% endif %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

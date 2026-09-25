@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% from "partials/platform_icons.html" import platform_icon %}
+{% block title %}Home — Fluxito{% endblock %}
+{% set active = 'home' %}
+{% block head_extra %}<link rel="stylesheet" href="/static/css/home.css?v={{ asset_hash('css/home.css') }}"/>{% endblock %}
+
+{% block main %}
+{% set first_name = (user.display_name or user.email.split('@')[0]).split(' ')[0] | title %}
+{% set mcp_url = base_url ~ '/mcp' %}
+{% set checklist = [
+  (tutorial_completed, 'Finish the onboarding tour', '/tutorial?replay=1'),
+  (preferred_ai_client, 'Add Fluxito to your AI client', '/ai#clients'),
+  (has_workspace, 'Create a project', '/projects'),
+  (has_connection, 'Connect a platform', '/settings/connections'),
+  (has_audit, 'Run your first audit', '/audits'),
+] %}
+{% set prompts = {
+  'audit': ['Audit our GTM container against the GA4, Meta and Google Ads rule books, then save the audit.', 'Compare this audit with the previous one and tell me what regressed.', 'Check consent mode across our GTM container and list tags that fire before consent.'],
+  'analyse': ['Summarise last week across GA4, Meta Ads and Google Ads: what changed and why.', 'Google Ads conversions lag GA4 — investigate both sources and explain the gap.', 'Compare paid spend and conversions across our ad platforms for the last 30 days.'],
+  'context': ['List our approved KPIs and compute last month\'s value for each.', 'Read our business context and suggest KPIs we should define.', 'Which of our KPIs moved the most this month, and which platforms drove it?'],
+} %}
+<div class="app-main home-agent-hub">
+  <div class="page-head home-head">
+    <div>
+      <div class="eyebrow">Home{% if active_project_name %} · {{ active_project_name }}{% endif %}</div>
+      <h1 class="page-title">Good {{ briefing_time_of_day | lower }}, {{ first_name }}</h1>
+      <p class="page-sub">What your AI has been doing{% if active_project_name %} in <b>{{ active_project_name }}</b>{% endif %}, and what needs you.</p>
+    </div>
+    <div class="ui-page-actions">
+      <button type="button" class="ui-btn" onclick="document.getElementById('paletteOpen').click()">⌘K Jump to</button>
+      <a class="ui-btn is-primary" href="#home-launcher">New task</a>
+    </div>
+  </div>
+
+  <div class="home-welcome">
+    {# ── Prompt launcher: pick a job, copy a prompt into your AI ── #}
+    <section class="home-launcher" id="home-launcher" aria-labelledby="home-launcher-title">
+      <p class="home-live"><span aria-hidden="true"></span>MCP endpoint ready · {{ total_conns }} connected service{{ '' if total_conns == 1 else 's' }}</p>
+      <h2 id="home-launcher-title">What should your AI do next?</h2>
+      <p class="home-launcher-sub">Pick a job, copy a prompt, paste it into your AI client. Results land here.</p>
+      <div class="home-launcher-tabs" role="tablist">
+        {% for key, label in [('audit', 'Audit'), ('analyse', 'Analyse'), ('context', 'Context')] %}
+        <button type="button" role="tab" class="home-launcher-tab{% if key == 'audit' %} is-active{% endif %}" data-launch="{{ key }}" aria-selected="{{ 'true' if key == 'audit' else 'false' }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+      {% for key, list in prompts.items() %}
+      <div class="home-prompts" data-launch-panel="{{ key }}"{% if key != 'audit' %} hidden{% endif %}>
+        {% for p in list %}
+        <button type="button" class="home-prompt" data-copy-prompt="{{ p }}"><span>{{ p }}</span><em>Copy</em></button>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <div class="home-endpoint-row">
+        <span class="home-endpoint-label">Your endpoint</span>
+        <code>{{ mcp_url }}</code>
+        <button type="button" class="home-chip" id="homeCopyMcp">Copy</button>
+        <span class="home-endpoint-spacer"></span>
+        <button type="button" class="home-chip" onclick="mcpConnect('claude')">Open Claude ↗</button>
+        <a class="home-chip" href="/ai#clients">Other agents</a>
+      </div>
+    </section>
+
+    {# ── Setup checklist (real state, 5 steps) ── #}
+    {% set done = checklist | selectattr('0') | list | length %}
+    <section class="ui-panel home-checklist" aria-labelledby="home-setup-title">
+      <div class="home-checklist-h">
+        <h2 id="home-setup-title">Set up Fluxito</h2><b>{{ done }}/{{ checklist | length }}</b>
+      </div>
+      <div class="home-progress"><i style="width:{{ (done / checklist | length * 100) | round | int }}%"></i></div>
+      {% for ok, label, href in checklist %}
+      <div class="home-check{% if ok %} is-done{% endif %}">
+        <span class="home-check-box" aria-hidden="true">{% if ok %}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 12l5 5L20 7"/></svg>{% endif %}</span>
+        <span class="home-check-label">{{ label }}</span>
+        {% if not ok %}<a class="ui-btn" href="{{ href }}">Start</a>{% endif %}
+      </div>
+      {% endfor %}
+    </section>
+  </div>
+
+  <section class="home-stat-band" aria-label="Project statistics">
+    <a href="/settings/connections"><strong>{{ total_conns }}{% if total_platforms %}<small>/{{ total_platforms }}</small>{% endif %}</strong><span>connected services</span></a>
+    <a href="/audits"{% if audit_open_issues %} class="is-alert"{% endif %}><strong>{{ audit_open_issues }}</strong><span>open audit issues</span></a>
+    <a href="/ai"><strong>{{ ai_clients | length }}</strong><span>AI clients connected</span></a>
+  </section>
+
+  <div class="home-body">
+    <div class="home-main">
+      <section class="ui-panel" aria-labelledby="home-pulse-title">
+        <div class="ui-panel-h"><h2 id="home-pulse-title">What needs attention</h2><span class="ui-sub">{{ briefing_now_display }}</span></div>
+        <ol class="home-pulse">
+          <li class="home-pulse-row{% if briefing_findings %} is-alert{% elif last_audit_display != 'Never' %} is-good{% endif %}">
+            <span class="home-pulse-num">01</span><span class="home-pulse-dot" aria-hidden="true"></span>
+            <div class="home-pulse-body">
+              <small>Latest audit</small>
+              {% if briefing_findings %}<b>{{ briefing_findings[0].title }}</b><p>{{ audit_open_issues }} open issue{{ 's' if audit_open_issues != 1 else '' }} · last run {{ last_audit_display }}</p>
+              {% elif last_audit_display != 'Never' %}<b>Your latest audit is clear.</b><p>{{ audit_checked_summary or 'No open findings need attention.' }}</p>
+              {% else %}<b>Run your first audit.</b><p>Ask your AI to audit the connected stack — results land on the Audit page automatically.</p>{% endif %}
+            </div>
+            {% if briefing_findings %}<a class="ui-btn" href="{{ briefing_findings[0].link }}">Review</a>
+            {% else %}<a class="ui-btn" href="/audits">{{ 'History' if last_audit_display != 'Never' else 'Open Audit' }}</a>{% endif %}
+          </li>
+          <li class="home-pulse-row{% if ai_clients %} is-good{% else %} is-warn{% endif %}">
+            <span class="home-pulse-num">02</span><span class="home-pulse-dot" aria-hidden="true"></span>
+            <div class="home-pulse-body">
+              <small>Agent connection</small>
+              {% if ai_clients %}<b>{{ ai_clients | map(attribute='client_name') | join(', ') }} connected</b><p>Your AI works through Fluxito over MCP with your permissions.</p>
+              {% else %}<b>{{ ai_setup_label ~ ' is your preferred agent' if ai_setup_label else 'Connect your AI agent' }}</b><p>Add Fluxito once — no API keys, your existing subscription.</p>{% endif %}
+            </div>
+            <a class="ui-btn" href="/ai">{{ 'Manage' if ai_clients else 'Connect' }}</a>
+          </li>
+        </ol>
+      </section>
+
+      <section class="ui-panel" aria-labelledby="home-activity-title">
+        <div class="ui-panel-h"><h2 id="home-activity-title">Recent activity</h2><span class="ui-sub">every MCP tool call is logged</span><div class="ui-right"><a class="ui-btn is-quiet" href="/activity-log">View all →</a></div></div>
+        {% for c in recent_calls %}
+        <div class="ui-row">
+          <span class="home-feed-ic" aria-hidden="true">{% if c.platform %}{{ platform_icon(c.platform, 16) }}{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>{% endif %}</span>
+          <div class="ui-grow">
+            <b class="ui-mono">{{ c.tool }}</b>{% if c.is_write %} <span class="ui-chip is-warn no-dot">write</span>{% endif %}{% if c.status != 'success' %} <span class="ui-chip is-bad no-dot">{{ c.status }}</span>{% endif %}
+            <div><small>{{ c.summary or 'Tool call' }}{% if c.client %} · {{ c.client }}{% endif %}</small></div>
+          </div>
+          <small data-time="{{ c.ts or '' }}">{{ c.ts or '' }}</small>
+        </div>
+        {% else %}
+        <div class="ui-empty"><b>No tool calls yet</b>Once your AI uses Fluxito, every call shows up here and in the Activity log.</div>
+        {% endfor %}
+      </section>
+
+      <details class="ui-panel home-agents" id="home-agents"{% if not ai_clients and not ai_setup_label %} open{% endif %}>
+        <summary class="ui-panel-h"><h2>Add Fluxito to another AI client</h2><span class="ui-sub">Claude, ChatGPT, Cursor, Windsurf, LM Studio, Claude Code, Codex and more</span></summary>
+        <div class="ui-panel-b">{% include "partials/add_to_ai.html" %}</div>
+      </details>
+    </div>
+
+    <aside class="home-rail">
+      <section class="ui-panel" aria-labelledby="home-clients-title">
+        <div class="ui-panel-h"><h2 id="home-clients-title">AI clients</h2><div class="ui-right"><a class="ui-btn is-quiet" href="/ai#connected">Manage</a></div></div>
+        {% for c in ai_clients %}
+        <div class="ui-row"><div class="ui-grow"><b>{{ c.client_name }}</b><div><small>{% if c.last_used_at %}Last used <span data-time="{{ c.last_used_at }}">{{ c.last_used_at }}</span>{% else %}Authorized{% endif %}</small></div></div><span class="ui-chip is-good">Active</span></div>
+        {% else %}
+        <div class="ui-empty"><b>No AI client connected yet</b>Add Fluxito to Claude, ChatGPT or Cursor.</div>
+        {% endfor %}
+        <div class="ui-row"><a class="ui-btn" style="width:100%" href="/ai#clients">+ Add Fluxito to an AI client</a></div>
+      </section>
+
+      <section class="ui-panel" aria-labelledby="home-stack-title">
+        <div class="ui-panel-h"><h2 id="home-stack-title">Connected stack</h2><span class="ui-sub">what your AI can reach</span></div>
+        {% for tool in rate_limits_connected[:8] %}
+        <div class="ui-row">
+          <span class="home-tool-logo" aria-hidden="true">{{ platform_icon(tool.key, 18) }}</span>
+          <div class="ui-grow"><b>{{ tool.name }}</b><div><small>{{ tool.category }}</small></div></div>
+          {% if tool.usage_count %}<small>{{ "{:,}".format(tool.usage_count) }} calls · 30d</small>{% endif %}
+        </div>
+        {% else %}
+        <div class="ui-empty"><b>No data tools connected yet</b>Connect analytics, tag management, ads or a warehouse so your AI works with real project context.</div>
+        {% endfor %}
+        <div class="ui-row"><a class="ui-btn" style="width:100%" href="/settings/connections">{{ 'Manage connections' if rate_limits_connected else 'Connect your first tool' }}</a></div>
+      </section>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var copy = document.getElementById('homeCopyMcp');
+  if (copy) copy.addEventListener('click', function () { Fluxito.copy({{ (base_url ~ '/mcp') | tojson }}, 'MCP URL'); });
+  document.querySelectorAll('[data-launch]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('[data-launch]').forEach(function (t) { var on = t === tab; t.classList.toggle('is-active', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      document.querySelectorAll('[data-launch-panel]').forEach(function (p) { p.hidden = p.dataset.launchPanel !== tab.dataset.launch; });
+    });
+  });
+  document.querySelectorAll('[data-copy-prompt]').forEach(function (b) {
+    b.addEventListener('click', function () { Fluxito.copy(b.dataset.copyPrompt, 'Prompt'); });
+  });
+  document.querySelectorAll('[data-time]').forEach(function (el) {
+    if (el.dataset.time && window.Fluxito && Fluxito.timeAgo) el.textContent = Fluxito.timeAgo(el.dataset.time);
+  });
+});
+</script>
+{% endblock %}

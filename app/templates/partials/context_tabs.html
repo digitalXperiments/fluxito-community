@@ -1,0 +1,8 @@
+{# Underline tabs for the Context section (real pages, no iframe).
+   Set `context_section` to 'kpi' or 'business' on the page. The KPI count
+   comes from `kpis` (KPI library page) or `kpi_count` (Business context). #}
+{% set _kpi_n = (kpis | length) if kpis is defined else (kpi_count if kpi_count is defined else none) %}
+<nav class="ui-tabs" aria-label="Context sections">
+  <a href="/kpi-library" class="{% if context_section == 'kpi' %}is-active{% endif %}" {% if context_section == 'kpi' %}aria-current="page"{% endif %}>KPI library{% if _kpi_n is not none %} <span class="ui-count" id="kpiTabCount">{{ _kpi_n }}</span>{% endif %}</a>
+  <a href="/business-context" class="{% if context_section == 'business' %}is-active{% endif %}" {% if context_section == 'business' %}aria-current="page"{% endif %}>Business context</a>
+</nav>

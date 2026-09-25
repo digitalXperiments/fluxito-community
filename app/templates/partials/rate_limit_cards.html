@@ -1,0 +1,166 @@
+{# ──────────────────────────────────────────────────────────────────────────
+   Connector rate-limit rows — shared by Project Settings and Home.
+
+   Usage in a page:
+     {% import "partials/rate_limit_cards.html" as rlcards %}
+     {{ rlcards.rl_assets() }}                  (once per page — modal + styles + script)
+     <div class="rl-list">{% for c in items %}{{ rlcards.rl_card(c) }}{% endfor %}</div>
+
+   Each row stays minimal: tool name (+ category) · its published limit · the
+   real tool calls logged (last 30 days, from the activity log) with a headroom
+   bar for the busiest window vs the published call limit · an ⓘ that opens one
+   shared modal with the full breakdown. The verbose
+   detail lives in a hidden <template> per connector. ──────────────────────────── #}
+
+{% macro rl_card(c, muted=false) %}
+<div class="rl-row{% if muted %} rl-row-muted{% endif %}">
+  <div class="rl-row-id">
+    <div class="rl-row-name">{{ c.name }}{% if c.category %} <span class="rl-row-cat">{{ c.category }}</span>{% endif %}</div>
+    <div class="rl-row-limit">{{ c.headline }}</div>
+  </div>
+  {% set u = c.call_usage if c.call_usage is defined else none %}
+  {% set n = u.calls if u else (c.usage_count or 0) %}
+  {% set days = u.days if u else 30 %}
+  <div class="rl-row-usage">
+    {% if n %}
+    <span class="rl-row-count">{{ "{:,}".format(n) }}<span class="rl-row-unit"> call{{ '' if n == 1 else 's' }} · {{ days }}d</span></span>
+    {% else %}
+    <span class="rl-row-nodata">No calls in {{ days }} days</span>
+    {% endif %}
+    {% if u and u.metered and not muted %}
+    <div class="rl-bar is-{{ u.level }}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ u.headroom_pct }}"
+         aria-label="{{ u.headroom_pct }}% headroom against {{ u.limit_label }}"
+         title="Busiest {{ u.window }} in the last {{ days }} days vs the published limit{% if u.limit_source %} ({{ u.limit_source }}, shown per minute){% endif %}"><span style="width: {{ u.headroom_pct }}%"></span></div>
+    <span class="rl-bar-label">{% if u.peak %}{{ u.headroom_pct }}% headroom · busiest {{ u.window }} {{ "{:,}".format(u.peak) }} of {{ u.limit_label }}{% else %}100% headroom · limit {{ u.limit_label }}{% endif %}</span>
+    {% elif u and not muted %}
+    <span class="rl-bar-label">Headroom n/a · {{ u.reason }}</span>
+    {% endif %}
+  </div>
+  <button type="button" class="rl-info" aria-label="Details for {{ c.name }}" onclick="openRlModal('{{ c.key }}')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+  </button>
+
+  <template id="rld-{{ c.key }}">
+    <div class="rlm-head">
+      <span class="rlm-name">{{ c.name }}</span>
+      <span class="ui-chip no-dot rl-cat">{{ c.category }}</span>
+      <span class="ui-chip no-dot rl-conf rl-conf-{{ c.confidence }}" title="How firm these published numbers are">{{ c.confidence }} confidence</span>
+    </div>
+    <div class="rlm-headline">{{ c.headline }}</div>
+    <p class="rlm-note">{{ c.consumption_note }}</p>
+    <table class="rl-table">
+      <thead><tr><th>Limit</th><th>Value</th><th>Window</th><th>Scope</th></tr></thead>
+      <tbody>
+        {% for l in c.limits %}
+        <tr>
+          <td>{{ l.name }}</td>
+          <td class="rl-val">{{ l.value }}</td>
+          <td>{{ l.window }}</td>
+          <td>{{ l.scope }}</td>
+        </tr>
+        {% if l.note %}<tr class="rl-note-row"><td colspan="4">↳ {{ l.note }}</td></tr>{% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    <dl class="rlm-meta">
+      {% if n %}<div><dt>Tool calls ({{ days }}d)</dt><dd>{{ "{:,}".format(n) }}</dd></div>{% endif %}
+      {% if u and u.metered and u.peak %}<div><dt>Busiest {{ u.window }} ({{ days }}d)</dt><dd>{{ "{:,}".format(u.peak) }} calls of {{ u.limit_label }}{% if u.limit_source %} (published as {{ u.limit_source }}){% endif %} · {{ u.headroom_pct }}% headroom</dd></div>{% endif %}
+      <div><dt>Typical cost</dt><dd>{{ c.usage }}</dd></div>
+      <div><dt>When you hit it</dt><dd>{{ c.error_behavior }}</dd></div>
+      {% if c.headers and c.headers != '—' %}<div><dt>Usage headers</dt><dd>{{ c.headers }}</dd></div>{% endif %}
+    </dl>
+    <div class="rlm-foot">
+      <a href="{{ c.docs_url }}" target="_blank" rel="noopener">Official docs ↗</a>
+      <span class="rlm-reviewed">Reviewed {{ c.reviewed }}</span>
+    </div>
+  </template>
+</div>
+{% endmacro %}
+
+
+{% macro rl_assets() %}
+<div class="rl-modal-backdrop" id="rlModal" hidden onclick="if(event.target===this)closeRlModal()">
+  <div class="rl-modal" role="dialog" aria-modal="true" aria-label="Connector rate limit details">
+    <button type="button" class="rl-modal-close" aria-label="Close" onclick="closeRlModal()">&times;</button>
+    <div id="rlModalBody"></div>
+  </div>
+</div>
+
+<style>
+/* Rows follow the redesign table rhythm: connector (+category) · published
+   limit · real calls (30d) + busiest-window headroom · info. Colours from app.css tokens. */
+.rl-list { background: var(--card); }
+.rl-row { display: grid; grid-template-columns: minmax(0, 1fr) 210px 30px; gap: 16px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); }
+.rl-row:first-child { border-top: 0; }
+.rl-row:hover { background: var(--card-well); }
+.rl-row-id { min-width: 0; }
+.rl-row-name { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+.rl-row-muted .rl-row-name { font-weight: 500; color: var(--ink-2); }
+.rl-row-cat { margin-left: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.rl-row-limit { margin-top: 3px; font: 11.5px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.rl-row-usage { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.rl-row-count { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rl-row-unit { font-size: 11px; color: var(--muted); }
+.rl-row-nodata { font-size: 12px; color: var(--muted); }
+.rl-row-unit { font-weight: 500; letter-spacing: 0; }
+.rl-bar { width: 100%; height: 6px; margin-top: 7px; border-radius: 999px; background: var(--paper-2); overflow: hidden; }
+.rl-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--good); }
+.rl-bar.is-warn > span { background: var(--warn); }
+.rl-bar.is-bad > span { background: var(--bad); }
+.rl-bar-label { margin-top: 4px; font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.rl-info { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.rl-info:hover { color: var(--ink); background: var(--paper-2); }
+@media (max-width: 640px) {
+  .rl-row { grid-template-columns: minmax(0, 1fr) 140px 30px; gap: 10px; padding: 12px 14px; }
+}
+
+/* ── Detail modal (same shape as the shared ui-modal) ── */
+.rl-modal-backdrop { position: fixed; inset: 0; z-index: 880; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(22,24,19,.42); backdrop-filter: blur(3px); }
+.rl-modal-backdrop[hidden] { display: none; }
+.rl-modal { position: relative; width: min(580px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 26px; border-radius: 20px; background: var(--card); box-shadow: 0 40px 80px -30px rgba(28,30,25,.45); }
+.rl-modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.rl-modal-close:hover { background: var(--paper-2); color: var(--ink); }
+.rlm-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-right: 36px; }
+.rlm-name { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; color: var(--ink); }
+.rl-conf { text-transform: capitalize; }
+.rl-conf-high { background: var(--good-soft); color: var(--good); }
+.rl-conf-medium { background: var(--warn-soft); color: var(--warn); }
+.rlm-headline { margin-top: 12px; font: 13.5px var(--mono); color: var(--ink); line-height: 1.5; }
+.rlm-note { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+.rl-table { width: 100%; border-collapse: collapse; margin: 16px 0 4px; font-size: 12.5px; }
+.rl-table th { text-align: left; padding: 8px 10px; background: var(--card-well); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+.rl-table td { padding: 8px 10px; vertical-align: top; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+.rl-val { font-family: var(--mono); color: var(--ink); }
+.rl-note-row td { padding-top: 0; font-size: 11.5px; color: var(--muted); }
+.rlm-meta { display: grid; gap: 10px; margin: 16px 0 0; }
+.rlm-meta > div { display: grid; gap: 2px; }
+.rlm-meta dt { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rlm-meta dd { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+.rlm-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.rlm-foot a { font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.rlm-reviewed { font-size: 12px; color: var(--muted); }
+</style>
+
+<script>
+(function () {
+  function open(key) {
+    var t = document.getElementById('rld-' + key);
+    if (!t) return;
+    var body = document.getElementById('rlModalBody');
+    body.innerHTML = '';
+    body.appendChild(t.content.cloneNode(true));
+    var m = document.getElementById('rlModal');
+    m.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+  }
+  function close() {
+    var m = document.getElementById('rlModal');
+    if (m) m.hidden = true;
+    document.documentElement.style.overflow = '';
+  }
+  window.openRlModal = open;
+  window.closeRlModal = close;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+</script>
+{% endmacro %}

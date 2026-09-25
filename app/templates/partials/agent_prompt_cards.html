@@ -1,0 +1,19 @@
+{% macro agent_prompt_cards(prompts, section_id="ask-ai", kicker="Ask your AI client") %}
+<section class="lh-prompts-section fx-prompts-section" id="{{ section_id }}">
+  <div class="lh-prompts-head fx-prompts-head">
+    <p class="fx-kicker is-sage">{{ kicker }}</p>
+  </div>
+  <div class="lh-prompt-grid fx-prompt-grid">
+    {% for p in prompts %}
+    <article class="fx-slab lh-prompt-box fx-prompt-box">
+      <p class="fx-kicker">{{ p.num or ('%02d' | format(loop.index)) }} · {{ p.title }}</p>
+      <p class="fx-q">“{{ p.prompt }}”</p>
+      {% if p.note %}<p class="fx-note lh-slab-note fx-slab-note">{{ p.note | safe }}</p>{% endif %}
+      <button type="button" class="fx-btn is-secondary lh-slab-btn fx-slab-btn" onclick="copyHubPrompt(this, {{ p.prompt | tojson }})">
+        <span data-label>Copy prompt</span> <span class="fx-ar">↗</span>
+      </button>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endmacro %}

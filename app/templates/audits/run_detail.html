@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% from "audits/_head.html" import plat_name %}
+{% block title %}{{ page_title }}{% endblock %}
+{% set active = 'audits' %}
+{% set audit_tab = 'runs' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/auditing.css?v={{ asset_hash('css/auditing.css') }}"/>
+{% endblock %}
+
+{% block main %}
+{% macro sev_cls(sev) -%}
+{{ 'bad' if sev == 'critical' else ('warn' if sev == 'warning' else 'info') }}
+{%- endmacro %}
+{% set type_label = audit_type_labels.get(run.audit_type) or ((run.audit_type or 'audit') | replace('_', ' ') | title) %}
+{% set by_labels = {'claude': 'your AI client', 'schedule': 'a schedule', 'manual': 'hand'} %}
+{% set all_failing = findings | rejectattr('passed') | list %}
+{# Open = failing and not resolved/snoozed (audit_finding_triage). #}
+{% set failing = all_failing | selectattr('triage_status', 'equalto', 'open') | list %}
+{% set triaged = all_failing | rejectattr('triage_status', 'equalto', 'open') | list %}
+{% set passed_list = findings | selectattr('passed') | list %}
+{# Worst first: critical → warning → other failing → passed → resolved/snoozed #}
+{% set ordered = (failing | selectattr('severity', 'equalto', 'critical') | list)
+               + (failing | selectattr('severity', 'equalto', 'warning') | list)
+               + (failing | rejectattr('severity', 'in', ['critical', 'warning']) | list)
+               + passed_list
+               + triaged %}
+<div class="app-main audit-page">
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow"><a href="/audits" class="au-crumb">Audit</a> / {{ type_label }} report</div>
+      <h1 class="page-title">{{ run.title or 'Audit run' }}</h1>
+      <p class="page-sub">
+        {{ run.created_at | fmt_date('%b %d, %Y · %H:%M') if run.created_at else '—' }} · triggered by {{ by_labels.get(run.triggered_by, run.triggered_by) }}{% if run.duration_ms %} · {{ (run.duration_ms / 1000) | round(1) }}s{% endif %}
+        {% if run.url_tested %}<br><a href="{{ run.url_tested }}" target="_blank" rel="noopener" class="ui-mono au-url">{{ run.url_tested[:80] }} ↗</a>{% endif %}
+      </p>
+    </div>
+    <div class="ui-page-actions">
+      <button type="button" class="ui-btn" id="exportCsvBtn" data-run-id="{{ run.id }}">Export CSV</button>
+      <button type="button" class="ui-btn" id="exportJsonBtn" data-run-id="{{ run.id }}">Export JSON</button>
+      <a href="/audits" class="ui-btn is-quiet">← All runs</a>
+    </div>
+  </div>
+
+  {% include "partials/audit_tabs.html" %}
+
+  {# ── Score + summary ── #}
+  <div class="au-main">
+    <div class="ui-panel au-latest">
+      <div class="au-latest-top">
+        <div class="ui-ring au-ring is-{{ score_tier }}" style="--v:{{ run.score if run.score is not none else 0 }}">
+          <span>{{ run.score if run.score is not none else '—' }}<small>{{ score_tier if score_tier != 'unknown' else 'no score' }}</small></span>
+        </div>
+        <div class="au-latest-copy">
+          <div class="au-kicker">{{ type_label }} · score / 100</div>
+          {# Counts reflect OPEN findings (resolved/snoozed excluded). Runs whose
+             findings weren't itemised fall back to the recorded counts. #}
+          {% if all_failing %}
+          {% set c_crit = open_counts.critical %}{% set c_warn = open_counts.warning %}{% set c_info = open_counts.info %}
+          {% else %}
+          {% set c_crit = run.critical or 0 %}{% set c_warn = run.warning or 0 %}{% set c_info = run.info or 0 %}
+          {% endif %}
+          {% set issues = c_crit + c_warn + c_info %}
+          <div class="au-headline"><span id="auIssuesN">{{ issues }}</span> <span id="auIssuesWord">issue{{ 's' if issues != 1 }}</span> found · {{ run.passed or 0 }} check{{ 's' if (run.passed or 0) != 1 }} passed</div>
+          <div class="au-chips">
+            <span class="ui-chip is-bad"><span id="auChipCritical">{{ c_crit }}</span> critical</span>
+            <span class="ui-chip is-warn"><span id="auChipWarning">{{ c_warn }}</span> warning</span>
+            <span class="ui-chip is-info"><span id="auChipInfo">{{ c_info }}</span> info</span>
+            <span class="ui-chip is-good">{{ run.passed or 0 }} passed</span>
+          </div>
+          <p class="au-triage-note" id="auTriageNote"{% if not triaged %} hidden{% endif %}><span id="auTriageNoteN">{{ triaged | length }}</span> resolved or snoozed finding{{ 's' if triaged | length != 1 }} not counted · score as recorded</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui-panel">
+      <div class="ui-panel-h"><h3>AI analysis</h3></div>
+      <div class="ui-panel-b">
+        {% if run.raw_summary %}
+        <div class="au-summary">{{ run.raw_summary }}</div>
+        {% else %}
+        <p class="ui-muted au-summary-empty">Your AI didn’t attach a written summary to this run. Ask it to “explain my latest audit” for a narrative.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Findings ── #}
+  <div class="ui-panel">
+    <div class="ui-panel-h"><h3>Findings</h3><span class="ui-sub">{{ findings | length }} total · click a finding for expected vs actual{% if can_triage %}, resolve or snooze{% endif %}</span></div>
+    <div class="ui-toolbar" id="findingFilters">
+      <div class="ui-seg" role="group" aria-label="Filter by severity">
+        <button type="button" class="ff-chip is-active" data-filter="all">All <span class="au-seg-n" id="countAll">{{ failing | length + passed_list | length }}</span></button>
+        <button type="button" class="ff-chip" data-filter="critical">Critical <span class="au-seg-n" id="countCritical">{{ failing | selectattr('severity', 'equalto', 'critical') | list | length }}</span></button>
+        <button type="button" class="ff-chip" data-filter="warning">Warning <span class="au-seg-n" id="countWarning">{{ failing | selectattr('severity', 'equalto', 'warning') | list | length }}</span></button>
+        <button type="button" class="ff-chip" data-filter="info">Info <span class="au-seg-n" id="countInfo">{{ failing | selectattr('severity', 'equalto', 'info') | list | length }}</span></button>
+        <button type="button" class="ff-chip" data-filter="pass">Passed <span class="au-seg-n" id="countPass">{{ passed_list | length }}</span></button>
+      </div>
+
+      <button type="button" class="ui-btn is-quiet au-triaged-toggle" id="auTriagedToggle" aria-pressed="false"{% if not triaged %} hidden{% endif %}>Show resolved &amp; snoozed (<span id="auTriagedN">{{ triaged | length }}</span>)</button>
+
+      {# Platform filter ── auto built from findings #}
+      {% set platforms = findings | map(attribute='platform') | reject('none') | unique | list %}
+      {% if platforms | length > 1 %}
+      <div class="au-plats">
+        {% for plat in platforms %}
+        <button type="button" class="ff-chip ff-chip--plat au-plat" data-filter-platform="{{ plat }}">{{ plat_name(plat) }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="findings-list" id="findingsList">
+      {% for f in ordered %}
+      {% set tri = f.triage_status or 'open' %}
+      <div class="ui-finding is-click finding-row {{ 'finding-row--pass' if f.passed else '' }}{{ ' is-triaged' if tri != 'open' else '' }}"
+           data-finding-idx="{{ loop.index0 }}" role="button" tabindex="0"
+           data-severity="{{ f.severity or 'pass' }}"
+           data-platform="{{ f.platform or '' }}"
+           data-passed="{{ 'true' if f.passed else 'false' }}"
+           data-triage="{{ tri }}"{% if tri != 'open' %} style="display:none"{% endif %}>
+        <span class="ui-sev is-{{ 'good' if f.passed else sev_cls(f.severity) }}"></span>
+        <div class="ui-grow">
+          <b>{{ f.message or '—' }}</b>
+          <p class="au-f-meta">
+            {% if f.platform %}<span>{{ plat_name(f.platform) }}</span>{% endif %}
+            {% if f.event %}<span class="ui-mono">{{ f.event }}</span>{% endif %}
+            {% if f.rule_id %}<span class="ui-mono au-f-rule">{{ f.rule_id }}</span>{% endif %}
+          </p>
+          {% if f.remediation and not f.passed %}<p class="au-f-fix"><b>Fix:</b> {{ f.remediation }}</p>{% endif %}
+          {% if f.expected or f.actual %}<p class="au-f-diff">Expected vs actual recorded →</p>{% endif %}
+        </div>
+        <div class="au-f-side">
+          {% if tri == 'resolved' %}
+          <span class="ui-chip no-dot au-tri-chip" data-tri-chip>resolved</span>
+          {% elif tri == 'snoozed' %}
+          <span class="ui-chip no-dot au-tri-chip" data-tri-chip>snoozed</span>
+          {% endif %}
+          {% if f.passed %}
+          <span class="ui-chip no-dot is-good">pass</span>
+          {% elif f.severity %}
+          <span class="ui-chip no-dot is-{{ sev_cls(f.severity) }}">{{ f.severity }}</span>
+          {% endif %}
+          {% if not f.passed and tri == 'open' and f.severity in ('critical', 'warning') %}
+          {% set ask_q = 'Fix this ' ~ (plat_name(f.platform) if f.platform else '') ~ ' finding: ' ~ (f.message or '') ~ ('. Suggested fix: ' ~ f.remediation if f.remediation else '') %}
+          <button type="button" class="ui-btn is-quiet au-f-copy" data-copy="{{ ask_q }}" data-copy-label="Fix prompt copied">Copy fix prompt</button>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="ui-empty">
+        <b>No findings</b>
+        This audit run produced no findings yet.
+      </div>
+      {% endfor %}
+      <div class="ui-empty" id="findingsFilteredEmpty" hidden>No findings match this filter.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  window.__AUDIT_RUN__ = { id: {{ run.id | tojson }}, findings: {{ ordered | tojson }}, canTriage: {{ can_triage | tojson }} };
+</script>
+<script src="/static/js/auditing.js?v={{ asset_hash('js/auditing.js') }}" defer></script>
+{% endblock %}

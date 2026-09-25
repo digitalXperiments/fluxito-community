@@ -1,0 +1,59 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "MoEngage" %}
+{% set platform_slug = "moengage" %}
+{% set platform_desc = "Customer engagement platform for push notifications, in-app messages, email, and omnichannel campaigns." %}
+
+{% block platform_body %}
+<form id="moengageForm" onsubmit="return submitMoengage(event)">
+  {% if editing %}<input type="hidden" id="meEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="meName">Display name</label>
+    <input class="input" id="meName" required placeholder="e.g. Production MoEngage" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="meAppId">App ID</label>
+    <input class="input" id="meAppId" required placeholder="Your MoEngage App ID" value="{{ editing.app_id if editing else '' }}"/>
+    <div class="label-hint">Find your App ID in MoEngage Dashboard → Settings → API</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="meApiKey">REST API Key</label>
+    <input class="input" id="meApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your MoEngage REST API Key{% endif %}" value=""/>
+    <div class="label-hint">Generate an API key in MoEngage Dashboard → Settings → API</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="meDataCenter">Data Center</label>
+    <input class="input" id="meDataCenter" required placeholder="e.g. 01" value="{{ editing.data_center if editing else '' }}"/>
+    <div class="label-hint">Your data center code (e.g. <code>01</code>, <code>02</code>, <code>03</code>). Find it in MoEngage Dashboard → Settings</div>
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect MoEngage' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitMoengage(e){
+  e.preventDefault();
+  const editId = document.getElementById('meEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('meName').value.trim();
+  const app_id = document.getElementById('meAppId').value.trim();
+  const api_key = document.getElementById('meApiKey').value.trim();
+  const data_center = document.getElementById('meDataCenter').value.trim();
+
+  const url = isEdit ? '/api/connections/moengage/' + editId.value : '/api/connections/moengage';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, app_id, api_key, data_center})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

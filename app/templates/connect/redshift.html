@@ -1,0 +1,75 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Redshift" %}
+{% set platform_slug = "redshift" %}
+{% set platform_desc = "Connect your Amazon Redshift cluster for direct data warehouse queries and analysis." %}
+
+{% block platform_body %}
+<form id="redshiftForm" onsubmit="return submitRedshift(event)">
+  {% if editing %}<input type="hidden" id="rsEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="rsName">Display name</label>
+    <input class="input" id="rsName" required placeholder="e.g. Production warehouse" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="rsHost">Host</label>
+    <input class="input" id="rsHost" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.host_hint }} — leave blank to keep{% else %}your-cluster.region.redshift.amazonaws.com{% endif %}" value=""/>
+    <div class="label-hint">Your Redshift cluster endpoint</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="rsPort">Port</label>
+    <input class="input" type="number" id="rsPort" required value="{{ editing.port if editing else 5439 }}" placeholder="5439"/>
+    <div class="label-hint">Default Redshift port is 5439</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="rsDatabase">Database</label>
+    <input class="input" id="rsDatabase" required placeholder="dev" value="{{ editing.database if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="rsUsername">Username</label>
+    <input class="input" id="rsUsername" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.username_hint }} — leave blank to keep{% else %}awsuser{% endif %}" value=""/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="rsPassword">Password</label>
+    <input class="input" type="password" id="rsPassword" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current password' if editing else 'Your database password' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing password</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="label" for="rsSchema">Default schema</label>
+    <input class="input" id="rsSchema" value="{{ editing.default_schema if editing else 'public' }}" placeholder="public"/>
+    <div class="label-hint">Schema to use for queries (optional, default: public)</div>
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Redshift' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitRedshift(e){
+  e.preventDefault();
+  const editId = document.getElementById('rsEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('rsName').value.trim();
+  const host = document.getElementById('rsHost').value.trim();
+  const port = parseInt(document.getElementById('rsPort').value) || 5439;
+  const database = document.getElementById('rsDatabase').value.trim();
+  const username = document.getElementById('rsUsername').value.trim();
+  const password = document.getElementById('rsPassword').value.trim();
+  const default_schema = document.getElementById('rsSchema').value.trim() || "public";
+
+  const url = isEdit ? '/api/connections/redshift/' + editId.value : '/api/connections/redshift';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, host, port, database, username, password, default_schema})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

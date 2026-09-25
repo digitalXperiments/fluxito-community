@@ -1,0 +1,471 @@
+[
+  {
+    "tool": "run_analysis",
+    "action": "blended_performance",
+    "summary": "Aggregated totals + per-platform breakdown + blended KPIs (CTR/CPC/CPA/ROAS) across connected ad platforms, fetched in parallel.",
+    "group": "",
+    "params": [
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-01",
+        "doc": "ISO YYYY-MM-DD. Real param name (docs say start_date)."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-31",
+        "doc": "ISO YYYY-MM-DD. Real param name (docs say end_date)."
+      },
+      {
+        "name": "platforms",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "google_ads",
+          "meta"
+        ],
+        "doc": "Array of strings; optional filter, name-normalized."
+      },
+      {
+        "name": "google_ads_account_id",
+        "type": "string",
+        "required": false,
+        "example": "1234567890",
+        "doc": "Override auto-detected Google Ads account."
+      },
+      {
+        "name": "meta_account_id",
+        "type": "string",
+        "required": false,
+        "example": "act_123",
+        "doc": "Override auto-detected Meta account."
+      },
+      {
+        "name": "tiktok_account_id",
+        "type": "string",
+        "required": false,
+        "example": "789",
+        "doc": "Override auto-detected TikTok advertiser."
+      },
+      {
+        "name": "snap_account_id",
+        "type": "string",
+        "required": false,
+        "example": "abc",
+        "doc": "Override auto-detected Snap account."
+      }
+    ],
+    "platforms": [
+      "google_ads",
+      "meta",
+      "tiktok",
+      "snap"
+    ],
+    "returns": "{ action:'blended_performance', date_range:{start,end}, platforms_queried[], platforms_skipped[], blended_totals:{...,blended_ctr/cpc/cpa/roas}, per_platform:[{platform,campaigns,impressions,clicks,spend,conversions,revenue,ctr,cpc,cpa,roas}], errors }"
+  },
+  {
+    "tool": "run_analysis",
+    "action": "channel_comparison",
+    "summary": "Per-platform comparison table with spend_share_pct plus blended totals.",
+    "group": "",
+    "params": [
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-01",
+        "doc": "ISO YYYY-MM-DD (real name; docs say start_date)."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-31",
+        "doc": "ISO YYYY-MM-DD (real name; docs say end_date)."
+      },
+      {
+        "name": "platforms",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "google_ads",
+          "tiktok"
+        ],
+        "doc": "Array of strings; optional name-normalized filter."
+      },
+      {
+        "name": "google_ads_account_id",
+        "type": "string",
+        "required": false,
+        "example": "1234567890",
+        "doc": "Override Google Ads account."
+      },
+      {
+        "name": "meta_account_id",
+        "type": "string",
+        "required": false,
+        "example": "act_123",
+        "doc": "Override Meta account."
+      },
+      {
+        "name": "tiktok_account_id",
+        "type": "string",
+        "required": false,
+        "example": "789",
+        "doc": "Override TikTok advertiser."
+      },
+      {
+        "name": "snap_account_id",
+        "type": "string",
+        "required": false,
+        "example": "abc",
+        "doc": "Override Snap account."
+      }
+    ],
+    "platforms": [
+      "google_ads",
+      "meta",
+      "tiktok",
+      "snap"
+    ],
+    "returns": "{ action:'channel_comparison', date_range, platforms_queried[], comparison:[{...per-platform metrics, spend_share_pct}], blended_totals, errors }"
+  },
+  {
+    "tool": "run_analysis",
+    "action": "cross_platform_report",
+    "summary": "Legacy pass-through to cross_platform_report; the caller sets the real sub-action inside params['action'] (blended_performance|channel_comparison|top_campaigns|revenue_attribution). With no params['action'] the handler's Literal type makes 'action' a required arg.",
+    "group": "",
+    "params": [
+      {
+        "name": "action",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "blended_performance",
+          "channel_comparison",
+          "top_campaigns",
+          "revenue_attribution"
+        ],
+        "example": "blended_performance",
+        "doc": "REQUIRED inside params for this route (legacy_action is None so nothing is injected). The handler signature types action as a Literal with no default -> pydantic requires it."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-01",
+        "doc": "ISO YYYY-MM-DD; defaults via default_date_range to 30 days back. NOTE: param is 'date_range_start', NOT 'start_date'."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-31",
+        "doc": "ISO YYYY-MM-DD; defaults to today. NOTE: 'date_range_end', NOT 'end_date'."
+      },
+      {
+        "name": "platforms",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "google",
+          "meta"
+        ],
+        "doc": "Array of strings; normalized via name_map (google/gads->google_ads, fb/facebook->meta, tt->tiktok, snapchat->snap). Filters which connected platforms are queried."
+      },
+      {
+        "name": "sort_by",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "spend",
+          "roas",
+          "conversions",
+          "clicks",
+          "cpa",
+          "impressions",
+          "revenue"
+        ],
+        "example": "roas",
+        "doc": "top_campaigns only; invalid value silently falls back to 'spend'."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 10,
+        "doc": "top_campaigns row cap. NOTE: param is 'limit', NOT 'n'."
+      }
+    ],
+    "platforms": [
+      "google_ads",
+      "meta",
+      "tiktok",
+      "snap"
+    ],
+    "returns": "Depends on params['action']; see the specific sub-action rows. | {error,...}"
+  },
+  {
+    "tool": "run_analysis",
+    "action": "revenue_attribution",
+    "summary": "Multi-touch revenue attribution: fetches ad spend in parallel, resolves a revenue source (warehouse>ga4>adobe>amplitude>self_reported>spend_only), distributes channel credit per the chosen model, and returns per-channel spend/attributed_revenue/ROAS/CAC. IMPLEMENTED (handler present) — the docstring warning that it 'may not be registered' is FALSE.",
+    "group": "",
+    "params": [
+      {
+        "name": "model",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "first_touch",
+          "last_touch",
+          "linear",
+          "time_decay",
+          "position_based"
+        ],
+        "example": "time_decay",
+        "doc": "Attribution model. linear/time_decay/position_based are session-share APPROXIMATIONS (flagged in response). shapley/markov rejected with unsupported_model."
+      },
+      {
+        "name": "revenue_source",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "warehouse",
+          "ga4",
+          "amplitude",
+          "mixpanel",
+          "posthog",
+          "adobe_analytics",
+          "ad_platforms_self_reported",
+          "spend_only",
+          "auto"
+        ],
+        "example": "ga4",
+        "doc": "Force a revenue source; 'auto' walks the hierarchy. Invalid value -> unsupported_revenue_source error."
+      },
+      {
+        "name": "ga4_property_id",
+        "type": "string",
+        "required": false,
+        "example": "123456",
+        "doc": "Required for the ga4 channel source (numeric IDs accepted as int/str via CoercedStr BeforeValidator)."
+      },
+      {
+        "name": "warehouse_platform",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "bigquery",
+          "redshift",
+          "snowflake"
+        ],
+        "example": "bigquery",
+        "doc": "Warehouse engine for the ground-truth total adapter (needs revenue_table too)."
+      },
+      {
+        "name": "revenue_table",
+        "type": "string",
+        "required": false,
+        "example": "ecom.orders",
+        "doc": "Qualified table (dataset.table BQ, or table RS/SF); validated via validate_qualified_identifier before interpolation."
+      },
+      {
+        "name": "revenue_column",
+        "type": "string",
+        "required": false,
+        "example": "revenue",
+        "doc": "Revenue column (quoted/validated)."
+      },
+      {
+        "name": "order_id_column",
+        "type": "string",
+        "required": false,
+        "example": "order_id",
+        "doc": "Date/order column used in the WHERE DATE(...) clause; falls back to 'created_at' in the adapter if falsy."
+      },
+      {
+        "name": "channels",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "google_ads",
+          "meta"
+        ],
+        "doc": "Array of strings; optional case-insensitive filter applied to attributed channels."
+      },
+      {
+        "name": "attribution_window_days",
+        "type": "integer",
+        "required": false,
+        "example": 30,
+        "doc": "Echoed in the response; NOT actually applied to any windowing logic in this sync handler."
+      },
+      {
+        "name": "conversion_event",
+        "type": "string",
+        "required": false,
+        "example": "purchase",
+        "doc": "Echoed in the response; NOT used to filter GA4/Adobe queries in this handler."
+      },
+      {
+        "name": "amplitude_project_id",
+        "type": "string",
+        "required": false,
+        "example": "proj_1",
+        "doc": "Passed to the amplitude TOTAL-only adapter."
+      },
+      {
+        "name": "adobe_report_suite_id",
+        "type": "string",
+        "required": false,
+        "example": "rsid123",
+        "doc": "Required for the adobe_analytics channel source."
+      },
+      {
+        "name": "adobe_org_id",
+        "type": "string",
+        "required": false,
+        "example": "org@AdobeOrg",
+        "doc": "Adobe IMS org id."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-01",
+        "doc": "ISO YYYY-MM-DD (real name; docs say start_date)."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-31",
+        "doc": "ISO YYYY-MM-DD (real name; docs say end_date)."
+      },
+      {
+        "name": "platforms",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "google_ads",
+          "meta"
+        ],
+        "doc": "Array of strings; ad-platform spend filter (name-normalized)."
+      }
+    ],
+    "platforms": [
+      "google_ads",
+      "meta",
+      "tiktok",
+      "snap",
+      "ga4",
+      "amplitude",
+      "mixpanel",
+      "posthog",
+      "adobe_analytics",
+      "bigquery",
+      "redshift",
+      "snowflake"
+    ],
+    "returns": "{ action:'revenue_attribution', date_range, model, attribution_window_days, conversion_event, platforms_queried[], ga4_property_id, revenue_source, revenue_source_requested, revenue_source_confidence, available_revenue_sources[], totals:{total_spend,total_attributed_revenue,ground_truth_revenue,ground_truth_source,blended_roas}, breakdown:[{channel,spend,attributed_revenue,conversions,roas,cac,sessions}], warehouse:{...}|null, notes:{...}, warnings, errors }"
+  },
+  {
+    "tool": "run_analysis",
+    "action": "top_campaigns",
+    "summary": "Top-N campaigns across all connected ad platforms sorted by a chosen metric (default spend, limit 20).",
+    "group": "",
+    "params": [
+      {
+        "name": "sort_by",
+        "type": "string",
+        "required": false,
+        "enum": [
+          "spend",
+          "roas",
+          "conversions",
+          "clicks",
+          "cpa",
+          "impressions",
+          "revenue"
+        ],
+        "example": "roas",
+        "doc": "Sort field; cpa sorts ascending (lower is better), everything else descending. Invalid value silently -> 'spend'."
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": false,
+        "example": 10,
+        "doc": "Row cap. Real param name is 'limit' — docs/tool_docs say 'n', which is IGNORED."
+      },
+      {
+        "name": "date_range_start",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-01",
+        "doc": "ISO YYYY-MM-DD (real name; docs say start_date)."
+      },
+      {
+        "name": "date_range_end",
+        "type": "string",
+        "required": false,
+        "example": "2026-03-31",
+        "doc": "ISO YYYY-MM-DD (real name; docs say end_date)."
+      },
+      {
+        "name": "platforms",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "meta",
+          "snap"
+        ],
+        "doc": "Array of strings; optional name-normalized filter."
+      },
+      {
+        "name": "google_ads_account_id",
+        "type": "string",
+        "required": false,
+        "example": "1234567890",
+        "doc": "Override Google Ads account."
+      },
+      {
+        "name": "meta_account_id",
+        "type": "string",
+        "required": false,
+        "example": "act_123",
+        "doc": "Override Meta account."
+      },
+      {
+        "name": "tiktok_account_id",
+        "type": "string",
+        "required": false,
+        "example": "789",
+        "doc": "Override TikTok advertiser."
+      },
+      {
+        "name": "snap_account_id",
+        "type": "string",
+        "required": false,
+        "example": "abc",
+        "doc": "Override Snap account."
+      }
+    ],
+    "platforms": [
+      "google_ads",
+      "meta",
+      "tiktok",
+      "snap"
+    ],
+    "returns": "{ action:'top_campaigns', date_range, sort_by, limit, platforms_queried[], campaigns:[{platform,campaign_id,campaign_name,...,ctr,cpc,cpa,roas}], total_campaigns_across_platforms, blended_totals, errors }"
+  }
+]

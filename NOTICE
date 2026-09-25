@@ -1,0 +1,24 @@
+Fluxito
+Copyright 2026 Fluxito contributors
+
+This product includes software developed by the Fluxito project
+(https://github.com/digitalXperiments/fluxito).
+
+Licensed under the Apache License, Version 2.0. See LICENSE for details.
+
+This software depends on third-party Python packages, each governed by
+its own license. See requirements.txt for the full list. Notable
+runtime dependencies and their licenses:
+
+  - FastAPI                MIT
+  - SQLAlchemy             MIT
+  - Pydantic               MIT
+  - mcp (Model Context Protocol SDK)  MIT
+  - cryptography           Apache 2.0 / BSD
+  - WeasyPrint             BSD
+  - asyncpg                Apache 2.0
+  - redis-py               MIT
+
+Brand and platform names referenced (Google Analytics, Meta, TikTok,
+Snowflake, etc.) are trademarks of their respective owners. Fluxito
+is not affiliated with or endorsed by any of these vendors.

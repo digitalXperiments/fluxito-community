@@ -1,0 +1,761 @@
+{% extends "admin/shell.html" %}
+{% block title %}Admin — Fluxito{% endblock %}
+{% set admin_section = 'settings' %}
+
+{% block admin_main %}
+<main class="app-main">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Admin hub · Super admin</div>
+      <h1 class="page-title">Platform <em>settings.</em></h1>
+      <p class="page-sub">Users, access, limits and the machine itself — install-wide controls, visible only to super admins. Changes apply immediately.</p>
+    </div>
+  </div>
+
+  <div class="admin-tabs">
+    <div class="tabs">
+      <button class="tab is-active" data-tab="users" onclick="adminTab('users')">Users</button>
+      <button class="tab" data-tab="requests" onclick="adminTab('requests')">Access requests</button>
+      <button class="tab" data-tab="signin" onclick="adminTab('signin')">Sign-in methods</button>
+      <button class="tab" data-tab="ratelimits" onclick="adminTab('ratelimits')">Rate limits</button>
+      <button class="tab" data-tab="operations" onclick="adminTab('operations')">Operations</button>
+      <button class="tab" data-tab="branding" onclick="adminTab('branding')">Branding</button>
+      <button class="tab" data-tab="updates" onclick="adminTab('updates');if(window.__fluxRefreshUpdates)window.__fluxRefreshUpdates();">Updates</button>
+    </div>
+  </div>
+
+  <section data-panel="users">
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0">
+      <label class="f-field" style="flex:1;min-width:200px;margin-bottom:0">Invite email<input id="invEmail" type="email" class="f-input" placeholder="person@company.com"></label>
+      <label class="f-field" style="flex:1;min-width:160px;margin-bottom:0">Name (optional)<input id="invName" class="f-input" placeholder="Jane Doe"></label>
+    </div>
+    <div class="admin-btn-row"><button class="btn primary" onclick="inviteUser()">Invite user</button></div>
+    <div id="invMsg" class="ps-msg" style="display:none"></div>
+    <table class="ps-table"><thead><tr><th>Email</th><th>Name</th><th>Status</th><th>Super-admin</th><th></th></tr></thead>
+      <tbody id="usersBody"><tr><td colspan="5">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section data-panel="requests" style="display:none">
+    <label class="toggle-row" style="margin-bottom:22px">
+      <input type="checkbox" class="pill-toggle" id="gateToggle" onchange="toggleGate(this.checked)" {% if gate_enabled %}checked{% endif %}>
+      <span class="toggle-copy">
+        <strong>Require access approval</strong>
+        <small>Gates open sign-up — visitors request access, you approve. Hides “Create account” on the sign-in page.</small>
+      </span>
+    </label>
+    <div id="reqMsg" class="ps-msg" style="display:none"></div>
+    <table class="ps-table"><thead><tr><th>Name</th><th>Email</th><th>Use case</th><th></th></tr></thead>
+      <tbody id="reqBody"><tr><td colspan="4">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section data-panel="signin" style="display:none">
+    <p style="color:var(--text-muted);margin-bottom:16px">Control which sign-in methods appear on the public sign-in page. At least one method must stay enabled.</p>
+    <div id="amMsg" class="ps-msg" style="display:none"></div>
+    <label class="toggle-row" style="margin-bottom:12px">
+      <input type="checkbox" class="pill-toggle" id="amGoogle">
+      <span class="toggle-copy">
+        <strong>“Continue with Google”</strong>
+        <small>OAuth sign-in via your configured Google credentials.</small>
+      </span>
+    </label>
+    <label class="toggle-row" style="margin-bottom:16px">
+      <input type="checkbox" class="pill-toggle" id="amPassword">
+      <span class="toggle-copy">
+        <strong>Email + password</strong>
+        <small>Classic credentials with reset-by-email.</small>
+      </span>
+    </label>
+    <div class="admin-btn-row"><button class="btn primary" onclick="saveAuthMethods()">Save</button></div>
+    <p style="color:var(--text-muted);margin-top:18px;font-size:12.5px">Tip: the <strong>Access requests</strong> tab’s “Require access approval” toggle hides “Create account” on the sign-in page (invite-only beta).</p>
+  </section>
+
+  <section data-panel="ratelimits" style="display:none">
+    <p style="color:var(--text-muted);margin-bottom:16px">Per-user limits on MCP / AI tool calls. Super-admins are exempt. Changes take effect immediately. Limits must be ordered minute ≤ hour ≤ day.</p>
+    <div id="rlMsg" class="ps-msg" style="display:none"></div>
+    <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+      <label class="f-field" style="flex:1;min-width:140px;margin-bottom:0">Requests per minute<input id="rlMin" type="number" min="1" class="f-input"></label>
+      <label class="f-field" style="flex:1;min-width:140px;margin-bottom:0">Requests per hour<input id="rlHour" type="number" min="1" class="f-input"></label>
+      <label class="f-field" style="flex:1;min-width:140px;margin-bottom:0">Requests per day<input id="rlDay" type="number" min="1" class="f-input"></label>
+    </div>
+    <div class="admin-btn-row"><button class="btn primary" onclick="saveRateLimits()">Save</button></div>
+  </section>
+
+  <section data-panel="operations" style="display:none">
+    <p style="color:var(--text-muted);margin-bottom:16px">Instance-wide operational controls.</p>
+    <div id="opMsg" class="ps-msg" style="display:none"></div>
+    <label class="toggle-row" id="opMaintenanceRow" style="margin-bottom:16px">
+      <input type="checkbox" class="pill-toggle" id="opMaintenance" onchange="document.getElementById('opMaintenanceRow').classList.toggle('is-danger', this.checked)">
+      <span class="toggle-copy">
+        <strong>Maintenance mode</strong>
+        <small>Only super-admins can use the app; everyone else sees a maintenance page.</small>
+      </span>
+    </label>
+    <label class="toggle-row" id="opChatRow" style="margin-bottom:16px">
+      <input type="checkbox" class="pill-toggle" id="opChat">
+      <span class="toggle-copy">
+        <strong>Enable in-app Chat</strong>
+        <small>Allow the built-in Chat page and personal AI provider keys. Turn off to run Fluxito as a pure MCP layer.</small>
+      </span>
+    </label>
+    <label class="f-field">Announcement banner (shown to all signed-in users; blank to hide)
+      <textarea id="opBanner" class="f-input" rows="2" maxlength="280" placeholder="e.g. Fluxito is in beta — expect frequent changes."></textarea>
+    </label>
+    <label class="f-field" style="margin-top:16px">Google Tag Manager (GTM) container ID
+      <input id="opGtmId" class="f-input mono" maxlength="32" placeholder="e.g. GTM-XXXXXXX" spellcheck="false" autocomplete="off">
+      <small style="color:var(--text-muted);font-size:12.5px;margin-top:4px;display:block">
+        Loads Google Tag Manager on all pages across the site. Leave blank to disable.
+      </small>
+    </label>
+    <div class="admin-btn-row"><button class="btn primary" onclick="saveOperations()">Save</button></div>
+  </section>
+
+  <section data-panel="branding" style="display:none">
+    <p style="color:var(--text-muted);margin-bottom:16px">Whitelabel the instance chrome. Changes apply on the next page load.</p>
+    <div id="brMsg" class="ps-msg" style="display:none"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <label class="f-field">App name<input id="brName" class="f-input" maxlength="120"></label>
+      <label class="f-field">Logo URL<input id="brLogo" class="f-input" maxlength="500" placeholder="https://…/logo.png"></label>
+      <div class="f-field">
+        <span>Accent colour</span>
+        <div class="accent-swatch-row">
+          <span class="accent-swatch" data-hex="#C4703A" style="background:#C4703A" onclick="pickAccentSwatch(this)" title="#C4703A"></span>
+          <span class="accent-swatch" data-hex="#3E8A5F" style="background:#3E8A5F" onclick="pickAccentSwatch(this)" title="#3E8A5F"></span>
+          <span class="accent-swatch" data-hex="#4D6FB0" style="background:#4D6FB0" onclick="pickAccentSwatch(this)" title="#4D6FB0"></span>
+          <span class="accent-swatch" data-hex="#201B14" style="background:#201B14" onclick="pickAccentSwatch(this)" title="#201B14"></span>
+          <input id="brAccent" class="f-input mono accent-hex-input" maxlength="64" placeholder="#0B0B0E" oninput="syncAccentSwatches()">
+        </div>
+      </div>
+    </div>
+    <div class="admin-btn-row"><button class="btn primary" onclick="saveBranding()">Save</button></div>
+  </section>
+
+  <section data-panel="updates" style="display:none">
+    <p style="color:var(--text-muted);margin-bottom:16px">Check for and apply Fluxito updates. The instance will briefly restart during an update.</p>
+    <div id="update-box" class="update-box">
+      <p>Current version: <strong id="upd-current">…</strong></p>
+      <p id="upd-latest-row" style="display:none">
+        <span class="update-avail-badge"><strong id="upd-latest"></strong> AVAILABLE</span>
+        — <a id="upd-notes" href="#" target="_blank" rel="noopener">release notes</a>
+      </p>
+      <p id="upd-uptodate" style="display:none">&#x2713; You're on the latest version.</p>
+      <div class="update-check-row">
+        <button id="upd-check" class="btn sm">Check for updates</button>
+        <span id="upd-checked" class="update-checked" aria-live="polite"></span>
+      </div>
+      <button id="upd-apply" class="btn primary" style="display:none;width:100%;margin-top:8px">Update now</button>
+
+      <div id="upd-confirm" class="update-card" style="display:none">
+        <span class="update-eyebrow">Confirm update</span>
+        <h3>Ready to update to <span id="upd-confirm-version"></span>?</h3>
+        <p>Fluxito will briefly restart. If the new version fails its health check, the instance will automatically roll back.</p>
+        <div class="update-actions">
+          <button id="upd-confirm-start" class="btn primary">Update now</button>
+          <button id="upd-confirm-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+
+      <div id="upd-workflow" class="update-card" style="display:none">
+        <span id="upd-state-label" class="update-eyebrow">Update in progress</span>
+        <h3 id="upd-state-title">Updating Fluxito</h3>
+        <p id="upd-state-copy" aria-live="polite">You can leave this page. Progress will resume when you return.</p>
+        <div id="upd-progressbar" class="update-progressbar" role="progressbar" aria-label="Update progress"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="upd-progress-fill"></span>
+        </div>
+        <ol class="update-stages" aria-label="Update stages">
+          <li data-update-stage="pulling"><span class="update-stage-mark">1</span><span>Download update</span></li>
+          <li data-update-stage="recreating"><span class="update-stage-mark">2</span><span>Restart Fluxito</span></li>
+          <li data-update-stage="verifying"><span class="update-stage-mark">3</span><span>Verify health</span></li>
+          <li data-update-stage="success"><span class="update-stage-mark">4</span><span>Complete</span></li>
+          <li id="upd-rollback-stage" style="display:none"><span class="update-stage-mark">5</span><span>Rollback</span></li>
+        </ol>
+
+        <div id="upd-troubleshooting" class="update-troubleshooting" style="display:none">
+          <h4>Troubleshooting</h4>
+          <ol id="upd-troubleshooting-steps"></ol>
+          <div class="update-actions">
+            <button id="upd-copy-diagnostics" class="btn sm">Copy diagnostic commands</button>
+            <a id="upd-failure-notes" class="btn sm" href="#" target="_blank" rel="noopener" style="display:none">Open release notes</a>
+            <button id="upd-retry" class="btn sm">Try update again</button>
+          </div>
+        </div>
+
+        <details id="upd-technical" class="update-technical" style="display:none">
+          <summary>Technical details</summary>
+          <pre id="upd-technical-text"></pre>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<style>
+.admin-tabs {
+  margin-top: 28px;
+  margin-bottom: 0;
+}
+.admin-tabs .tabs {
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: transparent;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.admin-tabs .tabs::-webkit-scrollbar { display: none; }
+.admin-tabs .tabs .tab {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--muted);
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+.admin-tabs .tabs .tab:hover {
+  color: var(--ink);
+  background: var(--bg-2);
+}
+.admin-tabs .tabs .tab.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  box-shadow: none;
+  font-weight: 600;
+}
+section[data-panel] {
+  padding: 24px 0;
+}
+/* ---- 34x20 pill toggle, knob 16px; on = good/green, off = design's #D9CFBC ----
+   The design hardcodes bg = on ? '#3E8A5F' : '#D9CFBC'
+   for every admin toggle. #3E8A5F === var(--good). #D9CFBC has no equivalent Ledger
+   token (closest is --line-strong #C9BFA9) so it's kept literal here, scoped to Admin only. */
+.pill-toggle {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 34px; height: 20px; flex-shrink: 0;
+  border-radius: 999px; background: #D9CFBC;
+  position: relative; margin: 0; cursor: pointer; outline: none;
+  transition: background 0.15s ease;
+}
+.pill-toggle::before {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 999px;
+  background: var(--card); box-shadow: 0 1px 3px rgba(50,40,20,0.25);
+  transition: left 0.15s ease;
+}
+.pill-toggle:checked { background: var(--good); }
+.pill-toggle:checked::before { left: 16px; }
+.pill-toggle:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 30%, transparent); }
+/* ---- Users table: super-admin toggle + single red Remove/Restore action ---- */
+.admin-remove-link {
+  font-family: var(--mono); font-size: 11px; cursor: pointer;
+}
+.admin-remove-link:hover { text-decoration: underline; }
+/* ---- Branding: accent-colour swatch picker (design lines 218-226) ---- */
+.accent-swatch-row { display: flex; gap: 10px; align-items: center; }
+.accent-swatch {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  cursor: pointer; box-sizing: border-box; border: 1px solid var(--line-2);
+}
+.accent-swatch.is-selected { border: 3px solid var(--ink); }
+.accent-hex-input { width: 110px; font-size: 12.5px; }
+/* ---- Updates tab: "vX AVAILABLE" pill (design lines 236-239) ---- */
+.update-avail-badge {
+  display: inline-flex; align-items: center;
+  font-family: var(--mono); font-size: 10px; padding: 4px 10px;
+  border: 1px solid var(--warn); color: var(--accent-hover);
+  border-radius: 999px; letter-spacing: 0.05em; text-transform: uppercase;
+}
+/* ---- Super Admin badge: pill shape per design (line 87), scoped override of shared .t-flag ---- */
+.t-flag.admin-badge-pill { border-radius: 999px; font-size: 10px; padding: 3px 9px; }
+/* ---- Toggle row (card-style clickable label wrapping a pill-toggle) ---- */
+.toggle-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 15px 18px; background: var(--card);
+  border: 1px solid var(--line-2); border-radius: 11px;
+  cursor: pointer; max-width: 640px;
+}
+.toggle-row.is-danger { border-color: var(--bad); }
+.toggle-row .toggle-copy { display: flex; flex-direction: column; gap: 2px; }
+.toggle-row .toggle-copy strong { font-size: 14px; font-weight: 700; color: var(--ink); }
+.toggle-row .toggle-copy small { font-size: 12.5px; color: var(--muted); }
+/* ---- Access-request row actions: approve = ink/good button, deny = outline text ---- */
+.approve-btn { background: var(--good); color: #F2FBF4; border-color: var(--good); font-weight: 600; }
+.approve-btn:hover { opacity: 0.88; }
+.deny-btn { background: transparent; border-color: var(--line-strong); color: var(--ink-soft); }
+.deny-btn:hover { border-color: var(--ink); color: var(--ink); }
+.ps-msg {
+  padding: 8px 14px; border-radius: var(--r-m);
+  font-size: 12.5px; line-height: 1.5;
+  display: block; margin-bottom: 16px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2); color: var(--ink-soft);
+}
+.ps-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ps-table thead tr { border-bottom: 1px solid var(--line); }
+.ps-table th {
+  text-align: left; padding: 14px 18px;
+  font-weight: 600; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); font-family: var(--mono);
+}
+.ps-table tbody tr { border-bottom: 1px solid var(--line-2); }
+.ps-table tbody tr:last-child { border-bottom: none; }
+.ps-table td { padding: 14px 18px; vertical-align: middle; }
+.btn.sm.danger-outline { border-color: var(--red, crimson); color: var(--red, crimson); cursor:pointer; }
+.btn.sm.danger-outline:hover { background: color-mix(in srgb, var(--red, crimson) 8%, transparent); }
+.admin-btn-row { margin-top:16px; }
+.admin-btn-row .btn { width:100%; justify-content:center; }
+.update-box { width: 100%; margin-top: 28px; }
+.update-box p { margin: 0 0 12px; line-height: 1.6; }
+.update-check-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+.update-checked { color:var(--muted); font-size:12px; }
+#upd-apply.is-highlight { box-shadow:0 0 0 3px color-mix(in srgb, var(--ink) 30%, transparent); transition:box-shadow .3s ease; }
+.update-card { margin-top:28px; padding:20px; background:var(--bg-2); border:1px solid var(--line-2); border-radius:var(--r-l); }
+.update-card h3 { margin:5px 0 7px; font-size:18px; }
+.update-eyebrow { display:block; color:var(--muted); font:600 10.5px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase; }
+.update-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:15px; }
+.update-progressbar { height:7px; margin:18px 0 20px; overflow:hidden; background:var(--line-2); border-radius:999px; }
+.update-progressbar span { display:block; width:0; height:100%; background:var(--ink); border-radius:inherit; transition:width .35s ease; }
+.update-progressbar.is-failed span { background:var(--red, crimson); }
+.update-stages { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.update-stages li { display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; }
+.update-stages li.is-active { color:var(--ink); font-weight:600; }
+.update-stages li.is-complete { color:var(--ink-soft); }
+.update-stages li.is-failed { color:var(--red, crimson); font-weight:600; }
+.update-stage-mark { display:grid; width:22px; height:22px; place-items:center; flex:0 0 22px; border:1px solid var(--line); border-radius:50%; font:600 10px var(--mono); }
+.update-stages li.is-active .update-stage-mark { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+.update-stages li.is-complete .update-stage-mark { border-color:var(--ink-soft); }
+.update-stages li.is-failed .update-stage-mark { border-color:var(--red, crimson); }
+.update-troubleshooting { margin-top:20px; padding:16px; border:1px solid var(--line-2); border-radius:var(--r-m); background:var(--bg); }
+.update-troubleshooting h4 { margin:0 0 8px; font-size:14px; }
+.update-troubleshooting ol { margin:0; padding-left:20px; color:var(--ink-soft); font-size:12.5px; line-height:1.7; }
+.update-technical { margin-top:15px; border-top:1px solid var(--line-2); padding-top:12px; color:var(--muted); font-size:12px; }
+.update-technical summary { cursor:pointer; }
+.update-technical pre { margin:10px 0 0; padding:12px; overflow:auto; white-space:pre-wrap; background:var(--bg); border-radius:var(--r-m); color:var(--ink-soft); font:11.5px/1.5 var(--mono); }
+@media (max-width: 640px) {
+  .update-card { padding:16px; }
+  .update-actions .btn { width:100%; justify-content:center; }
+  /* Keep tab bar scrollable; reduce font/padding for smaller screens */
+  .admin-tabs .tabs .tab { font-size:12px; padding:8px 12px; }
+  section[data-panel] { padding: 16px 0; }
+  .ps-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ps-table th, .ps-table td { padding:10px 12px; font-size:12.5px; }
+  .admin-btn-row .btn { width:100%; }
+}
+</style>
+
+<script>
+function adminTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('is-active', b.dataset.tab===t));
+  document.querySelectorAll('[data-panel]').forEach(p=>p.style.display = p.dataset.panel===t ? '' : 'none');
+}
+async function api(url, opts){ const r = await fetch(url, opts); const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.detail||d.error||d.message||'Failed'); return d; }
+async function loadUsers(){
+  const {users} = await api('/api/admin/users');
+  const tbody = document.getElementById('usersBody'); tbody.innerHTML='';
+  users.forEach(u=>{
+    const tr=document.createElement('tr');
+    [u.email, u.display_name||'', u.is_active?'Active':'Inactive'].forEach(v=>{const td=document.createElement('td'); td.textContent=v; tr.appendChild(td);});
+    // Super-admin: 34x20 toggle switch 
+    const tdAdmin=document.createElement('td');
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.className='pill-toggle'; cb.checked=!!u.is_superadmin;
+    cb.setAttribute('aria-label', u.is_superadmin ? `Revoke admin for ${u.email}` : `Make ${u.email} admin`);
+    cb.onchange=()=>setSuper(u.id,cb.checked);
+    tdAdmin.appendChild(cb); tr.appendChild(tdAdmin);
+    // Action: single Remove/Restore link 
+    const act=document.createElement('td'); act.style.textAlign='right';
+    const link=document.createElement('span');
+    link.className='admin-remove-link';
+    link.textContent=u.is_active?'Remove':'Restore';
+    link.style.color=u.is_active?'var(--bad)':'var(--good)';
+    link.onclick=()=>setActive(u.id,!u.is_active);
+    act.appendChild(link); tr.appendChild(act); tbody.appendChild(tr);
+  });
+}
+async function setActive(id,v){ try{ await api(`/api/admin/users/${id}/active`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_active:v})}); loadUsers(); }catch(e){ Fluxito.toast(e.message, 'error');} }
+async function setSuper(id,v){ try{ await api(`/api/admin/users/${id}/superadmin`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_superadmin:v})}); loadUsers(); }catch(e){ Fluxito.toast(e.message, 'error');} }
+async function loadRequests(){
+  const {requests} = await api('/api/admin/access-requests?status=pending');
+  const tbody=document.getElementById('reqBody'); tbody.innerHTML='';
+  if(!requests.length){ const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=4; td.textContent='No pending requests.'; tr.appendChild(td); tbody.appendChild(tr); return; }
+  requests.forEach(r=>{
+    const tr=document.createElement('tr');
+    [r.name, r.email, r.use_case||''].forEach(v=>{const td=document.createElement('td'); td.textContent=v; tr.appendChild(td);});
+    const act=document.createElement('td'); act.style.textAlign='right';
+    const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:6px;justify-content:flex-end';
+    const b1=document.createElement('button'); b1.className='btn sm approve-btn'; b1.textContent='Approve'; b1.onclick=()=>approve(r.id);
+    const b2=document.createElement('button'); b2.className='btn sm deny-btn'; b2.textContent='Deny'; b2.onclick=()=>reject(r.id);
+    wrap.appendChild(b1); wrap.appendChild(b2); act.appendChild(wrap); tr.appendChild(act); tbody.appendChild(tr);
+  });
+}
+async function approve(id){
+  try{
+    const d=await api(`/api/admin/access-requests/${id}/approve`,{method:'POST'});
+    const m=document.getElementById('reqMsg'); m.textContent = d.temp_password
+      ? `Approved ${d.email}. Share these credentials (shown once): ${d.email} / ${d.temp_password}`
+      : `Approved ${d.email} (existing account — no new password).`;
+    m.style.display='block'; loadRequests();
+  }catch(e){ Fluxito.toast(e.message, 'error'); }
+}
+async function reject(id){ try{ await api(`/api/admin/access-requests/${id}/reject`,{method:'POST'}); loadRequests(); }catch(e){ Fluxito.toast(e.message, 'error');} }
+async function toggleGate(v){ try{ await api('/api/admin/settings/require-access-approval',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:v})}); }catch(e){ Fluxito.toast(e.message, 'error'); document.getElementById('gateToggle').checked=!v;} }
+async function loadRateLimits(){
+  try{
+    const d = await api('/api/admin/settings/rate-limits');
+    document.getElementById('rlMin').value = d.per_min;
+    document.getElementById('rlHour').value = d.per_hour;
+    document.getElementById('rlDay').value = d.per_day;
+  }catch(e){ /* leave blank on error */ }
+}
+async function saveRateLimits(){
+  const per_min = parseInt(document.getElementById('rlMin').value, 10);
+  const per_hour = parseInt(document.getElementById('rlHour').value, 10);
+  const per_day = parseInt(document.getElementById('rlDay').value, 10);
+  const m = document.getElementById('rlMsg');
+  try{
+    await api('/api/admin/settings/rate-limits', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({per_min, per_hour, per_day})});
+    m.textContent = 'Saved.'; m.style.display='block';
+  }catch(e){ m.textContent = e.message; m.style.display='block'; }
+}
+async function inviteUser(){
+  const email = document.getElementById('invEmail').value.trim();
+  const name = document.getElementById('invName').value.trim();
+  const m = document.getElementById('invMsg');
+  try{
+    const d = await api('/api/admin/users/invite', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, name})});
+    m.textContent = d.temp_password
+      ? `Invited ${d.email}. Temporary password (shown once): ${d.temp_password}`
+      : `Invited ${d.email}.`;
+    m.style.display='block';
+    document.getElementById('invEmail').value=''; document.getElementById('invName').value='';
+    loadUsers();
+  }catch(e){ m.textContent = e.message; m.style.display='block'; }
+}
+async function loadAuthMethods(){
+  try{
+    const d = await api('/api/admin/settings/auth-methods');
+    document.getElementById('amGoogle').checked = !!d.google_enabled;
+    document.getElementById('amPassword').checked = !!d.password_enabled;
+  }catch(e){ /* leave default */ }
+}
+async function saveAuthMethods(){
+  const google_enabled = document.getElementById('amGoogle').checked;
+  const password_enabled = document.getElementById('amPassword').checked;
+  const m = document.getElementById('amMsg');
+  try{
+    await api('/api/admin/settings/auth-methods', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({google_enabled, password_enabled})});
+    m.textContent = 'Saved.'; m.style.display='block';
+  }catch(e){ m.textContent = e.message; m.style.display='block'; }
+}
+async function loadOperations(){
+  try{
+    const d = await api('/api/admin/settings/operations');
+    document.getElementById('opMaintenance').checked = !!d.maintenance_mode;
+    document.getElementById('opMaintenanceRow').classList.toggle('is-danger', !!d.maintenance_mode);
+    document.getElementById('opChat').checked = d.chat_enabled !== false;
+    document.getElementById('opBanner').value = d.announcement_banner || '';
+    document.getElementById('opGtmId').value = d.gtm_container_id || '';
+  }catch(e){ /* leave default */ }
+}
+async function saveOperations(){
+  const maintenance_mode = document.getElementById('opMaintenance').checked;
+  const chat_enabled = document.getElementById('opChat').checked;
+  const announcement_banner = document.getElementById('opBanner').value.trim();
+  const gtm_container_id = document.getElementById('opGtmId').value.trim().toUpperCase();
+  const m = document.getElementById('opMsg');
+  try{
+    await api('/api/admin/settings/operations', {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({maintenance_mode, chat_enabled, announcement_banner, gtm_container_id})
+    });
+    m.textContent = 'Saved.'; m.style.display='block';
+    document.getElementById('opGtmId').value = gtm_container_id;
+  }catch(e){ m.textContent = e.message; m.style.display='block'; }
+}
+function pickAccentSwatch(el){
+  document.getElementById('brAccent').value = el.dataset.hex;
+  syncAccentSwatches();
+}
+function syncAccentSwatches(){
+  const val = (document.getElementById('brAccent').value||'').trim().toLowerCase();
+  document.querySelectorAll('.accent-swatch').forEach(s=>{
+    s.classList.toggle('is-selected', s.dataset.hex.toLowerCase() === val);
+  });
+}
+async function loadBranding(){
+  try{
+    const d = await api('/api/admin/settings/branding');
+    document.getElementById('brName').value = d.name || '';
+    document.getElementById('brLogo').value = d.logo_url || '';
+    document.getElementById('brAccent').value = d.accent || '';
+    syncAccentSwatches();
+  }catch(e){ /* leave blank */ }
+}
+async function saveBranding(){
+  const name = document.getElementById('brName').value.trim();
+  const logo_url = document.getElementById('brLogo').value.trim();
+  const accent = document.getElementById('brAccent').value.trim();
+  const m = document.getElementById('brMsg');
+  try{
+    await api('/api/admin/settings/branding', {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, logo_url, accent})});
+    m.textContent = 'Saved. Reload to see changes.'; m.style.display='block';
+  }catch(e){ m.textContent = e.message; m.style.display='block'; }
+}
+loadUsers(); loadRequests(); loadRateLimits(); loadBranding(); loadAuthMethods(); loadOperations();
+
+(function () {
+  var apply = document.getElementById('upd-apply');
+  if (!apply) return;
+  var workflow = document.getElementById('upd-workflow');
+  var targetVersion = '';
+  var pollTimer = null;
+
+  var UPDATE_STAGES = {
+    pulling: { index: 0, progress: 20, title: 'Downloading update', copy: 'Pulling the new Fluxito image.' },
+    recreating: { index: 1, progress: 50, title: 'Restarting Fluxito', copy: 'The app may be briefly unavailable.' },
+    verifying: { index: 2, progress: 78, title: 'Verifying health', copy: 'Waiting for the new version to become healthy.' },
+    success: { index: 3, progress: 100, title: 'Update complete', copy: 'Fluxito is running the new version.' },
+    rolling_back: { index: 2, progress: 100, title: 'Rolling back', copy: 'The update failed. Restoring the previous version.' }
+  };
+  var FAILURE_GUIDANCE = {
+    pull: {
+      title: 'The update image could not be downloaded.',
+      steps: ['Check internet access and connectivity to GHCR.', 'Check available disk space.', 'Review updater logs for the registry error.'],
+      commands: 'docker compose logs --tail=200 updater\ndocker system df'
+    },
+    recreate: {
+      title: 'Fluxito could not restart with the new image.',
+      steps: ['Check that the updater can access Docker.', 'Validate the Compose configuration.', 'Review updater logs for the restart error.'],
+      commands: 'docker compose ps\ndocker compose config --quiet\ndocker compose logs --tail=200 updater'
+    },
+    healthcheck: {
+      title: 'The new version did not pass its health check.',
+      steps: ['Check app logs for startup or migration errors.', 'Confirm the database and Redis services are healthy.', 'Review the release notes for configuration changes.'],
+      commands: 'docker compose ps\ndocker compose logs --tail=200 app\ndocker compose logs --tail=100 db redis'
+    },
+    updater_auth_failed: {
+      title: 'The app and updater do not share a valid updater token.',
+      steps: ['Set the same non-empty UPDATER_TOKEN in both services.', 'Recreate the app and updater containers.', 'Return here and try the update again.'],
+      commands: "docker compose exec app sh -c 'test -n \"$UPDATER_TOKEN\" && echo \"app token configured\" || echo \"app token missing\"'\ndocker compose exec updater sh -c 'test -n \"$UPDATER_TOKEN\" && echo \"updater token configured\" || echo \"updater token missing\"'"
+    },
+    updater_unavailable: {
+      title: 'The app cannot reach the updater service.',
+      steps: ['Confirm the updater service is running.', 'Review updater logs.', 'Confirm app and updater share a Docker network.'],
+      commands: 'docker compose ps updater\ndocker compose logs --tail=200 updater'
+    },
+    updater_error: {
+      title: 'The updater rejected the request.',
+      steps: ['Review updater logs for the cause.', 'Confirm the Compose configuration is valid.', 'Try again after correcting the reported problem.'],
+      commands: 'docker compose config --quiet\ndocker compose logs --tail=200 updater'
+    }
+  };
+
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+  function setText(id, text) { document.getElementById(id).textContent = text || ''; }
+  function clearPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+  function openConfirmation() {
+    hide('upd-apply'); hide('upd-workflow'); show('upd-confirm');
+    setText('upd-confirm-version', 'v' + targetVersion);
+    document.getElementById('upd-confirm-start').textContent = 'Update to v' + targetVersion;
+  }
+  function closeConfirmation() { hide('upd-confirm'); show('upd-apply'); }
+  function resetWorkflow() {
+    hide('upd-confirm'); show('upd-workflow'); hide('upd-troubleshooting'); hide('upd-technical');
+    hide('upd-rollback-stage');
+    document.getElementById('upd-progressbar').classList.remove('is-failed');
+  }
+  function renderStages(status, failedStage, rolledBack) {
+    var state = UPDATE_STAGES[status] || UPDATE_STAGES.pulling;
+    var failedIndex = failedStage === 'pull' ? 0 : failedStage === 'recreate' ? 1 : failedStage === 'healthcheck' ? 2 : -1;
+    document.querySelectorAll('[data-update-stage]').forEach(function (el, index) {
+      el.className = '';
+      var mark = el.querySelector('.update-stage-mark');
+      mark.textContent = String(index + 1);
+      if (status === 'failed' && index === failedIndex) { el.className = 'is-failed'; mark.textContent = 'x'; }
+      else if (status === 'success' || index < state.index || (status === 'failed' && index < failedIndex)) { el.className = 'is-complete'; mark.textContent = '✓'; }
+      else if (index === state.index && status !== 'failed') { el.className = 'is-active'; }
+    });
+    if (status === 'rolling_back' || rolledBack) {
+      show('upd-rollback-stage');
+      var rollback = document.getElementById('upd-rollback-stage');
+      rollback.className = rolledBack ? 'is-complete' : 'is-active';
+      rollback.querySelector('.update-stage-mark').textContent = rolledBack ? '✓' : '5';
+    }
+  }
+  function setProgress(value, failed) {
+    var bar = document.getElementById('upd-progressbar');
+    bar.setAttribute('aria-valuenow', String(value));
+    bar.classList.toggle('is-failed', !!failed);
+    document.getElementById('upd-progress-fill').style.width = value + '%';
+  }
+  function showTechnical(lines) {
+    setText('upd-technical-text', lines.filter(Boolean).join('\n'));
+    show('upd-technical');
+  }
+  function renderFailure(job, category) {
+    var key = category || job.stage || 'updater_error';
+    var guide = FAILURE_GUIDANCE[key] || FAILURE_GUIDANCE.updater_error;
+    resetWorkflow(); clearPoll();
+    setText('upd-state-label', category ? 'Updates unavailable' : 'Update failed');
+    setText('upd-state-title', job.rolled_back ? 'Fluxito rolled back to v' + (job.current || job.previous) : guide.title);
+    setText('upd-state-copy', job.rolled_back ? 'The previous version is running. Follow these steps before trying again.' : guide.title);
+    renderStages('failed', job.stage, job.rolled_back);
+    setProgress(100, true);
+    var steps = document.getElementById('upd-troubleshooting-steps');
+    steps.innerHTML = '';
+    guide.steps.forEach(function (step) { var li = document.createElement('li'); li.textContent = step; steps.appendChild(li); });
+    document.getElementById('upd-copy-diagnostics').dataset.commands = guide.commands;
+    show('upd-troubleshooting');
+    var notes = document.getElementById('upd-failure-notes');
+    notes.style.display = notes.getAttribute('href') !== '#' ? '' : 'none';
+    document.getElementById('upd-retry').style.display = targetVersion ? '' : 'none';
+    showTechnical(['Stage: ' + (job.stage || category || 'unknown'), job.error || '']);
+  }
+  function renderJob(job, reloadOnSuccess) {
+    var state = UPDATE_STAGES[job.status];
+    if (job.status === 'failed') { renderFailure(job); return; }
+    if (!state) return;
+    resetWorkflow();
+    setText('upd-state-label', job.status === 'success' ? 'Update complete' : 'Update in progress');
+    setText('upd-state-title', state.title);
+    setText('upd-state-copy', state.copy);
+    renderStages(job.status);
+    setProgress(state.progress, false);
+    if (job.status === 'success') {
+      clearPoll();
+      if (reloadOnSuccess) setTimeout(function () { location.reload(); }, 1800);
+    }
+  }
+  function renderApiFailure(data) {
+    renderFailure({ status: 'failed', error: data.error || '', stage: '' }, data.code || 'updater_error');
+  }
+  function fetchJob(reloadOnSuccess) {
+    return fetch('/api/updates/job', { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        if (result.ok) {
+          var active = ['pulling', 'recreating', 'verifying', 'rolling_back'].indexOf(result.data.status) >= 0;
+          if (active || result.data.status === 'failed' || (result.data.status === 'success' && reloadOnSuccess)) {
+            renderJob(result.data, reloadOnSuccess);
+          }
+          if (active && !pollTimer) {
+            pollTimer = setInterval(function () { fetchJob(true); }, 3000);
+          }
+        }
+        else if (result.data.code === 'updater_auth_failed') renderApiFailure(result.data);
+        else if (workflow.style.display !== 'none') {
+          setText('upd-state-title', 'Reconnecting to Fluxito');
+          setText('upd-state-copy', 'The app is restarting. Progress will resume automatically.');
+        }
+        return result;
+      });
+  }
+  function pollJob() {
+    clearPoll(); show('upd-workflow'); fetchJob(true);
+    pollTimer = setInterval(function () { fetchJob(true); }, 3000);
+  }
+
+  function refreshStatus() {
+    return fetch('/api/updates/status', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        document.getElementById('upd-current').textContent = 'v' + d.current;
+        targetVersion = d.latest || '';
+        hide('upd-latest-row'); hide('upd-apply'); hide('upd-uptodate');
+        if (d.update_available) {
+          document.getElementById('upd-latest').textContent = 'v' + d.latest;
+          document.getElementById('upd-notes').href = d.release_notes_url || '#';
+          document.getElementById('upd-failure-notes').href = d.release_notes_url || '#';
+          show('upd-latest-row');
+          show('upd-apply');
+        } else {
+          show('upd-uptodate');
+        }
+        return fetchJob(false);
+      })
+      .catch(function () {
+        var c = document.getElementById('upd-current');
+        if (c) c.textContent = 'unknown';
+      });
+  }
+
+  function checkForUpdates() {
+    var btn = document.getElementById('upd-check');
+    var checked = document.getElementById('upd-checked');
+    btn.disabled = true;
+    var original = btn.textContent;
+    btn.textContent = 'Checking…';
+    checked.textContent = '';
+    fetch('/api/updates/check', { method: 'POST', credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, data: d }; });
+      })
+      .then(function (result) {
+        if (result.status === 429) { checked.textContent = 'Checked moments ago — try again shortly.'; return; }
+        if (!result.ok) { checked.textContent = "Couldn't reach GitHub — try again later."; return; }
+        if (result.data.checks_enabled === false) { checked.textContent = 'Update checks are disabled in settings.'; return; }
+        return refreshStatus().then(function () {
+          if (result.data.update_available) {
+            checked.textContent = 'Update available: v' + result.data.latest;
+            var apply = document.getElementById('upd-apply');
+            apply.classList.add('is-highlight');
+            apply.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(function () { apply.classList.remove('is-highlight'); }, 2000);
+          } else if (!result.data.latest) {
+            checked.textContent = "Couldn't confirm the latest version — try again later.";
+          } else {
+            checked.textContent = "You're on the latest version (v" + result.data.current + ').';
+          }
+        });
+      })
+      .catch(function () { checked.textContent = "Couldn't reach GitHub — try again later."; })
+      .finally(function () { btn.disabled = false; btn.textContent = original; });
+  }
+
+  window.__fluxRefreshUpdates = refreshStatus;
+
+  apply.addEventListener('click', openConfirmation);
+  document.getElementById('upd-check').addEventListener('click', checkForUpdates);
+  document.getElementById('upd-confirm-cancel').addEventListener('click', closeConfirmation);
+  document.getElementById('upd-retry').addEventListener('click', openConfirmation);
+  document.getElementById('upd-copy-diagnostics').addEventListener('click', function () {
+    if (window.Fluxito && Fluxito.copy) Fluxito.copy(this.dataset.commands || '', 'Diagnostic commands');
+  });
+  document.getElementById('upd-confirm-start').addEventListener('click', function () {
+    var start = this;
+    start.disabled = true;
+    hide('upd-confirm');
+    renderJob({ status: 'pulling' }, false);
+    fetch('/api/updates/apply', { method: 'POST', credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function (result) {
+        start.disabled = false;
+        if (result.ok || result.data.code === 'update_in_progress') pollJob();
+        else renderApiFailure(result.data);
+      })
+      .catch(function () {
+        start.disabled = false;
+        pollJob();
+      });
+  });
+
+  refreshStatus();
+})();
+</script>
+{% endblock %}

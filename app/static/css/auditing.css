@@ -1,0 +1,154 @@
+/* ==========================================================
+   Fluxito — Audit runs (/audits, /audits/run/{id})
+   Beta redesign: builds on the shared ui-* layer in app.css
+   (ui-panel, ui-ring, ui-bar, ui-finding, ui-table, ui-say …).
+   Only page-specific pieces live here, prefixed `au-`.
+   ========================================================== */
+
+/* ── Audit sub-nav (shared partial, also used by flows/vendors) ── */
+.audit-tabs .audit-tab-n { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted-2); }
+.audit-tabs a.is-active .audit-tab-n { color: var(--accent); }
+
+.audit-page .page-head .eyebrow a,
+.au-crumb { color: inherit; text-decoration: none; }
+.au-crumb:hover { color: var(--ink); text-decoration: underline; }
+.au-url { color: var(--muted); text-decoration: none; word-break: break-all; }
+.au-url:hover { color: var(--ink); }
+
+/* ── Layout: latest run + score by type ── */
+.au-main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.au-main > .ui-panel { margin-bottom: 16px; }
+@media (max-width: 1080px) { .au-main { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+
+.au-latest { padding: 22px; }
+.au-latest-top { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; }
+.au-latest-copy { flex: 1; min-width: 220px; }
+.au-kicker { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.au-headline { margin: 4px 0 10px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; color: var(--ink); }
+.au-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.au-meta { margin-top: 10px; font-size: 12.5px; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
+
+/* Score ring — size + tier colour */
+.au-ring { width: 132px; height: 132px; }
+.au-ring span { font-size: 32px; }
+.au-ring.is-excellent, .au-ring.is-good { background: conic-gradient(var(--good) calc(var(--v) * 1%), var(--paper-2) 0); }
+.au-ring.is-fair { background: conic-gradient(var(--warn) calc(var(--v) * 1%), var(--paper-2) 0); }
+.au-ring.is-poor { background: conic-gradient(var(--bad) calc(var(--v) * 1%), var(--paper-2) 0); }
+.au-ring.is-unknown { background: var(--paper-2); }
+@media (max-width: 640px) { .au-ring { width: 104px; height: 104px; } .au-ring span { font-size: 26px; } .au-latest { padding: 18px; } }
+
+.au-top-findings { margin-top: 18px; border-top: 1px solid var(--line); }
+.au-top-findings .ui-finding { padding-left: 0; padding-right: 0; }
+.au-top-findings .ui-finding:first-child { border-top: 0; }
+.au-top-findings .ui-finding.is-click:hover { background: transparent; }
+.au-top-findings .ui-finding.is-click:hover b { text-decoration: underline; text-underline-offset: 2px; }
+.au-open-report { margin-top: 12px; height: 32px; font-size: 12.5px; }
+.ui-finding .ui-grow { flex: 1; min-width: 0; }
+.ui-finding > .ui-chip { flex: none; }
+.ui-finding.is-click:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Score by type */
+.au-notrun { font-size: 12px; color: var(--muted-2); }
+.au-hist { display: block; margin-top: 4px; overflow: visible; }
+.au-hist path { fill: none; stroke: var(--good); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.au-hist circle { fill: var(--card); stroke: var(--good); stroke-width: 2; }
+.au-hist circle.is-last { fill: var(--good); }
+.au-hist text { font: 700 11px var(--sans); fill: var(--ink); }
+.au-hist-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-2); }
+
+/* Past runs */
+.au-table-wrap { overflow-x: auto; }
+.au-runs-tbl td { font-size: 13px; }
+.au-nowrap { white-space: nowrap; }
+.au-right { text-align: right; }
+.au-trunc { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.au-n { font-weight: 600; }
+.au-n.is-bad { color: var(--bad); } .au-n.is-warn { color: var(--warn); } .au-n.is-info { color: var(--info); }
+.au-report-link { font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.au-report-link:hover { color: var(--accent); }
+@media (max-width: 640px) { .au-runs-tbl th, .au-runs-tbl td { padding-left: 12px; padding-right: 12px; } }
+
+/* Empty state */
+.au-empty { padding: 44px 18px; }
+.au-empty-act { margin-top: 16px; }
+
+/* How it works note + prompt cards */
+.au-howto code { font-family: var(--mono); font-size: 12px; background: rgba(255, 255, 255, .55); padding: 1px 5px; border-radius: 5px; }
+.au-howto a { margin-left: 8px; white-space: nowrap; }
+.au-prompts { margin-top: 0; }
+.au-prompts:target .au-prompt { box-shadow: 0 0 0 2px var(--accent); }
+.au-prompt { display: flex; flex-direction: column; gap: 10px; padding: 16px; margin-bottom: 0; }
+.au-prompt-k { font-family: var(--mono); font-size: 11.5px; color: var(--muted-2); }
+.au-prompt q { flex: 1; font-size: 14px; line-height: 1.5; color: var(--ink); }
+.au-prompt small { font-size: 12px; color: var(--muted); }
+.au-prompt-btn { align-self: flex-start; height: 30px; font-size: 12.5px; }
+
+/* Live run card */
+.au-live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: none; animation: au-pulse 1.2s ease-in-out infinite; }
+@keyframes au-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.au-live-track { position: relative; height: 7px; border-radius: 99px; background: var(--paper-2); overflow: hidden; }
+.au-live-fill { position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 99px; background: var(--accent); animation: au-sweep 1.4s ease-in-out infinite; }
+.au-live-fill.is-determinate { left: 0; animation: none; }
+@keyframes au-sweep { from { left: -40%; } to { left: 100%; } }
+.au-live-cols { margin-top: 6px; }
+.au-live-row { display: flex; gap: 10px; align-items: flex-start; padding: 4px 0; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .au-live-dot, .au-live-fill { animation: none; } }
+
+/* ── Drawers (finding / ask) ── */
+.au-x { margin-left: auto; width: 34px; padding: 0; }
+.au-drawer-lead { margin: 0 0 16px; font-size: 14px; color: var(--muted); line-height: 1.55; }
+.au-drawer-meta { margin-bottom: 4px; overflow-wrap: anywhere; }
+.au-drawer-p { margin: 0 0 20px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.au-ask-list { display: grid; gap: 10px; }
+.au-diff { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.au-diff > div { min-width: 0; padding: 12px; border-radius: 12px; }
+.au-diff small { font-size: 11px; font-weight: 700; letter-spacing: .05em; }
+.au-diff pre { margin: 6px 0 0; font: 12px/1.5 var(--mono); color: var(--ink); white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+.au-diff-exp { background: var(--good-soft); } .au-diff-exp small { color: var(--good); }
+.au-diff-act { background: var(--bad-soft); } .au-diff-act small { color: var(--bad); }
+@media (max-width: 480px) { .au-diff { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Run detail ── */
+.au-summary { font-size: 14px; line-height: 1.65; color: var(--ink-2); white-space: pre-line; }
+.au-summary-empty { margin: 0; font-size: 13.5px; line-height: 1.55; }
+.au-seg-n { margin-left: 5px; font-size: 11px; font-weight: 600; color: var(--muted-2); }
+.ui-seg .is-active .au-seg-n { color: var(--muted); }
+.au-plats { display: flex; gap: 6px; flex-wrap: wrap; }
+.au-plat { height: 28px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); font: 600 12px var(--sans); color: var(--muted); cursor: pointer; }
+.au-plat:hover { color: var(--ink); border-color: var(--ink); }
+.au-plat.is-active { background: var(--ink); border-color: var(--ink); color: #fff; }
+.findings-list .ui-finding { align-items: flex-start; }
+.au-f-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+.au-f-rule { color: var(--muted-2); overflow-wrap: anywhere; }
+.au-f-fix { color: var(--ink-2) !important; }
+.au-f-fix b { font-weight: 600; }
+.au-f-diff { color: var(--info) !important; font-weight: 600; }
+.au-f-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.au-f-copy { height: 28px; padding: 0 9px; font-size: 12px; }
+.finding-row--pass b { font-weight: 500; color: var(--ink-2); }
+@media (max-width: 640px) {
+  .au-f-side { flex-direction: row; align-items: center; width: 100%; justify-content: flex-start; padding-left: 20px; }
+  .findings-list .ui-finding { flex-wrap: wrap; }
+}
+@media (max-width: 640px) { #findingFilters .ui-seg { flex-wrap: wrap; max-width: 100%; } }
+
+/* ── Finding triage (resolve / snooze) ── */
+.au-triaged-toggle { height: 28px; padding: 0 10px; font-size: 12px; margin-left: auto; }
+.au-triaged-toggle.is-on { color: var(--ink); background: var(--paper-2); }
+.au-triaged-toggle[hidden], .au-f-copy[hidden] { display: none; }
+.au-triage-note { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+.au-triage-note a { color: inherit; }
+.au-tri-chip { background: var(--paper-2); color: var(--muted); }
+.finding-row.is-triaged { opacity: .72; }
+.finding-row.is-triaged b { font-weight: 500; text-decoration: line-through; text-decoration-color: var(--line-2); }
+.au-triage { display: grid; gap: 10px; margin-bottom: 20px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.au-triage-field { margin-bottom: 0; }
+.au-triage-input { min-height: 64px; font-size: 13px; }
+.au-triage-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.au-snooze-l { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.au-snooze button:hover { color: var(--ink); background: var(--card); }
+.au-snooze button:disabled, .au-triage .ui-btn:disabled { opacity: .55; cursor: default; }
+.au-triage-state { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+.au-triage-memo { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); white-space: pre-line; }
+.au-triage-help { margin: 0; font-size: 12px; line-height: 1.5; }
+.au-triage > .ui-btn { justify-self: start; }

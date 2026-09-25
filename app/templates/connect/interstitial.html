@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ title or "Connection successful" }} — Fluxito{% endblock %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/css/connections.css?v={{ asset_hash('css/connections.css') }}"/>
+<main class="app-main">
+  <section class="ui-panel cx-done">
+    <div class="ui-panel-b">
+      <div class="cx-done-ic" aria-hidden="true">{{ icon or "✓" }}</div>
+      <h1>{{ title or "Connected successfully" }}</h1>
+      {% if message %}<p>{{ message }}</p>{% endif %}
+      <div class="cx-done-acts">
+        <a href="/settings/connections" class="ui-btn">Manage connections</a>
+        <a href="/home" class="ui-btn is-primary">Go to Home →</a>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

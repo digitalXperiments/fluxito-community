@@ -1,0 +1,54 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Adjust" %}
+{% set platform_slug = "adjust" %}
+{% set platform_desc = "Mobile measurement platform with attribution and fraud prevention." %}
+
+{% block platform_body %}
+<form id="adjustForm" onsubmit="return submitAdjust(event)">
+  {% if editing %}<input type="hidden" id="adjEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="adjName">Display name</label>
+    <input class="input" id="adjName" required placeholder="e.g. Production Adjust" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="adjApiKey">Adjust API Token</label>
+    <input class="input" id="adjApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your Adjust API Token{% endif %}" value=""/>
+    <div class="label-hint">Find your API Token in Adjust Dashboard → Settings → API Keys</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="adjSecretKey">Workspace Token (optional)</label>
+    <input class="input" type="password" id="adjSecretKey" placeholder="{{ 'Leave blank to keep current token' if editing else 'Your Adjust Workspace Token' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing workspace token</div>
+    {% else %}<div class="label-hint">Optional. Required for workspace-level reporting.</div>{% endif %}
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Adjust' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitAdjust(e){
+  e.preventDefault();
+  const editId = document.getElementById('adjEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('adjName').value.trim();
+  const api_key = document.getElementById('adjApiKey').value.trim();
+  const secret_key = document.getElementById('adjSecretKey').value.trim();
+
+  const url = isEdit ? '/api/connections/adjust/' + editId.value : '/api/connections/adjust';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, secret_key})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

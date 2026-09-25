@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy — {{ brand().name }}{% endblock %}
+{% block description %}Fluxito's Privacy Policy explains how we handle your data, credentials, and Google API services under the Model Context Protocol (MCP).{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/legal.css?v={{ asset_hash('css/legal.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<div class="legal-page">
+  <!-- ═══ HERO ═══ -->
+  <header class="legal-hero">
+    <div class="legal-container">
+      <div class="legal-eyebrow">
+        <span>Legal</span> · <span>Transparency &amp; Trust</span>
+      </div>
+      <h1>Privacy <em>Policy.</em></h1>
+      <div class="legal-meta">
+        <span><strong>Effective Date:</strong> September 9, 2026</span>
+        <span><strong>Platform:</strong> {{ brand().name }} (fluxito.app)</span>
+        <span><strong>Version:</strong> 2.0</span>
+      </div>
+
+      <!-- Key Highlights Callout -->
+      <div class="legal-highlights">
+        <div class="legal-highlights-title">
+          <span class="legal-highlight-icon">✓</span>
+          <span>At a Glance: Our Privacy Commitments</span>
+        </div>
+        <div class="legal-highlights-grid">
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">01</span>
+            <div><strong>Zero AI Training:</strong> We never train, retrain, or fine-tune AI or machine learning models on your data or queries.</div>
+          </div>
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">02</span>
+            <div><strong>AES-256 Encryption:</strong> All OAuth tokens, API keys, and credentials are encrypted at rest using AES-256-GCM.</div>
+          </div>
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">03</span>
+            <div><strong>Google Limited Use:</strong> Full adherence to the Google API Services User Data Policy, including Limited Use requirements.</div>
+          </div>
+          <div class="legal-highlight-item">
+            <span class="legal-highlight-icon">04</span>
+            <div><strong>Total User Control:</strong> Revoke access or permanently purge your credentials at any time with a single click.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ CONTENT LAYOUT ═══ -->
+  <div class="legal-container">
+    <div class="legal-layout">
+      <!-- Sticky Sidebar TOC -->
+      <aside class="legal-sidebar" aria-label="Table of contents">
+        <div class="legal-toc-title">Contents</div>
+        <nav class="legal-toc-nav">
+          <a href="#overview" class="legal-toc-link">1. Overview &amp; MCP Architecture</a>
+          <a href="#zero-training" class="legal-toc-link">2. Zero AI Training Guarantee</a>
+          <a href="#info-collected" class="legal-toc-link">3. Information We Collect</a>
+          <a href="#google-data" class="legal-toc-link">4. Google API User Data Policy</a>
+          <a href="#how-we-use" class="legal-toc-link">5. How We Use Information</a>
+          <a href="#security" class="legal-toc-link">6. Security &amp; Encryption</a>
+          <a href="#retention-revocation" class="legal-toc-link">7. Retention &amp; Revocation</a>
+          <a href="#data-sharing" class="legal-toc-link">8. Data Sharing &amp; Disclosure</a>
+          <a href="#your-rights" class="legal-toc-link">9. Your Privacy Rights</a>
+          <a href="#contact" class="legal-toc-link">10. Contact Information</a>
+        </nav>
+      </aside>
+
+      <!-- Main Article -->
+      <article class="legal-article">
+        <section id="overview">
+          <h2>1. Overview &amp; MCP Architecture</h2>
+          <p>This Privacy Policy applies to the <strong>Fluxito</strong> platform, provided via the hosted web service at <a href="https://fluxito.app">fluxito.app</a> and the open-source software project (collectively, "Fluxito", "we", "us", or "our").</p>
+          <p>Fluxito is an open-source marketing analytics, tag management, and operations layer built around the <strong>Model Context Protocol (MCP)</strong>. Fluxito allows users and their chosen AI assistants (such as Claude Desktop, Claude Cowork, Cursor, Windsurf, ChatGPT, and LM Studio) to securely query analytics data, inspect tag containers, verify tracking plans, and automate reporting across connected third-party platforms.</p>
+          <p>Unlike traditional marketing SaaS that ingests, aggregates, and monetizes broad customer behavioral datasets, <strong>Fluxito operates as an on-demand, authenticated execution proxy</strong>. Tools execute only when explicitly triggered by you or your authenticated AI assistant, and data is returned directly into your active session.</p>
+        </section>
+
+        <section id="zero-training">
+          <h2>2. Zero AI Training Guarantee</h2>
+          <div class="legal-callout">
+            <div class="legal-callout-title">Core Principle</div>
+            <strong>We do not use your data to train artificial intelligence models.</strong>
+          </div>
+          <p>Neither Fluxito nor any third party acting on our behalf uses your marketing data, Google API data, SQL queries, tracking plans, conversation transcripts, or confidential business context to train, retrain, fine-tune, align, or evaluate any public, proprietary, or third-party artificial intelligence (AI) or machine learning (ML) models, including Large Language Models (LLMs).</p>
+        </section>
+
+        <section id="info-collected">
+          <h2>3. Information We Collect</h2>
+          <p>We collect only the information strictly necessary to provide the Fluxito service and execute tool requests:</p>
+          <ul>
+            <li><strong>Account Information:</strong> When you register or sign in, we collect your email address, full name, and password hash (for email/password accounts) or your Google account ID and basic profile details (when signing in via Google OAuth).</li>
+            <li><strong>Third-Party Platform Credentials:</strong> When you connect analytics, advertising, or tag management platforms (such as Google Analytics 4, Google Tag Manager, Google Ads, BigQuery, Meta, TikTok, or Snowflake), we store the OAuth access and refresh tokens, API keys, or service account credentials you authorize.</li>
+            <li><strong>Audit &amp; Telemetry Logs:</strong> For security, rate-limiting, and audit compliance, we log tool execution metadata (such as tool name, timestamp, execution duration, requesting user ID, active project, and status). We do not persist raw query payload responses in permanent application logs.</li>
+            <li><strong>Configuration &amp; Workspace Data:</strong> Solution Design References (tracking plans), tag audit rules, scheduled report configurations, and project membership mappings you create.</li>
+          </ul>
+        </section>
+
+        <section id="google-data">
+          <h2>4. Google API User Data Policy &amp; Limited Use Disclosure</h2>
+          <p>Fluxito integrates with Google APIs to enable single sign-on and empower your AI assistants to query analytics, inspect tag containers, and review campaign metrics.</p>
+
+          <div class="legal-callout">
+            <div class="legal-callout-title">Google Limited Use Compliance Notice</div>
+            <p><strong>Fluxito's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</strong></p>
+          </div>
+
+          <h3>Google API Scopes Requested</h3>
+          <p>Depending on which integrations you activate, Fluxito may request the following Google OAuth scopes:</p>
+
+          <div class="legal-table-wrapper">
+            <table class="legal-table">
+              <thead>
+                <tr>
+                  <th>Scope</th>
+                  <th>Data Accessed</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>openid</code><br><code>userinfo.email</code><br><code>userinfo.profile</code></td>
+                  <td>Google account ID, email address, display name, and avatar.</td>
+                  <td>User authentication, workspace identification, account security, and transactional service notices.</td>
+                </tr>
+                <tr>
+                  <td><code>.../auth/analytics.readonly</code></td>
+                  <td>Google Analytics 4 properties, reports, real-time metrics, active users, and dimensions.</td>
+                  <td>Read-only reporting and anomaly detection when invoked by your AI assistant or dashboard.</td>
+                </tr>
+                <tr>
+                  <td><code>.../auth/tagmanager.readonly</code><br><code>.../auth/tagmanager.edit.containers</code></td>
+                  <td>GTM account hierarchy, container tags, triggers, variables, and workspace versions.</td>
+                  <td>Auditing tag implementations, generating tracking plan diffs, and staging draft container updates for user approval.</td>
+                </tr>
+                <tr>
+                  <td><code>.../auth/adwords</code></td>
+                  <td>Google Ads campaigns, ad groups, spend, impressions, clicks, and conversion metrics.</td>
+                  <td>Performance monitoring, ROAS analysis, and budget pacing reports.</td>
+                </tr>
+                <tr>
+                  <td><code>.../auth/datamanager</code></td>
+                  <td>Google Data Manager audience definitions and audience-member ingestion status.</td>
+                  <td>Creating and managing customer audiences only when explicitly requested through an MCP tool.</td>
+                </tr>
+                <tr>
+                  <td><code>.../auth/bigquery.readonly</code></td>
+                  <td>Specified Google Cloud BigQuery datasets and marketing table schemas.</td>
+                  <td>Executing read-only SQL queries against your customer warehouse to power reporting dashboards.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Strict Limitations on Google User Data</h3>
+          <ul>
+            <li><strong>No Transfer to Third Parties:</strong> Fluxito does not transfer, sell, or disclose Google user data to any external parties, data brokers, or advertising networks. Data is returned exclusively to your authenticated MCP client session or web dashboard to fulfill your direct request.</li>
+            <li><strong>No Advertising Use:</strong> Google user data is never used or transferred for serving advertisements, including retargeting, personalized, or interest-based advertising.</li>
+            <li><strong>No Human Access:</strong> No human employees, contractors, or agents read your Google user data unless:
+              <ol>
+                <li>You have given explicit, affirmative permission for technical support or troubleshooting;</li>
+                <li>It is strictly necessary for security purposes (such as investigating a vulnerability or abuse); or</li>
+                <li>Required by applicable law or a valid subpoena.</li>
+              </ol>
+            </li>
+          </ul>
+        </section>
+
+        <section id="how-we-use">
+          <h2>5. How We Use Information</h2>
+          <p>We use the data collected strictly for the following purposes:</p>
+          <ul>
+            <li>To provide, operate, maintain, and improve the Fluxito MCP service and web dashboard.</li>
+            <li>To execute MCP tool calls initiated by your connected AI clients (such as Claude, Cursor, Windsurf, or ChatGPT) on your behalf.</li>
+            <li>To verify tracking plans against live website tags and provide tag drift alerts.</li>
+            <li>To generate and deliver scheduled marketing reports and anomaly notifications that you configure.</li>
+            <li>To maintain audit trails so you have full visibility into which tools and platforms your AI assistant accessed.</li>
+            <li>To enforce workspace security, authenticate sessions, and prevent abuse or unauthorized access.</li>
+          </ul>
+        </section>
+
+        <section id="security">
+          <h2>6. Security &amp; Encryption</h2>
+          <p>Security is fundamental to Fluxito's architecture. We implement rigorous technical and operational safeguards:</p>
+          <ul>
+            <li><strong>Encryption at Rest:</strong> All stored OAuth access tokens, refresh tokens, client secrets, and platform API credentials are encrypted at rest using industry-standard <strong>AES-256-GCM</strong> encryption keys (cryptographic Fernet).</li>
+            <li><strong>Encryption in Transit:</strong> All data transmissions between your browser, AI clients, Fluxito, and external APIs are encrypted using modern <strong>TLS 1.3 / HTTPS</strong>.</li>
+            <li><strong>Workspace &amp; Project Isolation:</strong> Multi-tenant workspaces are strictly isolated at the database schema and query layers. A token issued for Project A can never access or query credentials from Project B.</li>
+            <li><strong>Least Privilege &amp; Human-in-the-loop:</strong> Integrations are read-only by default. Where write actions exist (such as publishing GTM tags), Fluxito requires explicit diff confirmation before applying changes.</li>
+          </ul>
+        </section>
+
+        <section id="retention-revocation">
+          <h2>7. Retention &amp; Revocation</h2>
+          <p>You have continuous, unilateral control over your credentials and connections:</p>
+          <ul>
+            <li><strong>Immediate Disconnection:</strong> You can disconnect any Google service or third-party platform at any time from <strong>Settings → Connections</strong>. When disconnected, the associated OAuth tokens and keys are immediately and permanently purged from our database.</li>
+            <li><strong>Revocation via Google:</strong> You can revoke Fluxito's OAuth access at any time directly through your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account Permissions</a> dashboard.</li>
+            <li><strong>Account Deletion:</strong> You can request full deletion of your user account and all workspace data by emailing <a href="mailto:privacy@fluxito.app">privacy@fluxito.app</a>. Upon deletion, all projects, audit logs, and credentials are permanently destroyed within 30 days.</li>
+          </ul>
+        </section>
+
+        <section id="data-sharing">
+          <h2>8. Data Sharing &amp; Disclosure</h2>
+          <p>We do not sell, rent, monetize, or trade your personal or platform data. We share data only in the following limited circumstances:</p>
+          <ul>
+            <li><strong>Your AI Clients:</strong> When you connect an MCP client (such as Claude, Cursor, or Windsurf) to your Fluxito endpoint, tool results are transmitted directly to that client session as instructed by your prompt.</li>
+            <li><strong>Infrastructure Service Providers:</strong> We utilize trusted cloud hosting, database, and Redis providers (such as AWS, Google Cloud Platform, or DigitalOcean) solely for hosting and running our application infrastructure under strict confidentiality and security agreements.</li>
+            <li><strong>Legal Compliance:</strong> We may disclose information if required to do so by law, court order, or governmental authority.</li>
+          </ul>
+        </section>
+
+        <section id="your-rights">
+          <h2>9. Your Privacy Rights (GDPR &amp; CCPA)</h2>
+          <p>Depending on your location, you have the following rights regarding your personal information:</p>
+          <ul>
+            <li><strong>Right to Access:</strong> The right to request copies of your personal data held by Fluxito.</li>
+            <li><strong>Right to Rectification:</strong> The right to correct inaccurate or incomplete information.</li>
+            <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> The right to request that we delete your personal data and stored credentials.</li>
+            <li><strong>Right to Data Portability:</strong> The right to receive your data in a structured, machine-readable format (e.g. tracking plan JSON/CSV exports).</li>
+            <li><strong>Right to Object or Restrict Processing:</strong> The right to limit or object to our processing of your personal data.</li>
+          </ul>
+          <p>To exercise any of these rights, please contact us at <a href="mailto:privacy@fluxito.app">privacy@fluxito.app</a>.</p>
+        </section>
+
+        <section id="contact">
+          <h2>10. Contact Information</h2>
+          <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact our team:</p>
+          <p>
+            <strong>Fluxito Privacy Team</strong><br>
+            Email: <a href="mailto:privacy@fluxito.app">privacy@fluxito.app</a><br>
+            Security &amp; Support: <a href="mailto:support@fluxito.app">support@fluxito.app</a><br>
+            Open Source Repository: <a href="https://github.com/digitalXperiments/fluxito-community" target="_blank" rel="noopener">github.com/digitalXperiments/fluxito-community</a>
+          </p>
+        </section>
+      </article>
+    </div>
+  </div>
+</div>
+
+<script>
+// Highlight TOC items on scroll
+(function(){
+  var links = document.querySelectorAll('.legal-toc-link');
+  var sections = document.querySelectorAll('.legal-article section');
+  if (!links.length || !sections.length) return;
+
+  function onScroll() {
+    var scrollPos = window.scrollY + 100;
+    var current = '';
+    sections.forEach(function(s) {
+      if (s.offsetTop <= scrollPos) {
+        current = '#' + s.id;
+      }
+    });
+    links.forEach(function(link) {
+      if (link.getAttribute('href') === current) {
+        link.classList.add('is-active');
+      } else {
+        link.classList.remove('is-active');
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+{% endblock %}

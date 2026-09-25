@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "tutorials/_macros.html" import guide_logo %}
+{% block title %}Tutorials & help — Fluxito{% endblock %}
+{% set active = 'tutorials' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/tutorials.css?v={{ asset_hash('css/tutorials.css') }}"/>
+{% endblock %}
+
+{# Categories come from TUTORIAL_CATEGORIES; fall back to the flat list
+   (first five = Start here, rest = features) if the route omits them. #}
+{% if tutorial_categories %}
+  {% set start_here = tutorial_categories[0].tutorials %}
+  {% set features = tutorial_categories[1].tutorials if tutorial_categories|length > 1 else [] %}
+  {% set platform_groups = tutorial_categories[2:] %}
+{% else %}
+  {% set start_here = tutorials[:5] %}
+  {% set features = tutorials[5:] %}
+  {% set platform_groups = [] %}
+{% endif %}
+
+{% macro guide_card(t) %}
+<a href="/tutorials/{{ t[0] }}" class="ui-panel tut-card">
+  <b>{{ t[1] }}</b>
+  <span class="tut-card-note">{{ t[3] }}</span>
+  <span class="tut-card-f">
+    <span class="tut-time">{{ t[2] }}</span>
+    {% if t|length > 4 and t[4] %}<span class="ui-chip no-dot is-accent">Interactive</span>{% endif %}
+    <span class="tut-arrow" aria-hidden="true">→</span>
+  </span>
+</a>
+{% endmacro %}
+
+{% block main %}
+<main class="app-main tut-main">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Help</div>
+      <h1 class="page-title">Learn to work with <em>Fluxito.</em></h1>
+      <p class="page-sub">Short guides for every part of Fluxito, and setup guides for each platform. Most take a few minutes and end with something real in your workspace.</p>
+    </div>
+    <div class="ui-page-actions">
+      <a href="/tutorial?replay=1" class="ui-btn">Replay onboarding</a>
+    </div>
+  </div>
+
+  <section class="tut-group">
+    <div class="tut-cat">Start here</div>
+    <div class="ui-grid is-3 tut-grid">
+      {% for t in start_here %}{{ guide_card(t) }}{% endfor %}
+    </div>
+  </section>
+
+  {% if features %}
+  <section class="tut-group">
+    <div class="tut-cat">Use Fluxito features</div>
+    <div class="ui-grid is-3 tut-grid">
+      {% for t in features %}{{ guide_card(t) }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="tut-group">
+    <div class="tut-cat tut-cat-row">
+      <span>Platform setup guides</span>
+      <a href="/tutorials/platform-setup-guides">All platform guides →</a>
+    </div>
+    {% if platform_groups %}
+    <div class="ui-grid is-4 tut-grid">
+      {% for g in platform_groups %}
+      <a href="/tutorials/platform-setup-guides#{{ g.title | lower | replace(' & ', '-') | replace(' ', '-') }}" class="ui-panel tut-card tut-card-group">
+        <span class="tut-logos">{% for t in g.tutorials[:4] %}{{ guide_logo(t[0], 16) }}{% endfor %}</span>
+        <b>{{ g.title }}</b>
+        <span class="tut-card-note">{{ g.tutorials | map(attribute=1) | join(' · ') }}</span>
+        <span class="tut-card-f">
+          <span class="tut-time">{{ g.tutorials | length }} guide{{ 's' if g.tutorials|length != 1 else '' }}</span>
+          <span class="tut-arrow" aria-hidden="true">→</span>
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <a href="/tutorials/platform-setup-guides" class="ui-panel tut-card">
+      <b>Platform setup guides</b>
+      <span class="tut-card-note">OAuth apps, credentials and permissions for each connector.</span>
+    </a>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,1079 @@
+{% extends "base.html" %}
+{% block title %}KPI Library — Fluxito{% endblock %}
+{% set active = 'kpi_library' %}
+{% set context_section = 'kpi' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/context.css?v={{ asset_hash('css/context.css') }}"/>
+{% endblock %}
+
+{% block main %}
+<div class="app-main ctx-page">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Context</div>
+      <h1 class="page-title">What your AI should know about <em>your business.</em></h1>
+      <p class="page-sub">Approved KPI definitions and business context your AI reads before it analyses or reports — so “conversion rate” means what you mean by it.</p>
+    </div>
+    <div class="ui-page-actions">
+      <button class="ui-btn is-primary" type="button" id="kpiAddBtn">+ Define a KPI</button>
+    </div>
+  </div>
+
+  {% include "partials/context_tabs.html" %}
+
+  <div class="ui-panel">
+    <div id="kpiEmpty" class="ui-empty" style="display:{% if kpis %}none{% else %}block{% endif %};">
+      <b>No KPIs yet</b>
+      Start with common ones like <em>Conversion rate</em>, <em>CAC</em> or <em>Active users</em> so your AI knows exactly what they mean for your business.
+      <div style="margin-top:14px"><button class="ui-btn is-primary" type="button" onclick="document.getElementById('kpiAddBtn').click()">+ Add your first KPI</button></div>
+    </div>
+
+    <div id="kpiTableWrap" class="ctx-table-wrap" style="display:{% if kpis %}block{% else %}none{% endif %};">
+      <table class="ui-table ctx-kpi-table">
+        <thead>
+          <tr>
+            <th>KPI</th>
+            <th class="ui-hide-sm">Category</th>
+            <th class="ui-hide-sm">Formula</th>
+            <th class="ui-hide-sm">Unit</th>
+            <th>Status</th>
+            <th class="ui-hide-sm">Owner</th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="kpiTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  {% set context_prompts = [
+    'Define our core KPIs — conversion rate, CAC and ROAS — in the Fluxito KPI library, with formulas bound to our connected sources. Save them as drafts for my review.',
+    'Review the KPI library: flag definitions that overlap, are missing a formula or owner, or conflict with our business context.',
+    'Read our business context and KPI library, then summarise last week against our approved KPIs and targets.'
+  ] %}
+  <div class="ui-grid is-3 ctx-prompts">
+    {% for p in context_prompts %}
+    <div class="ui-panel ctx-prompt">
+      <span class="ctx-prompt-k">{{ '%02d' | format(loop.index) }} · Ask your AI client</span>
+      <q>{{ p }}</q>
+      <button type="button" class="ui-btn" data-copy="{{ p }}" data-copy-label="Prompt copied">Copy prompt</button>
+    </div>
+    {% endfor %}
+  </div>
+
+{# ── Main Add/Edit Modal ── #}
+<div id="kpiModal" class="kpi-modal-backdrop" style="display:none" onclick="if(event.target===this)Fluxito.kpi.attemptClose()">
+  <div class="kpi-modal" role="dialog" aria-modal="true" aria-labelledby="kpiModalTitle">
+    <div class="kpi-modal-hd">
+      <h3 id="kpiModalTitle">Add KPI</h3>
+      <button type="button" class="kpi-modal-x" onclick="Fluxito.kpi.attemptClose()" aria-label="Close">✕</button>
+    </div>
+    <form id="kpiForm" onsubmit="Fluxito.kpi.save(event)" class="kpi-form">
+      <input type="hidden" id="kpi_id" value="">
+
+      {# ── Identity ── #}
+      <div class="f-section">
+        <h4 class="f-section-hd">Identity</h4>
+        <label class="f-field">
+          <span>Name *</span>
+          <input class="f-input" id="kpi_name" required maxlength="255" placeholder="e.g. Customer Acquisition Cost">
+        </label>
+        <div class="f-row">
+          <label class="f-field">
+            <span>Slug</span>
+            <input class="f-input" id="kpi_slug" maxlength="128" placeholder="auto-generated from name">
+          </label>
+          <label class="f-field">
+            <span>Status</span>
+            <select class="f-input" id="kpi_status">
+              <option value="draft">Draft</option>
+              <option value="approved">Approved</option>
+              <option value="deprecated">Deprecated</option>
+            </select>
+          </label>
+        </div>
+        <label class="f-field">
+          <span>Aliases <small>(comma-separated)</small></span>
+          <input class="f-input" id="kpi_aliases" placeholder="e.g. CAC, cost per acquisition">
+        </label>
+      </div>
+
+      {# ── Definition ── #}
+      <div class="f-section">
+        <h4 class="f-section-hd">Definition</h4>
+        <label class="f-field">
+          <span>Description *</span>
+          <textarea class="f-input" id="kpi_description" required rows="2" placeholder="What this metric measures and why it matters."></textarea>
+        </label>
+        <label class="f-field">
+          <span>Business question</span>
+          <input class="f-input" id="kpi_business_question" placeholder="e.g. How efficiently are we acquiring customers?">
+        </label>
+        <label class="f-field">
+          <span>Interpretation guide</span>
+          <textarea class="f-input" id="kpi_interpretation_guide" rows="2" placeholder="e.g. Higher is worse. Compare to LTV."></textarea>
+        </label>
+        <div class="f-row">
+          <label class="f-field">
+            <span>Category</span>
+            <input class="f-input" id="kpi_category" maxlength="64" placeholder="e.g. Acquisition">
+          </label>
+          <label class="f-field">
+            <span>Tags <small>(comma-separated)</small></span>
+            <input class="f-input" id="kpi_tags" placeholder="e.g. marketing, north-star">
+          </label>
+        </div>
+      </div>
+
+      {# ── Formula ── #}
+      <div class="f-section">
+        <h4 class="f-section-hd">Formula</h4>
+        <p class="f-hint">Pick fields from your connected sources. Each input becomes a named token you reference in the expression below.</p>
+
+        <div id="formulaInputs" class="formula-inputs"></div>
+
+        <button type="button" class="ui-btn kpi-add-input" id="addInputBtn">+ Add input</button>
+
+        <label class="f-field" style="margin-top:12px">
+          <span>Expression</span>
+          <textarea class="f-input" id="kpi_expression" rows="2" placeholder="e.g. {a} / {b}"></textarea>
+        </label>
+        <p class="f-hint">Reference inputs with their key in curly braces: <code>{a}</code>, <code>{b}</code>. KPIs where all inputs share one source run natively on that source (push-down). Mixed sources evaluate in-app (pull-up).</p>
+
+        <div id="executionModeHint" class="f-mode-hint" style="display:none"></div>
+      </div>
+
+      {# ── Quality ── #}
+      <div class="f-section">
+        <h4 class="f-section-hd">Quality</h4>
+        <div class="f-row">
+          <label class="f-field">
+            <span>Unit</span>
+            <input class="f-input" id="kpi_unit" maxlength="32" placeholder="e.g. USD, %, count, ratio">
+          </label>
+          <label class="f-field">
+            <span>Format</span>
+            <input class="f-input" id="kpi_format_spec" maxlength="64" placeholder="e.g. 0.00% or $0,0.00">
+          </label>
+        </div>
+        <div class="f-row">
+          <label class="f-field">
+            <span>Direction</span>
+            <select class="f-input" id="kpi_direction">
+              <option value="">—</option>
+              <option value="higher_better">Higher is better</option>
+              <option value="lower_better">Lower is better</option>
+              <option value="neutral">Neutral</option>
+            </select>
+          </label>
+          <label class="f-field">
+            <span>Time grain</span>
+            <select class="f-input" id="kpi_time_grain">
+              <option value="">—</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="rolling_28d">Rolling 28d</option>
+            </select>
+          </label>
+        </div>
+        <div class="f-row">
+          <label class="f-field">
+            <span>Target value</span>
+            <input class="f-input" id="kpi_target_value" type="number" step="any" placeholder="e.g. 50">
+          </label>
+          <label class="f-field">
+            <span>Target type</span>
+            <select class="f-input" id="kpi_target_type">
+              <option value="">—</option>
+              <option value="absolute">Absolute</option>
+              <option value="pct_growth">% growth</option>
+              <option value="vs_last_period">vs. last period</option>
+            </select>
+          </label>
+        </div>
+        <div class="f-row">
+          <label class="f-field">
+            <span>Expected range min</span>
+            <input class="f-input" id="kpi_expected_range_min" type="number" step="any" placeholder="sanity lower bound">
+          </label>
+          <label class="f-field">
+            <span>Expected range max</span>
+            <input class="f-input" id="kpi_expected_range_max" type="number" step="any" placeholder="sanity upper bound">
+          </label>
+        </div>
+      </div>
+
+      {# ── Ownership ── #}
+      <div class="f-section">
+        <h4 class="f-section-hd">Ownership</h4>
+        <label class="f-field">
+          <span>Owner</span>
+          <input class="f-input" id="kpi_owner" maxlength="255" placeholder="Team or person responsible">
+        </label>
+        <label class="f-field">
+          <span>Source of truth URL</span>
+          <input class="f-input" id="kpi_source_of_truth_url" maxlength="512" placeholder="https://…">
+        </label>
+      </div>
+
+      <div class="f-foot">
+        <button type="button" class="ui-btn is-danger" id="kpiDeleteBtn" style="display:none;margin-right:auto" onclick="Fluxito.kpi.removeFromModal()">Delete KPI</button>
+        <button type="button" class="ui-btn" onclick="Fluxito.kpi.attemptClose()">Cancel</button>
+        <button type="submit" class="ui-btn is-primary" id="kpiSaveBtn">Save KPI</button>
+      </div>
+    </form>
+  </div>
+</div>{# /kpiModal #}
+</div>{# /app-main #}
+
+{# ── Input Picker Modal (nested) ── #}
+<div id="pickerModal" class="kpi-modal-backdrop" style="display:none;z-index:1010" onclick="if(event.target===this)Fluxito.kpi.closePicker()">
+  <div class="kpi-modal" style="max-width:600px">
+    <div class="kpi-modal-hd">
+      <h3>Add inputs</h3>
+      <button type="button" class="kpi-modal-x" onclick="Fluxito.kpi.closePicker()" aria-label="Close">✕</button>
+    </div>
+    <p class="f-hint" style="margin-top:-10px;margin-bottom:14px">
+      Pick a source and scope once — then tick every field you want. They'll all be added as inputs in one go.
+    </p>
+    <div class="kpi-form">
+      <div class="f-row">
+        <label class="f-field">
+          <span>Source</span>
+          <select class="f-input" id="p_source">
+            <option value="">Select a source…</option>
+          </select>
+        </label>
+        <label class="f-field">
+          <span>Connection</span>
+          <select class="f-input" id="p_connection" disabled>
+            <option value="">—</option>
+          </select>
+        </label>
+      </div>
+
+      {# GA4 stage #}
+      <div id="p_ga4" style="display:none">
+        <label class="f-field">
+          <span>Property</span>
+          <select class="f-input" id="p_ga4_property" disabled></select>
+        </label>
+        <div class="p-picklist-wrap" id="p_ga4_wrap" style="display:none">
+          <div class="p-picklist-head">
+            <div class="p-kind-toggle">
+              <button type="button" class="p-kind-btn is-active" data-kind="metric" onclick="Fluxito.kpi.setGa4Kind('metric')">Metrics</button>
+              <button type="button" class="p-kind-btn" data-kind="dimension" onclick="Fluxito.kpi.setGa4Kind('dimension')">Dimensions</button>
+            </div>
+            <input type="hidden" id="p_ga4_kind" value="metric">
+            <input class="f-input p-search" id="p_ga4_search" placeholder="Filter fields…" oninput="Fluxito.kpi.filterFieldList('ga4')">
+          </div>
+          <div class="p-picklist" id="p_ga4_fields_list">
+            <div class="p-empty">Pick a property to list its fields.</div>
+          </div>
+          <div class="p-picklist-foot">
+            <button type="button" class="p-link-btn" onclick="Fluxito.kpi.togglePicklistAll('ga4')">Select all visible</button>
+            <span class="p-selcount" id="p_ga4_selcount">0 selected</span>
+          </div>
+        </div>
+      </div>
+
+      {# BigQuery stage #}
+      <div id="p_bq" style="display:none">
+        <div class="f-row">
+          <label class="f-field">
+            <span>Dataset</span>
+            <select class="f-input" id="p_bq_dataset" disabled></select>
+          </label>
+          <label class="f-field">
+            <span>Table</span>
+            <select class="f-input" id="p_bq_table" disabled></select>
+          </label>
+        </div>
+        <div class="p-picklist-wrap" id="p_bq_wrap" style="display:none">
+          <div class="p-picklist-head">
+            <label class="f-field" style="margin:0">
+              <span>Default aggregation</span>
+              <select class="f-input" id="p_bq_agg">
+                <option value="sum">SUM</option>
+                <option value="avg">AVG</option>
+                <option value="count">COUNT</option>
+                <option value="count_distinct">COUNT DISTINCT</option>
+                <option value="min">MIN</option>
+                <option value="max">MAX</option>
+                <option value="none">No aggregation</option>
+              </select>
+            </label>
+            <input class="f-input p-search" id="p_bq_search" placeholder="Filter columns…" oninput="Fluxito.kpi.filterFieldList('bq')">
+          </div>
+          <div class="p-picklist" id="p_bq_fields_list">
+            <div class="p-empty">Pick a table to list its columns.</div>
+          </div>
+          <div class="p-picklist-foot">
+            <button type="button" class="p-link-btn" onclick="Fluxito.kpi.togglePicklistAll('bq')">Select all visible</button>
+            <span class="p-selcount" id="p_bq_selcount">0 selected</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="f-hint" id="p_error" style="color:var(--bad);display:none"></p>
+
+      <div class="f-foot">
+        <button type="button" class="ui-btn" onclick="Fluxito.kpi.closePicker()">Cancel</button>
+        <button type="button" class="ui-btn is-primary" id="pickerAddBtn" disabled>Add inputs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const initial = {{ kpis | tojson }};
+  const state = {
+    kpis: initial,
+    sources: null,     // cached result of /api/kpi-library/sources
+    editing: { inputs: [] },
+  };
+
+  function esc(s) { return (s || '').toString().replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+  // Status chip — Approved / Draft / Deprecated (ui-chip tones).
+  function statusChip(k) {
+    const status = k.status || 'draft';
+    if (status === 'approved')   return '<span class="ui-chip is-good">Approved</span>';
+    if (status === 'deprecated') return '<span class="ui-chip">Deprecated</span>';
+    return '<span class="ui-chip is-warn">Draft</span>';
+  }
+
+  function directionLabel(d) {
+    if (d === 'higher_better') return '↑ Higher better';
+    if (d === 'lower_better')  return '↓ Lower better';
+    if (d === 'neutral')       return '— Neutral';
+    return '—';
+  }
+
+  function sourceLabel(s) {
+    return ({ ga4: 'GA4', bigquery: 'BigQuery', google_ads: 'Google Ads', search_console: 'Search Console' }[s]) || s;
+  }
+
+  function inputSummary(i) {
+    const b = i.binding || {};
+    if (i.source === 'ga4') {
+      const kind = b.kind || 'field';
+      const name = b.ui_name || b.api_name || kind;
+      return `${sourceLabel(i.source)} · property ${b.property_id} · ${kind}: ${name}`;
+    }
+    if (i.source === 'bigquery') {
+      const agg = b.aggregation && b.aggregation !== 'none' ? b.aggregation.toUpperCase() + '(' : '';
+      const close = agg ? ')' : '';
+      return `${sourceLabel(i.source)} · ${b.dataset}.${b.table}.${agg}${b.field}${close}`;
+    }
+    return sourceLabel(i.source);
+  }
+
+  const DASH = '<span class="ctx-muted">—</span>';
+
+  function render() {
+    const empty = document.getElementById('kpiEmpty');
+    const wrap  = document.getElementById('kpiTableWrap');
+    const body  = document.getElementById('kpiTableBody');
+    const count = document.getElementById('kpiTabCount');
+    if (count) count.textContent = state.kpis.length;
+    if (!state.kpis.length) {
+      empty.style.display = 'block';
+      wrap.style.display  = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    wrap.style.display  = 'block';
+    body.innerHTML = state.kpis.map(k => {
+      const idJson = JSON.stringify(k.id);
+      const unit = [k.unit, k.direction ? directionLabel(k.direction) : ''].filter(Boolean).join(' · ');
+      return `
+      <tr tabindex="0" onclick='Fluxito.kpi.edit(${idJson})'
+          onkeydown='if(event.key==="Enter"){Fluxito.kpi.edit(${idJson})}'>
+        <td class="ctx-kpi-name"><b>${esc(k.name)}</b>${k.description ? `<small title="${esc(k.description)}">${esc(k.description)}</small>` : ''}</td>
+        <td class="ui-hide-sm ctx-muted">${k.category ? esc(k.category) : '—'}</td>
+        <td class="ui-hide-sm">${k.expression ? `<div class="ctx-kpi-formula" title="${esc(k.expression)}">${esc(k.expression)}</div>` : DASH}</td>
+        <td class="ui-hide-sm">${unit ? esc(unit) : DASH}</td>
+        <td>${statusChip(k)}</td>
+        <td class="ui-hide-sm ctx-muted">${k.owner ? esc(k.owner) : '—'}</td>
+        <td class="ctx-kpi-actions">
+          ${k.status === 'draft' || !k.status ? `<button type="button" class="ui-btn" onclick='event.stopPropagation();Fluxito.kpi.approve(${idJson})'>Approve</button>` : ''}
+          <button type="button" class="ui-btn is-quiet" onclick='event.stopPropagation();Fluxito.kpi.edit(${idJson})'>Edit</button>
+        </td>
+      </tr>
+    `;
+    }).join('');
+  }
+
+  function setVal(id, v) { document.getElementById(id).value = (v == null ? '' : v); }
+  function getVal(id)    { return document.getElementById(id).value; }
+
+  // ---- Formula input chip rendering ----
+  function renderInputs() {
+    const wrap = document.getElementById('formulaInputs');
+    const inputs = state.editing.inputs || [];
+    if (!inputs.length) { wrap.innerHTML = ''; updateModeHint(); return; }
+    wrap.innerHTML = inputs.map((i, idx) => `
+      <div class="formula-chip">
+        <span class="c-key" title="Click to insert into expression" onclick="Fluxito.kpi.insertToken(${JSON.stringify(i.key)})">{${esc(i.key)}}</span>
+        <div class="c-body">
+          ${esc(inputSummary(i))}
+        </div>
+        <span class="c-src">${esc(sourceLabel(i.source))}</span>
+        <button type="button" class="c-del" onclick="Fluxito.kpi.removeInput(${idx})" aria-label="Remove">✕</button>
+      </div>
+    `).join('');
+    updateModeHint();
+  }
+
+  function updateModeHint() {
+    const hint = document.getElementById('executionModeHint');
+    const inputs = state.editing.inputs || [];
+    if (inputs.length === 0) { hint.style.display = 'none'; return; }
+    const sources = new Set(inputs.map(i => i.source));
+    hint.style.display = 'block';
+    if (sources.size === 1) {
+      hint.className = 'f-mode-hint push-down';
+      hint.textContent = `Single-source (${sourceLabel([...sources][0])}) — will execute push-down for best accuracy.`;
+    } else {
+      hint.className = 'f-mode-hint pull-up';
+      hint.textContent = `Cross-source (${[...sources].map(sourceLabel).join(' + ')}) — will evaluate in-app (pull-up).`;
+    }
+  }
+
+  function insertToken(key) {
+    const ta = document.getElementById('kpi_expression');
+    const insert = '{' + key + '}';
+    const start = ta.selectionStart ?? ta.value.length;
+    const end   = ta.selectionEnd   ?? ta.value.length;
+    ta.value = ta.value.slice(0, start) + insert + ta.value.slice(end);
+    ta.focus();
+    ta.setSelectionRange(start + insert.length, start + insert.length);
+  }
+
+  function removeInput(idx) {
+    state.editing.inputs.splice(idx, 1);
+    renderInputs();
+  }
+
+  function nextKey() {
+    const taken = new Set((state.editing.inputs || []).map(i => i.key));
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    for (const ch of letters) { if (!taken.has(ch)) return ch; }
+    let n = 1;
+    while (taken.has('x' + n)) n++;
+    return 'x' + n;
+  }
+
+  // ---- Main modal ----
+  function openModal(kpi) {
+    state.editing = {
+      inputs: kpi && kpi.inputs ? JSON.parse(JSON.stringify(kpi.inputs)) : [],
+    };
+    setVal('kpi_id',                    kpi ? kpi.id : '');
+    setVal('kpi_name',                  kpi ? kpi.name : '');
+    setVal('kpi_slug',                  kpi ? kpi.slug : '');
+    setVal('kpi_status',                kpi ? (kpi.status || 'draft') : 'draft');
+    setVal('kpi_aliases',               kpi && kpi.aliases ? kpi.aliases.join(', ') : '');
+    setVal('kpi_description',           kpi ? kpi.description : '');
+    setVal('kpi_business_question',     kpi ? kpi.business_question : '');
+    setVal('kpi_interpretation_guide',  kpi ? kpi.interpretation_guide : '');
+    setVal('kpi_category',              kpi ? kpi.category : '');
+    setVal('kpi_tags',                  kpi && kpi.tags ? kpi.tags.join(', ') : '');
+    setVal('kpi_expression',            kpi ? kpi.expression : '');
+    setVal('kpi_unit',                  kpi ? kpi.unit : '');
+    setVal('kpi_format_spec',           kpi ? kpi.format_spec : '');
+    setVal('kpi_direction',             kpi ? kpi.direction : '');
+    setVal('kpi_time_grain',            kpi ? kpi.time_grain : '');
+    setVal('kpi_target_value',          kpi ? kpi.target_value : '');
+    setVal('kpi_target_type',           kpi ? kpi.target_type : '');
+    setVal('kpi_expected_range_min',    kpi ? kpi.expected_range_min : '');
+    setVal('kpi_expected_range_max',    kpi ? kpi.expected_range_max : '');
+    setVal('kpi_owner',                 kpi ? kpi.owner : '');
+    setVal('kpi_source_of_truth_url',   kpi ? kpi.source_of_truth_url : '');
+    document.getElementById('kpiModalTitle').textContent = kpi ? 'Edit KPI' : 'Add KPI';
+    document.getElementById('kpiSaveBtn').textContent = kpi ? 'Update KPI' : 'Save KPI';
+    document.getElementById('kpiDeleteBtn').style.display = kpi ? 'inline-flex' : 'none';
+    document.getElementById('kpiModal').style.display = 'flex';
+    renderInputs();
+    // Snapshot the pristine state so we can detect unsaved edits on close.
+    state.pristineSnapshot = snapshotForm();
+  }
+
+  // Serialize every form field + inputs list to detect changes on close.
+  const FORM_FIELDS = [
+    'kpi_id', 'kpi_name', 'kpi_slug', 'kpi_status', 'kpi_aliases',
+    'kpi_description', 'kpi_business_question', 'kpi_interpretation_guide',
+    'kpi_category', 'kpi_tags', 'kpi_expression', 'kpi_unit', 'kpi_format_spec',
+    'kpi_direction', 'kpi_time_grain', 'kpi_target_value', 'kpi_target_type',
+    'kpi_expected_range_min', 'kpi_expected_range_max', 'kpi_owner',
+    'kpi_source_of_truth_url',
+  ];
+  function snapshotForm() {
+    const values = {};
+    FORM_FIELDS.forEach(f => { values[f] = getVal(f); });
+    values.__inputs = JSON.stringify(state.editing && state.editing.inputs || []);
+    return JSON.stringify(values);
+  }
+
+  function closeModal() {
+    document.getElementById('kpiModal').style.display = 'none';
+    state.pristineSnapshot = null;
+  }
+
+  function attemptClose() {
+    const dirty = state.pristineSnapshot && snapshotForm() !== state.pristineSnapshot;
+    if (dirty && !confirm('Discard your changes? Any unsaved edits will be lost.')) return;
+    closeModal();
+  }
+
+  function splitCSV(s) { return (s || '').split(',').map(x => x.trim()).filter(Boolean); }
+  function numOrNull(s) { const v = (s || '').trim(); if (!v) return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
+
+  async function save(ev) {
+    ev.preventDefault();
+    const id = getVal('kpi_id');
+    const body = {
+      name:                 getVal('kpi_name').trim(),
+      slug:                 getVal('kpi_slug').trim() || null,
+      status:               getVal('kpi_status') || 'draft',
+      aliases:              splitCSV(getVal('kpi_aliases')),
+      description:          getVal('kpi_description').trim(),
+      business_question:    getVal('kpi_business_question').trim() || null,
+      interpretation_guide: getVal('kpi_interpretation_guide').trim() || null,
+      category:             getVal('kpi_category').trim() || null,
+      tags:                 splitCSV(getVal('kpi_tags')),
+      expression:           getVal('kpi_expression').trim() || null,
+      unit:                 getVal('kpi_unit').trim() || null,
+      format_spec:          getVal('kpi_format_spec').trim() || null,
+      direction:            getVal('kpi_direction') || null,
+      time_grain:           getVal('kpi_time_grain') || null,
+      target_value:         numOrNull(getVal('kpi_target_value')),
+      target_type:          getVal('kpi_target_type') || null,
+      expected_range_min:   numOrNull(getVal('kpi_expected_range_min')),
+      expected_range_max:   numOrNull(getVal('kpi_expected_range_max')),
+      owner:                getVal('kpi_owner').trim() || null,
+      source_of_truth_url:  getVal('kpi_source_of_truth_url').trim() || null,
+      inputs: (state.editing.inputs || []).map(i => ({
+        key: i.key,
+        source: i.source,
+        connection_id: i.connection_id,
+        binding: i.binding || {},
+      })),
+    };
+    const btn = document.getElementById('kpiSaveBtn');
+    btn.disabled = true;
+    try {
+      const url    = id ? `/api/kpi-library/${id}` : '/api/kpi-library';
+      const method = id ? 'PUT' : 'POST';
+      const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) {
+        throw new Error(await formatApiError(res));
+      }
+      const data  = await res.json();
+      const saved = data.kpi;
+      if (id) state.kpis = state.kpis.map(k => k.id === id ? saved : k);
+      else    state.kpis.push(saved);
+      state.kpis.sort((a, b) => (a.category||'').localeCompare(b.category||'') || a.name.localeCompare(b.name));
+      render();
+      closeModal();
+      if (window.Fluxito && Fluxito.toast) Fluxito.toast('KPI saved');
+    } catch (e) {
+      alert(e.message || 'Failed to save KPI');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /**
+   * Normalize a non-OK fetch Response into a human-readable error string.
+   * Handles three common shapes:
+   *   - FastAPI Pydantic 422: { detail: [{loc:[...], msg:'...'}] }
+   *   - FastAPI HTTPException:  { detail: 'message' }
+   *   - Custom middleware:      { message: '...', error_type: '...' }
+   * Falls back to raw text / status code when the body isn't JSON.
+   */
+  async function formatApiError(res) {
+    let bodyText = '';
+    try { bodyText = await res.text(); } catch (_) {}
+    let parsed = null;
+    try { parsed = bodyText ? JSON.parse(bodyText) : null; } catch (_) {}
+    console.error('[kpi] save failed', res.status, bodyText);
+    if (parsed) {
+      if (typeof parsed.detail === 'string') return parsed.detail;
+      if (Array.isArray(parsed.detail)) {
+        return parsed.detail.map(d => {
+          const loc = Array.isArray(d.loc) ? d.loc.filter(x => x !== 'body').join('.') : '';
+          return loc ? `${loc}: ${d.msg}` : d.msg;
+        }).join('\n') || `HTTP ${res.status}`;
+      }
+      if (typeof parsed.message === 'string') return parsed.message;
+      if (typeof parsed.error === 'string')   return parsed.error;
+    }
+    if (bodyText) return bodyText.slice(0, 300);
+    return `Save failed (HTTP ${res.status} ${res.statusText || ''})`.trim();
+  }
+
+  async function remove(id) {
+    const res = await fetch(`/api/kpi-library/${id}`, { method: 'DELETE' });
+    if (!res.ok) { alert('Failed to delete'); return; }
+    state.kpis = state.kpis.filter(k => k.id !== id);
+    render();
+    if (window.Fluxito && Fluxito.toast) Fluxito.toast('KPI deleted');
+  }
+
+  function removeFromModal() {
+    const id = getVal('kpi_id');
+    if (!id) return;
+    const kpi = state.kpis.find(x => x.id === id);
+    const name = kpi ? kpi.name : 'this KPI';
+    if (!confirm(`Delete "${name}"?\n\nThis will permanently remove the KPI and all its inputs. This cannot be undone.`)) return;
+    closeModal();
+    remove(id);
+  }
+
+  async function approve(id) {
+    const k = state.kpis.find(x => x.id === id);
+    if (!k) return;
+    const body = {
+      name: k.name, slug: k.slug, aliases: k.aliases || [], status: 'approved',
+      version: k.version || 1, description: k.description,
+      business_question: k.business_question || null,
+      interpretation_guide: k.interpretation_guide || null,
+      category: k.category || null, tags: k.tags || [],
+      expression: k.expression || null, time_grain: k.time_grain || null,
+      unit: k.unit || null, format_spec: k.format_spec || null,
+      direction: k.direction || null,
+      target_value: k.target_value ?? null, target_type: k.target_type || null,
+      expected_range_min: k.expected_range_min ?? null,
+      expected_range_max: k.expected_range_max ?? null,
+      owner: k.owner || null, source_of_truth_url: k.source_of_truth_url || null,
+      inputs: (k.inputs || []).map(i => ({
+        key: i.key, source: i.source, connection_id: i.connection_id, binding: i.binding || {},
+      })),
+    };
+    try {
+      const res = await fetch(`/api/kpi-library/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (!res.ok) { alert('Failed to approve KPI'); return; }
+      const data = await res.json();
+      state.kpis = state.kpis.map(x => x.id === id ? data.kpi : x);
+      state.kpis.sort((a, b) => (a.category||'').localeCompare(b.category||'') || a.name.localeCompare(b.name));
+      render();
+      if (window.Fluxito && Fluxito.toast) Fluxito.toast('KPI approved');
+    } catch (e) {
+      alert('Failed to approve KPI');
+    }
+  }
+
+  function edit(id) { const k = state.kpis.find(x => x.id === id); if (k) openModal(k); }
+
+  // ---- Picker modal ----
+  async function loadSources() {
+    if (state.sources) return state.sources;
+    const res = await fetch('/api/kpi-library/sources');
+    if (!res.ok) throw new Error('Failed to load sources');
+    const d = await res.json();
+    state.sources = d.sources || [];
+    return state.sources;
+  }
+
+  function resetPickerUI() {
+    setVal('p_source', '');
+    setVal('p_connection', '');
+    document.getElementById('p_connection').disabled = true;
+    document.getElementById('p_ga4').style.display = 'none';
+    document.getElementById('p_bq').style.display  = 'none';
+    document.getElementById('p_ga4_wrap').style.display = 'none';
+    document.getElementById('p_bq_wrap').style.display = 'none';
+    document.getElementById('p_error').style.display = 'none';
+    document.getElementById('p_ga4_fields_list').innerHTML = '<div class="p-empty">Pick a property to list its fields.</div>';
+    document.getElementById('p_bq_fields_list').innerHTML  = '<div class="p-empty">Pick a table to list its columns.</div>';
+    setVal('p_ga4_search', '');
+    setVal('p_bq_search', '');
+    setVal('p_ga4_kind', 'metric');
+    document.querySelectorAll('.p-kind-btn').forEach(b => b.classList.toggle('is-active', b.dataset.kind === 'metric'));
+    _ga4Selection = new Map();
+    updateAddBtn();
+  }
+
+  function updateAddBtn() {
+    const btn = document.getElementById('pickerAddBtn');
+    const src = getVal('p_source');
+    let n = 0;
+    let countLabel = '';
+    if (src === 'ga4') {
+      // Count from persistent selection, not just current tab's DOM.
+      let metrics = 0, dims = 0;
+      _ga4Selection.forEach((v, k) => {
+        if (!v) return;
+        if (k.startsWith('metric::')) metrics++;
+        else if (k.startsWith('dimension::')) dims++;
+      });
+      n = metrics + dims;
+      if (metrics && dims) countLabel = `${metrics} metric${metrics === 1 ? '' : 's'} + ${dims} dimension${dims === 1 ? '' : 's'} selected`;
+      else if (metrics)    countLabel = `${metrics} metric${metrics === 1 ? '' : 's'} selected`;
+      else if (dims)       countLabel = `${dims} dimension${dims === 1 ? '' : 's'} selected`;
+      else                 countLabel = '0 selected';
+      const countEl = document.getElementById('p_ga4_selcount');
+      if (countEl) countEl.textContent = countLabel;
+    } else if (src === 'bigquery') {
+      n = document.querySelectorAll('#p_bq_fields_list input[type="checkbox"]:checked:not(:disabled)').length;
+      const countEl = document.getElementById('p_bq_selcount');
+      if (countEl) countEl.textContent = n === 1 ? '1 selected' : `${n} selected`;
+    }
+    btn.disabled = n === 0;
+    btn.textContent = n === 0 ? 'Add inputs' : (n === 1 ? 'Add 1 input' : `Add ${n} inputs`);
+  }
+
+  async function openPicker() {
+    try {
+      const sources = await loadSources();
+      const uniqueSources = [...new Set(sources.map(s => s.source))];
+      const sel = document.getElementById('p_source');
+      sel.innerHTML = '<option value="">Select a source…</option>' +
+        uniqueSources.map(s => `<option value="${esc(s)}">${esc(sourceLabel(s))}</option>`).join('');
+      resetPickerUI();
+      document.getElementById('pickerModal').style.display = 'flex';
+    } catch (e) {
+      alert(e.message || 'Failed to open picker');
+    }
+  }
+  function closePicker() { document.getElementById('pickerModal').style.display = 'none'; }
+
+  function onSourceChange() {
+    const src = getVal('p_source');
+    const cons = (state.sources || []).filter(s => s.source === src);
+    const sel = document.getElementById('p_connection');
+    sel.innerHTML = '<option value="">Select…</option>' +
+      cons.map(c => `<option value="${esc(c.connection_id)}">${esc(c.label)}</option>`).join('');
+    sel.disabled = !cons.length;
+    document.getElementById('p_ga4').style.display = src === 'ga4' ? 'block' : 'none';
+    document.getElementById('p_bq').style.display  = src === 'bigquery' ? 'block' : 'none';
+    // Reset downstream selects
+    document.getElementById('p_ga4_property').innerHTML = '';
+    document.getElementById('p_ga4_property').disabled = true;
+    document.getElementById('p_bq_dataset').innerHTML = '';
+    document.getElementById('p_bq_dataset').disabled = true;
+    document.getElementById('p_bq_table').innerHTML = '';
+    document.getElementById('p_bq_table').disabled = true;
+    document.getElementById('p_ga4_wrap').style.display = 'none';
+    document.getElementById('p_bq_wrap').style.display = 'none';
+    document.getElementById('p_ga4_fields_list').innerHTML = '<div class="p-empty">Pick a property to list its fields.</div>';
+    document.getElementById('p_bq_fields_list').innerHTML  = '<div class="p-empty">Pick a table to list its columns.</div>';
+    _ga4Selection = new Map();
+    updateAddBtn();
+  }
+
+  async function fetchGa4PropertiesLive(cid) {
+    try {
+      const res = await fetch(`/api/kpi-library/metadata/ga4/properties?connection_id=${encodeURIComponent(cid)}`);
+      if (!res.ok) return [];
+      const d = await res.json();
+      return d.properties || [];
+    } catch (e) {
+      console.error('live GA4 properties fetch failed', e);
+      return [];
+    }
+  }
+
+  async function onConnectionChange() {
+    const src  = getVal('p_source');
+    const cid  = getVal('p_connection');
+    if (!cid) return;
+    if (src === 'ga4') {
+      const sel = document.getElementById('p_ga4_property');
+      // Try cached list from /sources first; fall back to live Admin API.
+      const entry = (state.sources || []).find(s => s.source === 'ga4' && s.connection_id === cid);
+      let props = (entry && entry.properties) || [];
+      if (!props.length) {
+        sel.innerHTML = '<option value="">Loading…</option>';
+        sel.disabled = true;
+        props = await fetchGa4PropertiesLive(cid);
+        // Cache on the source entry so we don't re-fetch in this session.
+        if (entry) entry.properties = props;
+      }
+      sel.innerHTML = '<option value="">Select…</option>' +
+        props.map(p => `<option value="${esc(p.id)}">${esc(p.display_name)} (${esc(p.id)})</option>`).join('');
+      sel.disabled = !props.length;
+      if (!props.length) {
+        pickerError('No GA4 properties found for this connection. Reconnect at /connect if you expect to see properties here.');
+      }
+    } else if (src === 'bigquery') {
+      try {
+        const res = await fetch(`/api/kpi-library/metadata/bigquery/datasets?connection_id=${encodeURIComponent(cid)}`);
+        const d = await res.json();
+        const sets = (d.datasets || []);
+        const sel = document.getElementById('p_bq_dataset');
+        sel.innerHTML = '<option value="">Select…</option>' +
+          sets.map(s => `<option value="${esc(s.dataset_id)}">${esc(s.dataset_id)}</option>`).join('');
+        sel.disabled = !sets.length;
+      } catch (e) { console.error(e); }
+    }
+  }
+
+  let _ga4FieldsCache = null;  // { property_id, dimensions, metrics }
+  // Persistent selection across Metric/Dimension tab switches.
+  // Map key: `${kind}::${api_name}` -> true
+  let _ga4Selection = new Map();
+
+  async function onGa4PropertyChange() {
+    const cid = getVal('p_connection');
+    const pid = getVal('p_ga4_property');
+    if (!cid || !pid) {
+      document.getElementById('p_ga4_wrap').style.display = 'none';
+      return;
+    }
+    const list = document.getElementById('p_ga4_fields_list');
+    list.innerHTML = '<div class="p-empty">Loading fields…</div>';
+    document.getElementById('p_ga4_wrap').style.display = 'block';
+    _ga4Selection = new Map();  // reset on property change
+    try {
+      const res = await fetch(`/api/kpi-library/metadata/ga4/fields?connection_id=${encodeURIComponent(cid)}&property_id=${encodeURIComponent(pid)}`);
+      _ga4FieldsCache = await res.json();
+      repopulateGa4Fields();
+    } catch (e) {
+      console.error(e);
+      list.innerHTML = '<div class="p-empty">Failed to load fields.</div>';
+    }
+  }
+
+  function setGa4Kind(kind) {
+    setVal('p_ga4_kind', kind);
+    document.querySelectorAll('#p_ga4 .p-kind-btn').forEach(b => b.classList.toggle('is-active', b.dataset.kind === kind));
+    repopulateGa4Fields();
+  }
+
+  function repopulateGa4Fields() {
+    if (!_ga4FieldsCache) return;
+    const kind = getVal('p_ga4_kind');
+    const items = (kind === 'dimension' ? _ga4FieldsCache.dimensions : _ga4FieldsCache.metrics) || [];
+    const list = document.getElementById('p_ga4_fields_list');
+    if (!items.length) {
+      list.innerHTML = `<div class="p-empty">No ${kind}s available on this property.</div>`;
+      updateAddBtn();
+      return;
+    }
+    const existingKeys = new Set((state.editing.inputs || [])
+      .filter(i => i.source === 'ga4' && i.binding && i.binding.property_id === getVal('p_ga4_property') && i.binding.kind === kind)
+      .map(i => i.binding.api_name));
+    list.innerHTML = items.map(f => {
+      const apiName = f.api_name;
+      const uiName = f.ui_name || apiName;
+      const desc = f.description || '';
+      const already = existingKeys.has(apiName);
+      const selKey = kind + '::' + apiName;
+      const remembered = _ga4Selection.get(selKey) === true;
+      const checked = already || remembered;
+      return `
+        <label class="p-picklist-item${checked ? ' is-selected' : ''}" data-search="${esc((uiName + ' ' + apiName + ' ' + desc).toLowerCase())}">
+          <input type="checkbox" value="${esc(apiName)}" data-ui="${esc(uiName)}" ${already ? 'disabled checked' : (remembered ? 'checked' : '')}>
+          <div class="p-item-body">
+            <div>
+              <span class="p-item-label">${esc(uiName)}</span>
+              <span class="p-item-name">${esc(apiName)}</span>
+            </div>
+            ${desc ? `<div class="p-item-desc">${esc(desc)}</div>` : ''}
+            ${already ? `<div class="p-item-desc" style="color:var(--good)">Already added</div>` : ''}
+          </div>
+        </label>
+      `;
+    }).join('');
+    // Wire change handler: persist to selection map + update counter.
+    list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        cb.closest('.p-picklist-item').classList.toggle('is-selected', cb.checked);
+        if (cb.disabled) return;  // "already added" rows don't affect selection
+        const key = getVal('p_ga4_kind') + '::' + cb.value;
+        if (cb.checked) _ga4Selection.set(key, true);
+        else _ga4Selection.delete(key);
+        updateAddBtn();
+      });
+    });
+    filterFieldList('ga4');
+    updateAddBtn();
+  }
+
+  function filterFieldList(which) {
+    const inputId = which === 'ga4' ? 'p_ga4_search' : 'p_bq_search';
+    const listId  = which === 'ga4' ? 'p_ga4_fields_list' : 'p_bq_fields_list';
+    const q = (getVal(inputId) || '').toLowerCase().trim();
+    document.querySelectorAll('#' + listId + ' .p-picklist-item').forEach(item => {
+      const hay = item.dataset.search || '';
+      item.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    });
+  }
+
+  function togglePicklistAll(which) {
+    const listId = which === 'ga4' ? 'p_ga4_fields_list' : 'p_bq_fields_list';
+    const visibleBoxes = [...document.querySelectorAll('#' + listId + ' .p-picklist-item')]
+      .filter(it => it.style.display !== 'none')
+      .map(it => it.querySelector('input[type="checkbox"]'))
+      .filter(cb => cb && !cb.disabled);
+    const allChecked = visibleBoxes.length > 0 && visibleBoxes.every(cb => cb.checked);
+    visibleBoxes.forEach(cb => {
+      cb.checked = !allChecked;
+      cb.closest('.p-picklist-item').classList.toggle('is-selected', cb.checked);
+    });
+    updateAddBtn();
+  }
+
+  async function onBqDatasetChange() {
+    const cid = getVal('p_connection');
+    const ds  = getVal('p_bq_dataset');
+    document.getElementById('p_bq_wrap').style.display = 'none';
+    if (!cid || !ds) return;
+    const res = await fetch(`/api/kpi-library/metadata/bigquery/tables?connection_id=${encodeURIComponent(cid)}&dataset=${encodeURIComponent(ds)}`);
+    const d = await res.json();
+    const tabs = d.tables || [];
+    const sel = document.getElementById('p_bq_table');
+    sel.innerHTML = '<option value="">Select…</option>' +
+      tabs.map(t => `<option value="${esc(t.table_id)}">${esc(t.table_id)}</option>`).join('');
+    sel.disabled = !tabs.length;
+  }
+
+  async function onBqTableChange() {
+    const cid = getVal('p_connection');
+    const ds  = getVal('p_bq_dataset');
+    const tb  = getVal('p_bq_table');
+    const wrap = document.getElementById('p_bq_wrap');
+    const list = document.getElementById('p_bq_fields_list');
+    if (!cid || !ds || !tb) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    list.innerHTML = '<div class="p-empty">Loading columns…</div>';
+    try {
+      const res = await fetch(`/api/kpi-library/metadata/bigquery/columns?connection_id=${encodeURIComponent(cid)}&dataset=${encodeURIComponent(ds)}&table=${encodeURIComponent(tb)}`);
+      const d = await res.json();
+      const cols = d.schema || [];
+      if (!cols.length) {
+        list.innerHTML = '<div class="p-empty">No columns found.</div>';
+        updateAddBtn();
+        return;
+      }
+      const existing = new Set((state.editing.inputs || [])
+        .filter(i => i.source === 'bigquery' && i.binding && i.binding.dataset === ds && i.binding.table === tb)
+        .map(i => i.binding.field));
+      list.innerHTML = cols.map(c => {
+        const already = existing.has(c.name);
+        return `
+          <label class="p-picklist-item" data-search="${esc((c.name + ' ' + (c.field_type || '')).toLowerCase())}">
+            <input type="checkbox" value="${esc(c.name)}" data-type="${esc(c.field_type || '')}" ${already ? 'disabled checked' : ''}>
+            <div class="p-item-body">
+              <span class="p-item-name">${esc(c.name)}</span>
+              ${already ? `<div class="p-item-desc" style="color:var(--good)">Already added</div>` : ''}
+            </div>
+            <span class="p-item-type">${esc(c.field_type || '')}</span>
+          </label>
+        `;
+      }).join('');
+      list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (cb.disabled) cb.closest('.p-picklist-item').classList.add('is-selected');
+        cb.addEventListener('change', () => {
+          cb.closest('.p-picklist-item').classList.toggle('is-selected', cb.checked);
+          updateAddBtn();
+        });
+      });
+      filterFieldList('bq');
+      updateAddBtn();
+    } catch (e) {
+      console.error(e);
+      list.innerHTML = '<div class="p-empty">Failed to load columns.</div>';
+    }
+  }
+
+  function pickerError(msg) {
+    const el = document.getElementById('p_error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function addInputFromPicker() {
+    document.getElementById('p_error').style.display = 'none';
+    const src = getVal('p_source');
+    const cid = getVal('p_connection');
+    if (!src || !cid) return pickerError('Pick a source and connection first.');
+
+    state.editing.inputs = state.editing.inputs || [];
+    const before = state.editing.inputs.length;
+
+    if (src === 'ga4') {
+      const pid = getVal('p_ga4_property');
+      if (!pid) return pickerError('Pick a property.');
+      const picks = [];
+      _ga4Selection.forEach((v, key) => { if (v) picks.push(key); });
+      if (!picks.length) return pickerError('Tick at least one field to add.');
+      picks.forEach(key => {
+        const sep = key.indexOf('::');
+        const kind = key.slice(0, sep);
+        const apiName = key.slice(sep + 2);
+        const list = (_ga4FieldsCache && (kind === 'dimension' ? _ga4FieldsCache.dimensions : _ga4FieldsCache.metrics)) || [];
+        const meta = list.find(x => x.api_name === apiName) || {};
+        state.editing.inputs.push({
+          key: nextKey(),
+          source: 'ga4',
+          connection_id: cid,
+          binding: { property_id: pid, kind, api_name: apiName, ui_name: meta.ui_name || apiName },
+        });
+      });
+    } else if (src === 'bigquery') {
+      const ds = getVal('p_bq_dataset');
+      const tb = getVal('p_bq_table');
+      const agg = getVal('p_bq_agg') || 'sum';
+      if (!ds || !tb) return pickerError('Pick dataset and table.');
+      const boxes = [...document.querySelectorAll('#p_bq_fields_list input[type="checkbox"]:checked:not(:disabled)')];
+      if (!boxes.length) return pickerError('Tick at least one column to add.');
+      boxes.forEach(cb => {
+        state.editing.inputs.push({
+          key: nextKey(),
+          source: 'bigquery',
+          connection_id: cid,
+          binding: { dataset: ds, table: tb, field: cb.value, aggregation: agg, type: cb.dataset.type || null },
+        });
+      });
+    } else {
+      return pickerError('Unsupported source.');
+    }
+
+    const added = state.editing.inputs.length - before;
+    renderInputs();
+    closePicker();
+    if (added && window.Fluxito && Fluxito.toast) {
+      Fluxito.toast(added === 1 ? '1 input added' : `${added} inputs added`);
+    }
+  }
+
+  // Wire events
+  document.getElementById('kpiAddBtn').addEventListener('click', () => openModal(null));
+  document.getElementById('addInputBtn').addEventListener('click', openPicker);
+  document.getElementById('pickerAddBtn').addEventListener('click', addInputFromPicker);
+  document.getElementById('p_source').addEventListener('change', onSourceChange);
+  document.getElementById('p_connection').addEventListener('change', onConnectionChange);
+  document.getElementById('p_ga4_property').addEventListener('change', onGa4PropertyChange);
+  document.getElementById('p_bq_dataset').addEventListener('change', onBqDatasetChange);
+  document.getElementById('p_bq_table').addEventListener('change', onBqTableChange);
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const picker = document.getElementById('pickerModal');
+    if (picker.style.display === 'flex') closePicker();
+    else if (document.getElementById('kpiModal').style.display === 'flex') attemptClose();
+  });
+
+  window.Fluxito = window.Fluxito || {};
+  window.Fluxito.kpi = {
+    openModal, closeModal, attemptClose, save, remove, removeFromModal, approve, edit,
+    openPicker, closePicker, insertToken, removeInput,
+    setGa4Kind, filterFieldList, togglePicklistAll,
+  };
+
+  render();
+})();
+</script>
+{% endblock %}

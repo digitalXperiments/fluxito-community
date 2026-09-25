@@ -1,0 +1,54 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "AppsFlyer" %}
+{% set platform_slug = "appsflyer" %}
+{% set platform_desc = "Mobile attribution and marketing analytics platform with SDK-based tracking." %}
+
+{% block platform_body %}
+<form id="appsflyerForm" onsubmit="return submitAppsFlyer(event)">
+  {% if editing %}<input type="hidden" id="afEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="afName">Display name</label>
+    <input class="input" id="afName" required placeholder="e.g. Production AppsFlyer" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="afApiKey">V2.0 API Token</label>
+    <input class="input" id="afApiKey" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.api_key_hint }} — leave blank to keep{% else %}Your AppsFlyer V2.0 API Token{% endif %}" value=""/>
+    <div class="label-hint">Find your V2.0 API Token in AppsFlyer → Settings → API Access (use the V2.0 token)</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="afSecretKey">Reporting Token (optional)</label>
+    <input class="input" type="password" id="afSecretKey" placeholder="{{ 'Leave blank to keep current token' if editing else 'Your AppsFlyer Reporting Token' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing reporting token</div>
+    {% else %}<div class="label-hint">Optional. Used for pulling reports and event data.</div>{% endif %}
+  </div>
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect AppsFlyer' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitAppsFlyer(e){
+  e.preventDefault();
+  const editId = document.getElementById('afEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('afName').value.trim();
+  const api_key = document.getElementById('afApiKey').value.trim();
+  const secret_key = document.getElementById('afSecretKey').value.trim();
+
+  const url = isEdit ? '/api/connections/appsflyer/' + editId.value : '/api/connections/appsflyer';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, api_key, secret_key})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

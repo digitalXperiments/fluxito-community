@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "tutorials/_macros.html" import guide_logo, back_link %}
+{% block title %}{{ title }} — Fluxito{% endblock %}
+{% set active = 'tutorials' %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/tutorials.css?v={{ asset_hash('css/tutorials.css') }}"/>
+{% endblock %}
+
+{% set is_platform = current_category and current_category.title not in ['Start here', 'Use Fluxito features'] %}
+
+{% block main %}
+<main class="app-main tut-main">
+  {% if is_platform %}{{ back_link('/tutorials/platform-setup-guides', 'Platform setup guides') }}{% else %}{{ back_link() }}{% endif %}
+  <div class="page-head tut-detail-head">
+    <div class="tut-detail-title">
+      {% if slug %}{{ guide_logo(slug, 24) }}{% endif %}
+      <div>
+        <div class="eyebrow">Help · {{ current_category.title if current_category else 'Guide' }}</div>
+        <h1 class="page-title">{{ title }}</h1>
+        {% if current_tutorial %}<p class="page-sub">{{ current_tutorial[3] }}</p>{% endif %}
+      </div>
+    </div>
+    {% if current_tutorial %}
+    <div class="ui-page-actions">
+      <span class="ui-chip no-dot">{{ current_tutorial[2] }} read</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="tut-detail-layout">
+    <article class="ui-panel tut-article">
+      {{ tutorial_html | safe }}
+    </article>
+
+    <aside class="tut-aside" aria-label="Tutorial navigation">
+      {% if related_tutorials %}
+      <section class="ui-panel">
+        <div class="ui-panel-h"><h3>Related guides</h3></div>
+        {% for rt in related_tutorials %}
+        <a href="/tutorials/{{ rt[0] }}" class="tut-aside-link">
+          <span><b>{{ rt[1] }}</b><small>{{ rt[2] }}</small></span>
+          <span class="tut-arrow" aria-hidden="true">→</span>
+        </a>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <section class="ui-panel">
+        <div class="ui-panel-h"><h3>Workspace</h3></div>
+        <a href="/settings/connections" class="tut-aside-link"><span><b>Connections</b></span><span class="tut-arrow" aria-hidden="true">→</span></a>
+        <a href="/projects" class="tut-aside-link"><span><b>Projects</b></span><span class="tut-arrow" aria-hidden="true">→</span></a>
+        <a href="/admin/oauth-apps" class="tut-aside-link"><span><b>OAuth apps (admin)</b></span><span class="tut-arrow" aria-hidden="true">→</span></a>
+        <a href="/tutorials" class="tut-aside-link"><span><b>All tutorials</b></span><span class="tut-arrow" aria-hidden="true">→</span></a>
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}

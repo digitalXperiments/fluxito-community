@@ -1,0 +1,319 @@
+/* ============================================================
+   Tasks (automations.html) — "Flux's tasks" — running / scheduled /
+   done + assign-a-task composer + the automation install library.
+   Ground truth: fluxito_site_revamp/designs/Flux - Tasks.dc.html
+   ============================================================ */
+
+/* ── Assign-a-task composer ── */
+.task-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 13px 15px;
+  box-shadow: 0 10px 28px rgba(50, 40, 20, 0.08);
+  margin-bottom: 34px;
+}
+.task-flux-badge {
+  width: 26px; height: 26px;
+  border-radius: var(--r-sm);
+  background: var(--ink); color: var(--paper);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-style: italic; font-size: 13px;
+  flex-shrink: 0;
+}
+.task-composer-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: var(--sans); font-size: 14px; color: var(--ink);
+}
+.task-composer-input::placeholder { color: var(--muted-2); }
+.task-composer-btn {
+  display: inline-flex; align-items: center;
+  padding: 9px 17px;
+  background: var(--accent); color: #FFF9EF;
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  border: none; border-radius: var(--r-md);
+  cursor: pointer; transition: background 0.15s;
+}
+.task-composer-btn:hover { background: var(--accent-hover); }
+
+/* ── Section labels ── */
+.tasks-section-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ── In progress ── */
+.tasks-inprogress { display: flex; flex-direction: column; gap: 12px; margin-bottom: 34px; }
+.task-run-card {
+  padding: 18px 20px;
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+}
+.task-run-row { display: flex; align-items: center; gap: 10px; }
+.task-run-dot {
+  width: 8px; height: 8px; border-radius: var(--r-full);
+  background: var(--warn); flex-shrink: 0;
+}
+.task-run-title { font-size: 15px; font-weight: 700; flex: 1; color: var(--ink); }
+.task-run-stat { font-family: var(--mono); font-size: 11px; color: var(--warn); white-space: nowrap; }
+.task-run-stat-muted { color: var(--muted); }
+.task-run-progress {
+  height: 3px; background: var(--line-3); border-radius: var(--r-full);
+  margin: 12px 0 10px; overflow: hidden;
+}
+.task-run-progress-fill { height: 3px; background: var(--warn); border-radius: var(--r-full); }
+.task-run-detail { font-size: 13px; color: var(--ink-soft); margin-top: 6px; line-height: 1.55; }
+.task-run-meta {
+  display: flex; gap: 14px; align-items: center;
+  font-size: 12.5px; color: var(--muted);
+}
+.task-run-link {
+  margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--accent-hover);
+}
+
+/* ── Scheduled ── */
+.tasks-scheduled {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line-2); border-radius: var(--r-lg);
+  background: var(--card); overflow: hidden; margin-bottom: 34px;
+}
+.task-sched-row {
+  display: grid; grid-template-columns: 1fr 200px 160px 90px;
+  gap: 16px; align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--line-3);
+}
+.task-sched-row:last-child { border-bottom: none; }
+.task-sched-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.task-sched-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.task-sched-cadence { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); }
+.task-sched-dest { font-size: 12.5px; color: var(--ink-soft); }
+.task-sched-toggle {
+  font-family: var(--mono); font-size: 10px; text-align: right;
+  cursor: pointer; user-select: none; letter-spacing: 0.04em;
+}
+.task-sched-toggle.is-on { color: var(--good); }
+.task-sched-toggle.is-off { color: var(--muted); }
+
+/* ── Recently done ── */
+.tasks-done { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--line); margin-bottom: 34px; }
+.task-done-row {
+  display: grid; grid-template-columns: 110px 1fr auto;
+  gap: 16px; align-items: baseline;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.task-done-time { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.task-done-desc { font-size: 13.5px; color: var(--ink-2); }
+.task-done-desc strong { font-weight: 600; }
+.task-done-link { font-family: var(--mono); font-size: 11px; color: var(--accent-hover); }
+
+/* ── Empty states ── */
+.tasks-empty {
+  font-size: 13px; color: var(--muted);
+  padding: 16px 20px;
+  margin-bottom: 34px;
+}
+.tasks-empty-bordered {
+  border: 1px dashed var(--line-strong); border-radius: var(--r-lg);
+  background: var(--card-well);
+}
+.tasks-done + .tasks-empty,
+.tasks-inprogress + .tasks-empty { margin-top: -22px; }
+
+/* ── Library (browse & install automations) ── */
+.tasks-library { margin-top: 8px; }
+.tasks-library-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
+}
+
+/* ── Segmented tabs: Curated / My Automations ── */
+.t-seg {
+  display: inline-flex;
+  gap: 0;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 20px;
+}
+.t-seg a {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 18px;
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.t-seg a:hover { color: var(--ink); }
+.t-seg a.is-active {
+  background: var(--bg);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(11, 11, 14, 0.06), 0 0 0 1px var(--line);
+}
+.t-seg-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px;
+  padding: 0 6px;
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 600;
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--muted);
+  line-height: 1;
+}
+.t-seg a.is-active .t-seg-count {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* ── Filter chips: theme row ── */
+.t-filters {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.t-chip-filter {
+  display: inline-flex; align-items: center;
+  padding: 6px 14px;
+  font-family: var(--sans);
+  font-size: 12px; font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.t-chip-filter:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+  background: var(--bg-2);
+}
+.t-chip-filter.is-active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
+/* ── Card CTA: View & install ── */
+.auto-open {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px;
+  font-family: var(--sans);
+  font-size: 12px; font-weight: 600;
+  color: var(--bg);
+  background: var(--ink);
+  border-radius: 8px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.auto-open .arrow { transition: transform 0.15s; }
+.auto-card:hover .auto-open { opacity: 0.85; }
+.auto-card:hover .auto-open .arrow { transform: translateX(3px); }
+
+/* ── Category pill ── */
+.t-cat {
+  display: inline-flex; align-items: center;
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--ink-soft);
+  line-height: 1;
+}
+
+.auto-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+.auto-card {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 24px 26px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--bg); text-decoration: none; color: inherit;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.auto-card:hover {
+  border-color: var(--ink);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(11, 11, 14, 0.08);
+}
+
+.auto-hd { display: flex; gap: 14px; align-items: flex-start; }
+.auto-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 16px; flex-shrink: 0;
+  font-family: var(--mono);
+}
+.auto-hd-body { flex: 1; min-width: 0; }
+.auto-title {
+  font-size: 16px; font-weight: 600; color: var(--ink);
+  letter-spacing: -0.015em; line-height: 1.3;
+}
+.auto-flags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+.auto-desc {
+  margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; flex: 1;
+}
+
+.auto-meta {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.03em;
+}
+
+.auto-plats { display: flex; gap: 6px; flex-wrap: wrap; }
+.auto-plat-pill {
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+  padding: 3px 9px; border-radius: 6px;
+  background: var(--bg-3); color: var(--muted);
+  border: 1px solid var(--line-2);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.auto-plat-pill.on {
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+}
+
+.auto-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 14px; border-top: 1px solid var(--line-2);
+  font-size: 12px;
+}
+.auto-foot-meta {
+  display: flex; gap: 14px; color: var(--muted); flex-wrap: wrap;
+  font-family: var(--mono); letter-spacing: 0.02em; font-size: 11px;
+}
+.auto-foot-meta .needs { color: var(--amber); }
+
+.auto-tip {
+  margin-top: 36px; padding: 18px 22px;
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  font-size: 13.5px; color: var(--ink-soft); line-height: 1.6;
+}
+.auto-tip strong { color: var(--ink); font-weight: 600; }
+.auto-tip a { color: var(--ink); }
+
+@media (max-width: 680px) {
+  .auto-grid { grid-template-columns: 1fr; }
+  .task-sched-row { grid-template-columns: 1fr; gap: 6px; }
+  .task-sched-cadence, .task-sched-dest { font-size: 11px; }
+  .task-sched-toggle { text-align: left; }
+  .task-done-row { grid-template-columns: 1fr; gap: 4px; }
+}

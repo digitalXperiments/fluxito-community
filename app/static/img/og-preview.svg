@@ -1,0 +1,353 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="paperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8F3EA"/>
+      <stop offset="100%" stop-color="#F2EBDE"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#201B14" flood-opacity="0.05"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#201B14" flood-opacity="0.03"/>
+    </filter>
+    <filter id="hubShadow" x="-15%" y="-15%" width="135%" height="135%">
+      <feDropShadow dx="0" dy="6" stdDeviation="16" flood-color="#201B14" flood-opacity="0.08"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#C4703A" flood-opacity="0.08"/>
+    </filter>
+    <pattern id="ledgerGrid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#E8DEC9" stroke-width="0.65" stroke-opacity="0.5"/>
+    </pattern>
+
+    <!-- Gradients -->
+    <linearGradient id="inFlowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C4703A" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#C4703A" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#C4703A" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <linearGradient id="outFlowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C4703A" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="#C4703A" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#C4703A" stop-opacity="0.25"/>
+    </linearGradient>
+
+    <linearGradient id="redshiftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8C4FFF"/>
+      <stop offset="100%" stop-color="#5C28C7"/>
+    </linearGradient>
+
+    <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#439DDF"/>
+      <stop offset="25%" stop-color="#4F87ED"/>
+      <stop offset="50%" stop-color="#9476C5"/>
+      <stop offset="75%" stop-color="#BC688E"/>
+      <stop offset="100%" stop-color="#D6645D"/>
+    </linearGradient>
+  </defs>
+
+  <!-- CANVAS BACKGROUND -->
+  <rect width="1200" height="630" fill="url(#paperGrad)"/>
+  <rect width="1200" height="630" fill="url(#ledgerGrid)"/>
+
+  <!-- OUTER FRAME -->
+  <rect x="24" y="24" width="1152" height="582" rx="16" fill="none" stroke="#E0D6C3" stroke-width="1.2"/>
+  <g stroke="#C4703A" stroke-width="1.2" stroke-linecap="round" opacity="0.5">
+    <line x1="20" y1="24" x2="28" y2="24"/><line x1="24" y1="20" x2="24" y2="28"/>
+    <line x1="1172" y1="24" x2="1180" y2="24"/><line x1="1176" y1="20" x2="1176" y2="28"/>
+    <line x1="20" y1="606" x2="28" y2="606"/><line x1="24" y1="602" x2="24" y2="610"/>
+    <line x1="1172" y1="606" x2="1180" y2="606"/><line x1="1176" y1="602" x2="1176" y2="610"/>
+  </g>
+
+  <!-- HEADER BRANDING: Crisp & Compact -->
+  <g transform="translate(56, 44)">
+    <rect width="38" height="38" rx="10" fill="#201B14"/>
+    <text x="19" y="26" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#F6F1E8">f.</text>
+    <text x="48" y="28" font-family="Georgia, serif" font-size="28" font-weight="700" fill="#201B14" letter-spacing="-0.5">fluxito<tspan fill="#C4703A">.</tspan></text>
+  </g>
+
+  <!-- TOP RIGHT PILL: PIPELINE STATUS -->
+  <g transform="translate(620, 50)">
+    <rect width="510" height="36" rx="18" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <circle cx="20" cy="18" r="4" fill="#3E8A5F"/>
+    <text x="34" y="23" font-family="'IBM Plex Mono', monospace" font-size="11.5" font-weight="600" fill="#3E8A5F" letter-spacing="0.5">DATA &amp; MARKETING STACK</text>
+    <text x="214" y="23" font-family="'IBM Plex Mono', monospace" font-size="11.5" font-weight="600" fill="#A85A2B"> → </text>
+    <text x="236" y="23" font-family="'IBM Plex Mono', monospace" font-size="11.5" font-weight="600" fill="#201B14" letter-spacing="0.5">FLUXITO MCP</text>
+    <text x="328" y="23" font-family="'IBM Plex Mono', monospace" font-size="11.5" font-weight="600" fill="#A85A2B"> → </text>
+    <text x="350" y="23" font-family="'IBM Plex Mono', monospace" font-size="11.5" font-weight="600" fill="#3E8A5F" letter-spacing="0.5">AI AGENTS</text>
+  </g>
+
+  <!-- SECTION LABELS -->
+  <text x="194" y="98" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" font-weight="600" fill="#8A857C" letter-spacing="1.1">MARKETING &amp; DATA PLATFORMS</text>
+  <text x="600" y="98" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="700" fill="#A85A2B" letter-spacing="1.4">FLUXITO MCP HUB</text>
+  <text x="992" y="98" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" font-weight="600" fill="#8A857C" letter-spacing="1.2">AI AGENTS &amp; ASSISTANTS</text>
+
+  <!-- INFLOW WIRES: FROM SINGLE COLUMN TO HUB -->
+  <g fill="none" stroke="url(#inFlowGrad)" stroke-width="2.3" stroke-linecap="round">
+    <path d="M 218 141.5 C 285 141.5, 370 152.0, 445 152.0"/>
+    <path d="M 218 192.5 C 285 192.5, 370 200.0, 445 200.0"/>
+    <path d="M 218 243.5 C 285 243.5, 370 248.0, 445 248.0"/>
+    <path d="M 218 294.5 C 285 294.5, 370 296.0, 445 296.0"/>
+    <path d="M 218 345.5 C 285 345.5, 370 344.0, 445 344.0"/>
+    <path d="M 218 396.5 C 285 396.5, 370 392.0, 445 392.0"/>
+    <path d="M 218 447.5 C 285 447.5, 370 440.0, 445 440.0"/>
+    <path d="M 218 498.5 C 285 498.5, 370 488.0, 445 488.0"/>
+  </g>
+
+  <!-- HUB INFLOW TERMINALS -->
+  <g fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5">
+    <circle cx="445" cy="152.0" r="3.5"/>
+    <circle cx="445" cy="200.0" r="3.5"/>
+    <circle cx="445" cy="248.0" r="3.5"/>
+    <circle cx="445" cy="296.0" r="3.5"/>
+    <circle cx="445" cy="344.0" r="3.5"/>
+    <circle cx="445" cy="392.0" r="3.5"/>
+    <circle cx="445" cy="440.0" r="3.5"/>
+    <circle cx="445" cy="488.0" r="3.5"/>
+  </g>
+
+  <!-- PULSE GLOW DOTS ON INFLOW WIRES -->
+  <g fill="#C4703A">
+    <circle cx="322" cy="146.8" r="3.2"/>
+    <circle cx="348" cy="196.2" r="3.2"/>
+    <circle cx="326" cy="245.8" r="3.2"/>
+    <circle cx="344" cy="295.2" r="3.2"/>
+    <circle cx="322" cy="344.8" r="3.2"/>
+    <circle cx="348" cy="394.2" r="3.2"/>
+    <circle cx="326" cy="443.8" r="3.2"/>
+    <circle cx="344" cy="493.2" r="3.2"/>
+  </g>
+
+  <!-- LEFT SIDE: SINGLE LINE OF 8 TOOL TILES -->
+
+    <!-- 1. GA4 (y=118.5) -->
+    <g transform="translate(170, 118.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#FEF6ED"/>
+      <g transform="translate(11.12, 10.12) scale(1.0800)">
+        
+  <path d="M4.1326 18.0548c-1.6417 0-2.9726 1.331-2.9726 2.9726C1.16 22.6691 2.4909 24 4.1326 24s2.9726-1.3309 2.9726-2.9726-1.331-2.9726-2.9726-2.9726z" fill="#F9AB00"/>
+  <path d="M12.0054 9.045c-1.6495.0904-2.9293 1.474-2.891 3.1256v7.9846c0 2.167.9535 3.4825 2.3505 3.763 1.6118.3266 3.1832-.7152 3.5098-2.327.04-.1974.06-.3983.0593-.5998v-8.9585c.003-1.6474-1.33-2.9852-2.9773-2.9882z" fill="#F9AB00"/>
+  <path d="M22.84 2.9982v17.9987c.0086 1.6473-1.3197 2.9897-2.967 2.9984a2.9808 2.9808 0 01-.3677-.0208c-1.528-.226-2.6477-1.5558-2.6105-3.1V3.1204c-.0369-1.5458 1.0856-2.8762 2.6157-3.1 1.6361-.1915 3.1178.9796 3.3093 2.6158.014.1201.0208.241.0202.3619z" fill="#E37400"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 2. GTM (y=169.5) -->
+    <g transform="translate(170, 169.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#EEF4FE"/>
+      <g transform="translate(11.12, 10.12) scale(1.0800)">
+        
+  <path d="M12.003 0a3 3 0 0 0-2.121 5.121l6.865 6.865-4.446 4.541 1.745 1.836a3.432 3.432 0 0 1 .7.739l.012.011-.001.002a3.432 3.432 0 0 1 .609 1.953 3.432 3.432 0 0 1-.09.78l7.75-7.647c.031-.029.067-.05.098-.08.023-.023.038-.052.06-.076a2.994 2.994 0 0 0-.06-4.166l-9-9A2.99 2.99 0 0 0 12.003 0z" fill="#1A73E8"/>
+  <path d="M8.63 2.133L.88 9.809a2.998 2.998 0 0 0 0 4.238l7.7 7.75a3.432 3.432 0 0 1-.077-.729 3.432 3.432 0 0 1 3.431-3.431 3.432 3.432 0 0 1 .826.101l-5.523-5.81 4.371-4.373-2.08-2.08c-.903-.904-1.193-2.183-.898-3.342z" fill="#4285F4"/>
+  <path d="M11.934 18.137a2.932 2.932 0 0 0-2.931 2.931A2.932 2.932 0 0 0 11.934 24a2.932 2.932 0 0 0 2.932-2.932 2.932 2.932 0 0 0-2.932-2.931z" fill="#1A73E8"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 3. Google Ads (y=220.5) -->
+    <g transform="translate(170, 220.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#EEF4FE"/>
+      <g transform="translate(10.12, 10.50) scale(0.1116)">
+        
+  <path d="M85.9,28.6c2.4-6.3,5.7-12.1,10.6-16.8c19.6-19.1,52-14.3,65.3,9.7c10,18.2,20.6,36,30.9,54 c17.2,29.9,34.6,59.8,51.6,89.8c14.3,25.1-1.2,56.8-29.6,61.1c-17.4,2.6-33.7-5.4-42.7-21c-15.1-26.3-30.3-52.6-45.4-78.8 c-0.3-0.6-0.7-1.1-1.1-1.6c-1.6-1.3-2.3-3.2-3.3-4.9c-6.7-11.8-13.6-23.5-20.3-35.2c-4.3-7.6-8.8-15.1-13.1-22.7 c-3.9-6.8-5.7-14.2-5.5-22C83.6,36.2,84.1,32.2,85.9,28.6" fill="#4285F4"/>
+  <path d="M85.9,28.6c-0.9,3.6-1.7,7.2-1.9,11c-0.3,8.4,1.8,16.2,6,23.5C101,82,112,101,122.9,120c1,1.7,1.8,3.4,2.8,5 c-6,10.4-12,20.7-18.1,31.1c-8.4,14.5-16.8,29.1-25.3,43.6c-0.4,0-0.5-0.2-0.6-0.5c-0.1-0.8,0.2-1.5,0.4-2.3 c4.1-15,0.7-28.3-9.6-39.7c-6.3-6.9-14.3-10.8-23.5-12.1c-12-1.7-22.6,1.4-32.1,8.9c-1.7,1.3-2.8,3.2-4.8,4.2 c-0.4,0-0.6-0.2-0.7-0.5c4.8-8.3,9.5-16.6,14.3-24.9C45.5,98.4,65.3,64,85.2,29.7C85.4,29.3,85.7,29,85.9,28.6" fill="#FBBC04"/>
+  <path d="M11.8,158c1.9-1.7,3.7-3.5,5.7-5.1c24.3-19.2,60.8-5.3,66.1,25.1c1.3,7.3,0.6,14.3-1.6,21.3 c-0.1,0.6-0.2,1.1-0.4,1.7c-0.9,1.6-1.7,3.3-2.7,4.9c-8.9,14.7-22,22-39.2,20.9C20,225.4,4.5,210.6,1.8,191 c-1.3-9.5,0.6-18.4,5.5-26.6c1-1.8,2.2-3.4,3.3-5.2C11.1,158.8,10.9,158,11.8,158" fill="#34A853"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 4. Meta Ads (y=271.5) -->
+    <g transform="translate(170, 271.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#EEF4FE"/>
+      <g transform="translate(11.12, 10.25) scale(1.0800)">
+        
+  <defs>
+    <linearGradient id="metaGradU" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0064E0"/>
+      <stop offset="100%" stop-color="#0081FB"/>
+    </linearGradient>
+  </defs>
+  <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z" fill="url(#metaGradU)"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 5. BigQuery (y=322.5) -->
+    <g transform="translate(170, 322.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#EEF4FE"/>
+      <g transform="translate(11.12, 10.12) scale(1.0800)">
+        
+  <path d="M5.676 10.595h2.052v5.244a5.892 5.892 0 0 1-2.052-2.088v-3.156zm18.179 10.836a.504.504 0 0 1 0 .708l-1.716 1.716a.504.504 0 0 1-.708 0l-4.248-4.248a.206.206 0 0 1-.007-.007c-.02-.02-.028-.045-.043-.066a10.736 10.736 0 0 1-6.334 2.065C4.835 21.599 0 16.764 0 10.799S4.835 0 10.8 0s10.799 4.835 10.799 10.8c0 2.369-.772 4.553-2.066 6.333.025.017.052.028.074.05l4.248 4.248zm-5.028-10.632a8.015 8.015 0 1 0-8.028 8.028h.024a8.016 8.016 0 0 0 8.004-8.028zm-4.86 4.98a6.002 6.002 0 0 0 2.04-2.184v-1.764h-2.04v3.948zm-4.5.948c.442.057.887.08 1.332.072.4.025.8.025 1.2 0V7.692H9.468v9.035z" fill="#4285F4"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 6. Redshift (y=373.5) -->
+    <g transform="translate(170, 373.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="url(#redshiftGrad)"/>
+      <g transform="translate(6.75, 5.75) scale(0.1354)">
+        
+  <path d="M162.64,112.55 C159.25,112.55 156.49,109.8 156.49,106.41 C156.49,103.03 159.25,100.28 162.64,100.28 C166.03,100.28 168.78,103.03 168.78,106.41 C168.78,109.8 166.03,112.55 162.64,112.55 M147.07,149.84 C143.68,149.84 140.93,147.09 140.93,143.71 C140.93,140.32 143.68,137.57 147.07,137.57 C150.46,137.57 153.22,140.32 153.22,143.71 C153.22,147.09 150.46,149.84 147.07,149.84 M109.7,143.62 C106.32,143.62 103.56,140.87 103.56,137.49 C103.56,134.11 106.32,131.36 109.7,131.36 C113.09,131.36 115.85,134.11 115.85,137.49 C115.85,140.87 113.09,143.62 109.7,143.62 M94.14,177.81 C90.75,177.81 87.99,175.06 87.99,171.68 C87.99,168.3 90.75,165.54 94.14,165.54 C97.53,165.54 100.28,168.3 100.28,171.68 C100.28,175.06 97.53,177.81 94.14,177.81 M162.64,93.9 C155.73,93.9 150.1,99.51 150.1,106.41 C150.1,110.64 152.23,114.37 155.46,116.64 L149.61,131.45 C148.79,131.28 147.07,131.19 147.07,131.19 C141.57,131.19 136.94,134.77 135.26,139.7 L122.17,136.73 C121.76,130.19 116.36,124.98 109.7,124.98 C102.79,124.98 97.17,130.59 97.17,137.49 C97.17,140.72 98.43,143.63 100.45,145.85 L94.73,159.22 C94.53,159.21 94.34,159.16 94.14,159.16 C87.23,159.16 81.6,164.78 81.6,171.68 C81.6,178.57 87.23,184.19 94.14,184.19 C101.05,184.19 106.68,178.57 106.68,171.68 C106.68,167.25 104.35,163.38 100.86,161.15 L105.9,149.35 C107.11,149.74 108.37,150 109.7,150 C114.64,150 118.87,147.12 120.91,142.99 L134.78,146.13 C135.91,151.87 140.99,156.22 147.07,156.22 C153.98,156.22 159.61,150.61 159.61,143.71 C159.61,139.98 157.93,136.66 155.33,134.36 L161.48,118.81 C161.87,118.85 162.24,118.93 162.64,118.93 C169.55,118.93 175.18,113.31 175.18,106.41 C175.18,99.51 169.55,93.9 162.64,93.9 M128,211.22 C96.86,211.22 73.59,201.87 73.59,193.51 L73.59,74.08 C84.19,82.69 106.61,87.24 128.07,87.24 C149.43,87.24 171.76,82.73 182.41,74.2 L182.41,193.51 C182.41,201.87 159.14,211.22 128,211.22 M128.07,44.78 C160.09,44.78 182.41,54.29 182.41,62.82 C182.41,71.35 160.09,80.86 128.07,80.86 C96.04,80.86 73.73,71.35 73.73,62.82 C73.73,54.29 96.04,44.78 128.07,44.78 M188.8,62.82 C188.8,46.96 157.51,38.4 128.07,38.4 C98.62,38.4 67.33,46.96 67.33,62.82 L67.2,193.51 C67.2,209.16 98.53,217.6 128,217.6 C157.47,217.6 188.8,209.16 188.8,193.51 Z" fill="white"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 7. AppsFlyer (y=424.5) -->
+    <g transform="translate(170, 424.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#F4FAF0"/>
+      <g transform="translate(12.88, 10.50) scale(0.5472)">
+        
+  <g transform="translate(-36.25, -141.55)">
+    <path fill="#7ac643" d="m 36.442826,156.07772 6.791724,12.93017 c 0.459059,0.88278 1.60082,1.59494 2.548365,1.59494 l 13.848292,-0.0299 c 0.941664,-0.004 1.330096,-0.71801 0.871037,-1.60084 L 53.71052,156.04193 c -0.464945,-0.88283 -1.600825,-1.59495 -2.54837,-1.59495 l -13.848287,0.0299 h -0.06475 c -0.894578,0.0342 -1.25947,0.74155 -0.806296,1.60084"/>
+    <path fill="#7ac643" d="m 62.744574,171.14425 4.113875,7.66867 c 0.276622,0.52378 0.959316,0.94164 1.524313,0.93578 l 8.2513,-0.0884 c 0.559108,-0.004 0.78864,-0.4355 0.512026,-0.95342 l -4.113879,-7.66863 c -0.276622,-0.52378 -0.965201,-0.94168 -1.524313,-0.93579 l -8.251296,0.0824 h -0.02947 c -0.541457,0.0256 -0.759214,0.44139 -0.482601,0.95932"/>
+    <path fill="#019ddd" d="m 62.791656,142.02342 -8.245415,10.58779 c -0.564993,0.72391 -0.641505,2.01869 -0.170662,2.89563 l 6.897662,12.87132 c 0.47083,0.87688 1.306551,1.00638 1.871549,0.2823 l 8.251295,-10.58779 c 0.559113,-0.72391 0.635625,-2.0187 0.164812,-2.90148 l -6.897662,-12.86543 c -0.270729,-0.51203 -0.665046,-0.76512 -1.059369,-0.75333 -0.288366,0.0128 -0.576768,0.16486 -0.81218,0.47082"/>
+    <path fill="#019ddd" d="m 60.86125,171.27374 -4.91429,6.30914 c -0.335474,0.42964 -0.382538,1.20061 -0.100065,1.72439 l 4.107994,7.66867 c 0.282516,0.52378 0.782755,0.60031 1.11822,0.17084 l 4.91429,-6.30914 c 0.329581,-0.4296 0.376645,-1.20647 0.100066,-1.73029 l -4.11388,-7.66863 c -0.158917,-0.30024 -0.394326,-0.45318 -0.62973,-0.44732 -0.170663,0.004 -0.341368,0.0999 -0.482605,0.2823"/>
+  </g>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+    <!-- 8. Braze (y=475.5) -->
+    <g transform="translate(170, 475.5)">
+      <rect width="48" height="46" rx="12" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="5" y="4" width="38" height="38" rx="9" fill="#FFF5F2"/>
+      <g transform="translate(11.50, 10.50) scale(0.0979)">
+        
+  <path d="M115.67,146.62 C117.76,126.6 130.33,110.31 144.99,110.31 C159.65,110.31 167.56,126.6 165.47,146.62 C163.37,166.63 151.27,183.16 137.54,183.16 C123.81,183.16 112.64,170.59 115.67,146.62 M128,237.38 C95.42,237.43 64.52,222.92 43.75,197.82 C61.91,203.64 82.15,198.52 97.98,182.92 C99.65,181.25 101.2,179.46 102.63,177.57 C109.85,193.16 123.81,201.08 137.77,201.08 C161.51,201.08 181.53,176.64 183.85,146.39 C186.18,116.13 169.19,92.16 146.62,92.16 C138.43,92.05 130.37,94.22 123.35,98.44 L130.33,57.72 C131.02,54.46 130.26,51.06 128.23,48.41 C126.14,45.15 124.28,43.75 121.48,43.75 L88.9,43.75 C86.98,43.85 85.4,45.33 85.18,47.24 C84.31,51.08 83.69,54.97 83.32,58.88 C83.08,61.44 84.95,62.37 87.04,62.37 L110.78,62.37 C107.05,85.64 99.61,130.79 97.51,142.2 C95.32,152.99 90.07,162.93 82.39,170.82 C69.35,183.85 45.38,186.88 31.19,172.68 C26.3,167.56 18.62,155 18.62,128 C18.62,67.59 67.59,18.62 128,18.62 C188.41,18.62 237.38,67.59 237.38,128 C237.38,188.41 188.41,237.38 128,237.38 M128,0 C57.31,0 0,57.31 0,128 C0,198.69 57.31,256 128,256 C198.69,256 256,198.69 256,128 C256,94.05 242.51,61.49 218.51,37.49 C194.51,13.49 161.95,0 128,0" fill="#FF5023"/>
+
+      </g>
+      <circle cx="48" cy="23.0" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+    </g>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       CENTER: FLUXITO MCP ENGINE HUB CARD (x=445, y=120, Width 310, Height 400)
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <g transform="translate(445, 120)">
+    <rect width="310" height="400" rx="20" fill="#FFFDF8" stroke="#C4703A" stroke-width="2" filter="url(#hubShadow)"/>
+    <rect x="5" y="5" width="300" height="390" rx="16" fill="none" stroke="#EFE7D8" stroke-width="1"/>
+    
+    <!-- Hub Header -->
+    <g transform="translate(20, 20)">
+      <rect width="40" height="40" rx="10" fill="#201B14"/>
+      <text x="20" y="27" text-anchor="middle" font-family="Georgia, serif" font-size="21" font-weight="700" fill="#F6F1E8">f.</text>
+      <text x="52" y="22" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700" fill="#201B14">Fluxito MCP</text>
+      <text x="52" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11.5" fill="#6E6554">AI Operations Engine</text>
+      <g transform="translate(212, 6)">
+        <rect width="66" height="24" rx="12" fill="#F0F8F3" stroke="#B4DEC4" stroke-width="1"/>
+        <circle cx="12" cy="12" r="3.5" fill="#3E8A5F"/>
+        <text x="22" y="15.5" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="700" fill="#3E8A5F">ACTIVE</text>
+      </g>
+    </g>
+    <line x1="20" y1="76" x2="290" y2="76" stroke="#EEE6D6" stroke-width="1.2"/>
+    <g transform="translate(20, 92)">
+      <rect width="270" height="58" rx="9" fill="#FBF8F1" stroke="#EFE7D8" stroke-width="1"/>
+      <circle cx="18" cy="22" r="5" fill="#3E8A5F"/>
+      <text x="32" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#201B14">Tag Audits &amp; QA</text>
+      <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#57503F">25 rulebooks · Zero broken triggers</text>
+      <text x="218" y="21" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="600" fill="#3E8A5F">VERIFIED</text>
+    </g>
+    <g transform="translate(20, 160)">
+      <rect width="270" height="58" rx="9" fill="#FBF8F1" stroke="#EFE7D8" stroke-width="1"/>
+      <circle cx="18" cy="22" r="5" fill="#C4703A"/>
+      <text x="32" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#201B14">Tracking Plan (SDR)</text>
+      <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#57503F">Reconciled parameters &amp; events</text>
+      <text x="222" y="21" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="600" fill="#A85A2B">MAPPED</text>
+    </g>
+    <g transform="translate(20, 228)">
+      <rect width="270" height="58" rx="9" fill="#FBF8F1" stroke="#EFE7D8" stroke-width="1"/>
+      <circle cx="18" cy="22" r="5" fill="#246FDB"/>
+      <text x="32" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="700" fill="#201B14">Blended Multi-Ad ROAS</text>
+      <text x="32" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#57503F">Joined Google, Meta &amp; BigQuery</text>
+      <text x="220" y="21" font-family="'IBM Plex Mono', monospace" font-size="9.5" font-weight="600" fill="#246FDB">3.82x ROAS</text>
+    </g>
+    <g transform="translate(0, 300)">
+      <path d="M 0 0 L 310 0 L 310 32 A 16 16 0 0 1 294 48 L 16 48 A 16 16 0 0 1 0 32 Z" fill="#201B14"/>
+      <text x="155" y="28" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="600" fill="#F6F1E8">40+ MCP ANALYTICS TOOLS ACTIVE</text>
+    </g>
+  </g>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       RIGHT SIDE: 4 AI CLIENTS (Claude, ChatGPT, Grok, Gemini)
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <g transform="translate(960, 144)">
+    <rect width="64" height="64" rx="16" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="7" y="7" width="50" height="50" rx="13" fill="#D97757"/>
+    <g transform="translate(14, 14) scale(1.5)">
+      <path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" fill="white"/>
+    </g>
+    <circle cx="0" cy="32" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+  </g>
+
+  <g transform="translate(960, 230)">
+    <rect width="64" height="64" rx="16" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="7" y="7" width="50" height="50" rx="13" fill="#10A37F"/>
+    <g transform="translate(14, 14) scale(1.5)">
+      <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" fill="white"/>
+    </g>
+    <circle cx="0" cy="32" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+  </g>
+
+  <!-- Grok -->
+  <g transform="translate(960, 316)">
+    <rect width="64" height="64" rx="16" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="7" y="7" width="50" height="50" rx="13" fill="#000000"/>
+    <g transform="translate(14, 14) scale(1.5)">
+      <path d="M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815" fill="white"/>
+    </g>
+    <circle cx="0" cy="32" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+  </g>
+
+  <!-- Gemini (Official sparkle + gradient) -->
+  <g transform="translate(960, 402)">
+    <rect width="64" height="64" rx="16" fill="#FFFDF8" stroke="#E0D6C3" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <rect x="7" y="7" width="50" height="50" rx="13" fill="#12100E"/>
+    <g transform="translate(-134.04, 14.00) scale(0.70305)">
+      <path d="M234.123 41.2204C235.489 44.3354 236.172 47.6638 236.172 51.2055C236.172 47.6638 236.833 44.3354 238.156 41.2204C239.521 38.1054 241.356 35.3958 243.66 33.0916C245.965 30.7873 248.674 28.9738 251.789 27.651C254.904 26.2855 258.233 25.6028 261.774 25.6028C258.233 25.6028 254.904 24.9414 251.789 23.6185C248.674 22.2531 245.965 20.4182 243.66 18.114C241.356 15.8097 239.521 13.1001 238.156 9.98507C236.833 6.87007 236.172 3.54171 236.172 0C236.172 3.54171 235.489 6.87007 234.123 9.98507C232.801 13.1001 230.987 15.8097 228.683 18.114C226.379 20.4182 223.669 22.2531 220.554 23.6185C217.439 24.9414 214.111 25.6028 210.569 25.6028C214.111 25.6028 217.439 26.2855 220.554 27.651C223.669 28.9738 226.379 30.7873 228.683 33.0916C230.987 35.3958 232.801 38.1054 234.123 41.2204Z" fill="url(#geminiGrad)"/>
+    </g>
+    <circle cx="0" cy="32" r="3.5" fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5"/>
+  </g>
+
+  <!-- OUTFLOW WIRES: HUB TO 4 AI CLIENTS -->
+  <g fill="none" stroke="url(#outFlowGrad)" stroke-width="2.5" stroke-linecap="round">
+    <path d="M 755 240 C 825 240, 875 176, 960 176"/>
+    <path d="M 755 280 C 825 280, 875 262, 960 262"/>
+    <path d="M 755 320 C 825 320, 875 348, 960 348"/>
+    <path d="M 755 360 C 825 360, 875 434, 960 434"/>
+  </g>
+  <g fill="#C4703A" stroke="#FFFDF8" stroke-width="1.5">
+    <circle cx="755" cy="240" r="3.5"/>
+    <circle cx="755" cy="280" r="3.5"/>
+    <circle cx="755" cy="320" r="3.5"/>
+    <circle cx="755" cy="360" r="3.5"/>
+  </g>
+  <g fill="#C4703A">
+    <circle cx="855" cy="208" r="3.5"/>
+    <circle cx="858" cy="271" r="3.5"/>
+    <circle cx="858" cy="334" r="3.5"/>
+    <circle cx="855" cy="397" r="3.5"/>
+  </g>
+
+  <!-- BOTTOM FOOTER -->
+  <g transform="translate(56, 542)">
+    <rect width="140" height="36" rx="9" fill="#201B14"/>
+    <circle cx="18" cy="18" r="4" fill="#3E8A5F"/>
+    <text x="32" y="23" font-family="'IBM Plex Mono', Menlo, monospace" font-size="14" font-weight="600" fill="#F6F1E8">fluxito.app</text>
+    <text x="166" y="23" font-family="Georgia, 'Times New Roman', serif" font-size="16.5" font-weight="600" fill="#201B14">
+      The open-source AI teammate for your marketing operations stack.
+    </text>
+    <text x="1130" y="23" text-anchor="end" font-family="'IBM Plex Mono', monospace" font-size="11.5" fill="#8A857C">
+      Apache-2.0 · github.com/digitalXperiments/fluxito-community
+    </text>
+  </g>
+</svg>

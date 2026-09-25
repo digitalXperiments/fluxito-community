@@ -1,0 +1,61 @@
+{% extends "connect/platform.html" %}
+{% set platform_name = "Adobe Marketo Engage" %}
+{% set platform_slug = "marketo" %}
+{% set platform_desc = "Connect Adobe Marketo Engage for leads, campaigns, and marketing automation." %}
+
+{% block platform_body %}
+<form id="marketoForm" onsubmit="return submitMarketo(event)">
+  {% if editing %}<input type="hidden" id="marketoEditId" value="{{ editing.id }}"/>{% endif %}
+  <div class="form-group">
+    <label class="label" for="marketoName">Display name</label>
+    <input class="input" id="marketoName" required placeholder="e.g. Production Marketo" value="{{ editing.display_name if editing else '' }}"/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="marketoInstanceUrl">Marketo REST endpoint</label>
+    <input class="input" id="marketoInstanceUrl" required placeholder="https://123-ABC-456.mktorest.com" value="{{ editing.instance_url if editing else '' }}"/>
+    <div class="label-hint">Found in Marketo Admin → Integration → Web Services</div>
+  </div>
+  <div class="form-group">
+    <label class="label" for="marketoClientId">Client ID</label>
+    <input class="input" id="marketoClientId" {% if not editing %}required{% endif %} placeholder="{% if editing %}Saved {{ editing.client_id_hint }} — leave blank to keep{% else %}Client ID from LaunchPoint service{% endif %}" value=""/>
+  </div>
+  <div class="form-group">
+    <label class="label" for="marketoClientSecret">Client Secret</label>
+    <input class="input" type="password" id="marketoClientSecret" {% if not editing %}required{% endif %} placeholder="{{ 'Leave blank to keep current secret' if editing else 'Client Secret (kept secure)' }}"/>
+    {% if editing %}<div class="label-hint">Leave blank to keep your existing client secret</div>{% endif %}
+  </div>
+
+  <div class="label-hint" style="margin-top:12px;">Create a LaunchPoint service in Marketo Admin → Integration → LaunchPoint and use the Client ID and Client Secret provided.</div>
+
+  <div class="oi-actions">
+    <button type="submit" class="ui-btn is-primary oi-cta">
+      {{ 'Save changes' if editing else 'Connect Marketo' }}
+    </button>
+    <a href="/settings/connections" class="ui-btn">Cancel</a>
+  </div>
+</form>
+
+<script>
+async function submitMarketo(e){
+  e.preventDefault();
+  const editId = document.getElementById('marketoEditId');
+  const isEdit = !!editId;
+  const display_name = document.getElementById('marketoName').value.trim();
+  const instance_url = document.getElementById('marketoInstanceUrl').value.trim();
+  const client_id = document.getElementById('marketoClientId').value.trim();
+  const client_secret = document.getElementById('marketoClientSecret').value.trim();
+
+  const url = isEdit ? '/api/connections/marketo/' + editId.value : '/api/connections/marketo';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name, instance_url, client_id, client_secret})
+  });
+  if (res.ok) { Fluxito.toast(isEdit ? 'Updated!' : 'Connected!'); setTimeout(()=>location.href='/connect', 600); }
+  else { const err = await res.json().catch(()=>({})); Fluxito.toast(err.error||'Failed', 'error'); }
+  return false;
+}
+</script>
+{% endblock %}

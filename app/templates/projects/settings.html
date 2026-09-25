@@ -1,0 +1,1990 @@
+{% extends "settings/shell.html" %}
+{% block title %}{{ project.name }} — Settings — Fluxito{% endblock %}
+{% set settings_section = 'project' %}
+{% import "partials/rate_limit_cards.html" as rlcards %}
+
+{% block settings_main %}
+{% set can_admin = membership.role in ('owner', 'admin') %}
+{% set is_owner = membership.role == 'owner' %}
+{#
+  Project settings — tabbed by the settings rail (URL hash). Every section
+  carries data-ps-tab; the controller at the bottom shows only the active
+  tab's sections. Tabs: general · members · limits (+ project connections) ·
+  notifications (owner/admin) · oauth (owner/admin). Deep links: #general
+  #members #roles #rbac #connections #limits #notifications #oauth #oauth-apps
+  #transfer #danger #dashboardStyleCard.
+#}
+<div class="set-stack ps-page">
+
+  {# ════════════════════════ GENERAL ════════════════════════ #}
+  <section class="ui-panel" id="general" data-ps-tab="general">
+    <div class="ui-panel-h">
+      <div class="set-grow">
+        <h2>Project</h2>
+        <div class="ui-sub">Everything in Fluxito belongs to a project: connections, plans, audits, dashboards, members.</div>
+      </div>
+      {% if can_admin %}
+      <div class="ui-right">
+        <span id="generalMsg" class="ps-msg" style="display:none"></span>
+        <button type="button" class="ui-btn is-primary is-sm" id="generalSaveBtn" onclick="saveGeneralDetails()">Save</button>
+      </div>
+      {% endif %}
+    </div>
+    {% if can_admin %}
+    {# Project name + slug — saved via PATCH /api/project/{slug} (owners/admins). #}
+    <form id="generalForm" onsubmit="saveGeneralDetails(); return false;">
+      <div class="ui-rowf">
+        <div class="ui-rowf-l"><b><label for="generalNameInput">Name</label></b></div>
+        <div><input type="text" id="generalNameInput" class="ui-input set-input" value="{{ project.name }}" maxlength="255" required></div>
+      </div>
+      <div class="ui-rowf">
+        <div class="ui-rowf-l"><b><label for="generalSlugInput">Slug</label></b><small>Used in URLs · lowercase words joined by hyphens</small></div>
+        <div><input type="text" id="generalSlugInput" class="ui-input set-input ui-mono" value="{{ project.slug }}" maxlength="64" autocomplete="off" spellcheck="false"></div>
+      </div>
+    </form>
+    {% else %}
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Name</b></div>
+      <div class="set-inline"><b>{{ project.name }}</b></div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Slug</b><small>Used in URLs</small></div>
+      <div class="set-inline ui-mono">{{ project.slug }}</div>
+    </div>
+    {% endif %}
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Project ID</b></div>
+      <div class="set-inline"><span class="ui-mono ps-id">{{ project.id }}</span><button type="button" class="ui-btn is-quiet is-sm" data-copy="{{ project.id }}" data-copy-label="Project ID">Copy</button></div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Your role</b></div>
+      <div class="set-inline"><span class="ui-chip no-dot{% if membership.role == 'owner' %} is-accent{% elif membership.role == 'admin' %} is-good{% endif %}">{{ membership.role | capitalize }}</span></div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Overview</b></div>
+      <div class="set-inline ui-muted">{% if project.created_label %}Created {{ project.created_label }} · {% endif %}{{ members | length }} member{{ '' if members | length == 1 else 's' }} · {{ connections | length }} connection{{ '' if connections | length == 1 else 's' }}</div>
+    </div>
+    {% if project.description %}
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Description</b></div>
+      <div class="set-inline">{{ project.description }}</div>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if can_admin %}
+  {# ── Dashboard style ── #}
+  {% set sc = project.dashboard_style_config or {} %}
+  <section class="ui-panel" id="dashboardStyleCard" data-ps-tab="general">
+    <div class="ui-panel-h">
+      <div class="set-grow">
+        <h2>Dashboard style</h2>
+        <div class="ui-sub">How your AI styles hosted dashboards. Fluxito hosts the submitted build as-is.</div>
+      </div>
+      <div class="ui-right">
+        <span id="styleConfigStatus" class="ui-muted"></span>
+        <button type="button" class="ui-btn is-sm" onclick="saveDashStyleConfig()">Save style</button>
+      </div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Style</b><small>Claude's judgment is recommended</small></div>
+      <div class="set-pills" id="styleModePills">
+        <label class="ui-pill-opt"><input type="radio" class="set-sr" name="styleMode" value="none" {% if not project.dashboard_style_config %}checked{% endif %}>Claude's judgment</label>
+        <label class="ui-pill-opt"><input type="radio" class="set-sr" name="styleMode" value="preset" {% if project.dashboard_style_config and project.dashboard_style_config.get('preset') not in (none, 'custom') %}checked{% endif %}>Preset</label>
+        <label class="ui-pill-opt"><input type="radio" class="set-sr" name="styleMode" value="custom" {% if project.dashboard_style_config and project.dashboard_style_config.get('preset') == 'custom' %}checked{% endif %}>Custom</label>
+      </div>
+    </div>
+    <div class="ui-rowf" id="presetPicker" style="display:none">
+      <div class="ui-rowf-l"><b>Preset</b><small>A curated theme</small></div>
+      <div class="ps-presets">
+        {% for preset_key, preset_label, preset_bg, preset_primary, preset_accent in [
+          ('editorial_warm', 'Editorial Warm', '#faf6ee', '#2d4a1e', '#c4421a'),
+          ('dark_analytics', 'Dark Analytics', '#0f172a', '#6366f1', '#06b6d4'),
+          ('clean_minimal', 'Clean Minimal', '#ffffff', '#18181b', '#2563eb'),
+          ('bold_data', 'Bold Data', '#fafafa', '#7c3aed', '#db2777'),
+        ] %}
+        <label class="ps-preset">
+          <input type="radio" class="set-sr" name="stylePreset" value="{{ preset_key }}"
+            {% if project.dashboard_style_config and project.dashboard_style_config.get('preset') == preset_key %}checked{% endif %} />
+          <span class="ps-preset-card" style="background:{{ preset_bg }};color:{{ preset_primary }}">
+            <b>{{ preset_label }}</b>
+            <span class="ps-preset-sw"><i style="background:{{ preset_primary }}"></i><i style="background:{{ preset_accent }}"></i></span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="ui-rowf" id="customConfig" style="display:none">
+      <div class="ui-rowf-l"><b>Colours &amp; fonts</b><small>Custom only</small></div>
+      <div class="ps-custom">
+        <div class="ps-colors">
+          <label class="ps-color"><input type="color" name="cfgBackground" value="{{ sc.get('background', '#ffffff') }}"><span>Background</span></label>
+          <label class="ps-color"><input type="color" name="cfgPrimary" value="{{ sc.get('primary', '#18181b') }}"><span>Primary</span></label>
+          <label class="ps-color"><input type="color" name="cfgAccent" value="{{ sc.get('accent', '#2563eb') }}"><span>Accent</span></label>
+        </div>
+        <div class="ui-grid is-2 ps-fonts">
+          <label class="ui-field"><span>Heading font</span>
+            <select name="cfgFontHeading" class="ui-input">
+              {% for font in ['Playfair Display', 'Inter', 'DM Serif Display', 'Merriweather', 'Space Grotesk'] %}
+              <option{% if sc.get('font_heading') == font %} selected{% endif %}>{{ font }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="ui-field"><span>Body font</span>
+            <select name="cfgFontBody" class="ui-input">
+              {% for font in ['Inter', 'DM Sans', 'IBM Plex Sans', 'Source Sans 3'] %}
+              <option{% if sc.get('font_body') == font %} selected{% endif %}>{{ font }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <div class="ui-field"><span>Chart palette</span>
+          {% set palette = sc.get('chart_palette', ['#18181b', '#2563eb', '#64748b', '#94a3b8']) %}
+          <div class="ps-colors">
+            {% for i in range(4) %}
+            <label class="ps-color"><input type="color" name="cfgPalette{{ i }}" value="{{ palette[i] if i < palette|length else '#cccccc' }}" aria-label="Chart colour {{ i + 1 }}"></label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if brand().name == 'Fluxito' %}
+  <section class="ui-panel ps-beta" data-ps-tab="general">
+    <span class="beta-pill ps-beta-pill">Beta</span>
+    <b>Free while in beta</b>
+    <span>Every connector, MCP tool, audit and dashboard is included. Beta users hear first before anything changes.</span>
+  </section>
+  {% endif %}
+
+  {% if is_owner %}
+  {# ── Danger zone (owner only): transfer ownership + delete ── #}
+  <section class="ui-panel set-danger" id="danger" data-ps-tab="general">
+    <div class="ui-panel-h"><div class="set-grow"><h2>Danger zone</h2><div class="ui-sub">Owner only</div></div></div>
+    <div class="ui-rowf" id="transfer">
+      <div class="ui-rowf-l"><b>Transfer ownership</b><small>Hand the project to another member. You become an Admin.</small></div>
+      <div>
+        {% set others = members | rejectattr('role', 'equalto', 'owner') | list %}
+        {% if others %}
+        <form id="transferForm" class="set-inline">
+          <select name="user_id" class="ui-input set-input-sm" aria-label="New owner">
+            {% for m in others %}
+            <option value="{{ m.user_id }}">{{ m.display_name or m.email }} ({{ m.role }})</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="ui-btn is-sm" id="transferBtn">Transfer</button>
+        </form>
+        <div id="transferMsg" class="ps-msg" style="display:none"></div>
+        {% else %}
+        <span class="ui-muted">Invite another member first — ownership can only go to someone already in the project.</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b>Delete project</b><small>Removes connections, audits, context and chats for this project. This cannot be undone.</small></div>
+      <div><button type="button" class="ui-btn is-sm is-danger" onclick="deleteProject()">Delete project</button></div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ════════════════════════ MEMBERS & ROLES ════════════════════════ #}
+  <section class="ui-panel" id="members" data-ps-tab="members">
+    <div class="ui-panel-h">
+      <div class="set-grow">
+        <h2>Members</h2>
+        <div class="ui-sub">{{ members | length }} {{ 'person' if members | length == 1 else 'people' }} in {{ project.name }}</div>
+      </div>
+      {% if can_admin %}
+      <div class="ui-right"><button type="button" class="ui-btn is-primary is-sm" id="inviteToggleBtn" onclick="toggleInviteForm()">+ Invite member</button></div>
+      {% endif %}
+    </div>
+    <div class="set-table-wrap">
+      <table class="ui-table ps-members">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Role</th>
+            <th>Custom roles</th>
+            <th class="ui-hide-sm">Joined</th>
+            {% if can_admin %}<th><span class="set-sr">Actions</span></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody class="ps-member-list">
+          {% for m in members %}
+          <tr class="ps-member-row" data-member-id="{{ m.id }}">
+            <td>
+              <div class="ps-person">
+                <span class="ui-avatar{% if m.role == 'admin' %} is-admin{% elif m.role == 'member' %} is-member{% endif %}" aria-hidden="true">{{ (m.display_name or m.email)[:2] | upper }}</span>
+                <div class="ps-person-t">
+                  <b>{{ m.display_name or m.email.split('@')[0] }}</b>{% if m.user_id == user.user_id %} <span class="ui-muted">(you)</span>{% endif %}
+                  <div class="ps-email">{{ m.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if m.role == 'owner' %}
+              <span class="ui-chip no-dot is-accent">Owner</span>
+              {% elif is_owner %}
+              <select class="ui-input ps-role-select" aria-label="Role for {{ m.email }}"
+                      onchange="changeRole({{ project.slug | tojson | forceescape }}, {{ m.id | tojson | forceescape }}, this.value)" data-current="{{ m.role }}">
+                <option value="admin" {% if m.role == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="member" {% if m.role == 'member' %}selected{% endif %}>Member</option>
+              </select>
+              {% else %}
+              <span class="ui-chip no-dot{% if m.role == 'admin' %} is-good{% endif %}">{{ m.role | capitalize }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if can_admin and m.role == 'member' %}
+              <div class="mbr-roles" data-member-id="{{ m.id }}" data-role-ids="{{ m.role_ids | join(',') }}">
+                <span class="mbr-role-chips"></span>
+                <button type="button" class="mbr-roles-edit" onclick="openRolesPopover(this, {{ m.id | tojson | forceescape }})" aria-label="Assign custom roles to {{ m.email }}">Edit</button>
+              </div>
+              {% elif m.role in ('owner', 'admin') %}
+              <span class="ui-muted">full access</span>
+              {% else %}
+              <span class="ui-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="ui-hide-sm ui-muted">{{ m.joined_at | fmt_date if m.joined_at else 'Pending' }}</td>
+            {% if can_admin %}
+            <td class="ps-member-actions">
+              {% if m.role != 'owner' %}
+              <button type="button" class="ui-btn is-quiet is-sm" onclick="resetMemberPassword({{ project.slug | tojson | forceescape }}, {{ m.id | tojson | forceescape }}, {{ m.email | tojson | forceescape }})">Reset password</button>
+              <button type="button" class="ui-btn is-quiet is-sm is-danger" onclick="removeMember({{ project.slug | tojson | forceescape }}, {{ m.id | tojson | forceescape }}, {{ m.email | tojson | forceescape }})">Remove</button>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if can_admin and pending_invites %}
+    <div class="ui-panel-b ps-invites" id="pendingInvites">
+      <div class="ps-invites-h"><b>Pending invitations</b> <span class="ui-muted">· no access until accepted · links expire after 14 days</span></div>
+      {% for inv in pending_invites %}
+      <div class="ps-invite-row" data-invite-id="{{ inv.id }}">
+        <span class="ps-email">{{ inv.email }}</span>
+        <span class="ui-chip no-dot">{{ inv.role | capitalize }}</span>
+        <span class="ui-muted ui-hide-sm">{% if inv.expired %}Expired{% else %}Sent {{ inv.created_at | fmt_date }}{% endif %}</span>
+        <span class="ps-invite-actions">
+          <button type="button" class="ui-btn is-quiet is-sm" onclick="reinviteMember({{ inv.email | tojson | forceescape }}, {{ inv.role | tojson | forceescape }})">New link</button>
+          <button type="button" class="ui-btn is-quiet is-sm is-danger" onclick="revokeInvite({{ project.slug | tojson | forceescape }}, {{ inv.id | tojson | forceescape }}, {{ inv.email | tojson | forceescape }})">Revoke</button>
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    <style>
+    .ps-invites { border-top: 1px solid var(--line); }
+    .ps-invites-h { margin-bottom: 8px; font-size: 13px; }
+    .ps-invite-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto; gap: 12px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .ps-invite-actions { display: inline-flex; gap: 4px; }
+    </style>
+    {% endif %}
+  </section>
+
+  {% if can_admin %}
+  {# Invite member — page-local modal layer #}
+  <div class="set-layer" id="inviteFormWrap" hidden>
+    <div class="ui-scrim"></div>
+    <div class="ui-modal" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+      <div class="ui-modal-b">
+        <h3 id="inviteTitle">Invite a member</h3>
+        <form id="inviteForm" class="ps-invite" novalidate>
+          <label class="ui-field">
+            <span>Email</span>
+            <input type="email" name="email" class="ui-input" placeholder="colleague@example.com" autocomplete="off">
+          </label>
+          <label class="ui-field">
+            <span>Role</span>
+            <select name="role" class="ui-input">
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <p class="set-hint">If they don't have a Fluxito account yet, one is created for them.</p>
+          <div id="inviteMsg" class="ps-msg" style="display:none"></div>
+          <div class="ui-modal-f">
+            <button type="button" class="ui-btn" data-layer-close>Close</button>
+            <button type="submit" class="ui-btn is-primary" id="inviteBtn">Send invite</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Role-based access toggle ── #}
+  <section class="ui-panel rbac-toggle" id="rbac" data-ps-tab="members">
+    <div class="ui-panel-h"><div class="set-grow"><h2>Role-based access</h2><div class="ui-sub">When off, every member has full access to all tools</div></div></div>
+    <div class="ui-rowf">
+      <div class="ui-rowf-l"><b><label for="rbacToggle">Enforce custom roles</label></b><small>Members get only the tools their roles grant — members with no roles lose access until you assign one.</small></div>
+      <div class="set-inline">
+        <span class="toggle">
+          <input type="checkbox" id="rbacToggle" {% if project.rbac_enabled %}checked{% endif %}>
+          <span class="toggle-track"></span>
+        </span>
+        <span id="rbacState">{{ 'On' if project.rbac_enabled else 'Off' }}</span>
+      </div>
+    </div>
+  </section>
+  <script>
+  document.getElementById('rbacToggle')?.addEventListener('change', async function(e) {
+    var state = document.getElementById('rbacState');
+    if (e.target.checked && !confirm('Enable role-based access? Members without roles will lose access until assigned a role.')) {
+      e.target.checked = false;
+      return;
+    }
+    try {
+      var res = await fetch('/api/project/{{ project.slug }}/settings/rbac', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({enabled: e.target.checked}),
+      });
+      if (!res.ok) {
+        var d = await res.json().catch(function(){return {};});
+        Fluxito.toast('Failed to update role-based access: ' + (d.message || d.detail || res.status), 'error');
+        e.target.checked = !e.target.checked;
+      } else {
+        Fluxito.toast('Role-based access ' + (e.target.checked ? 'on' : 'off'));
+      }
+    } catch(err) {
+      Fluxito.toast('Failed to update role-based access: ' + err.message, 'error');
+      e.target.checked = !e.target.checked;
+    }
+    if (state) state.textContent = e.target.checked ? 'On' : 'Off';
+  });
+  </script>
+
+  {# ── CUSTOM ROLES ── #}
+  <section id="roles" class="ps-section-block" data-ps-tab="members">
+    <div class="ui-panel ps-custom-roles-card" id="rolesListCard">
+      <div class="ui-panel-h">
+        <div class="set-grow">
+          <h2>Custom roles</h2>
+          <div class="ui-sub">Fine-grained access — tool domains × providers. Create access profiles for the tools and connected data sources your users need.</div>
+        </div>
+        <div class="ui-right">
+          <a href="#members" class="ui-btn is-quiet is-sm">Manage users</a>
+          <button type="button" class="ui-btn is-sm" id="createRoleBtn" onclick="openRoleDrawer('create', this)">+ Create role</button>
+        </div>
+      </div>
+      <div id="rolesList">
+        <div class="ui-empty">Loading roles…</div>
+      </div>
+    </div>
+
+    <details class="ps-built-in-roles">
+      <summary class="ps-built-in-summary">
+        <span><b>Built-in roles reference</b><small>Owner, Admin and Member capabilities</small></span>
+        <span class="ps-built-in-summary-action" aria-hidden="true"></span>
+      </summary>
+      <div class="set-table-wrap">
+        <table class="ui-table ps-matrix">
+          <thead><tr><th>Capability</th><th>Owner</th><th>Admin</th><th>Member</th></tr></thead>
+          <tbody>
+            {% for capability, owner_ok, admin_ok, member_ok in [
+              ('Invite / remove members', 'Yes', 'Yes', '—'),
+              ('Change member roles', 'Yes', '—', '—'),
+              ('Connect platforms, senders, webhooks', 'Yes', 'Yes', '—'),
+              ('Create & assign custom roles', 'Yes', 'Yes', '—'),
+              ('Transfer ownership, delete project', 'Yes', '—', '—'),
+              ('Tool access', 'Full', 'Full', 'Full, or custom roles'),
+            ] %}
+            <tr><td>{{ capability }}</td><td>{{ owner_ok }}</td><td>{{ admin_ok }}</td><td>{{ member_ok }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    {# Role editor drawer #}
+    <div class="ps-role-drawer-backdrop ui-scrim" id="roleDrawerBackdrop" hidden></div>
+    <aside class="ps-role-drawer"
+           id="roleDrawer"
+           role="dialog"
+           aria-modal="true"
+           aria-labelledby="roleFormTitle"
+           aria-hidden="true"
+           inert>
+      <div class="ui-drawer-h">
+        <div class="set-grow">
+          <h3 id="roleFormTitle">Create role</h3>
+          <small class="ui-muted">Which tools and connected data sources people with this role can use.</small>
+        </div>
+        <span class="ui-chip no-dot" id="roleFormState">New role</span>
+        <button type="button" class="ui-btn is-quiet is-sm ps-role-drawer-close" id="roleDrawerClose" aria-label="Close role editor">✕</button>
+      </div>
+      <form id="roleForm" class="ps-role-form" novalidate>
+        <input type="hidden" id="roleId" value="">
+        <div class="ui-drawer-b">
+          <section class="ps-role-editor-section">
+            <label class="ui-field">
+              <span>Role name *</span>
+              <input type="text" name="name" class="ui-input" placeholder="e.g. Agency analyst" required>
+            </label>
+            <label class="ui-field">
+              <span>Description</span>
+              <input type="text" name="description" class="ui-input" placeholder="e.g. Reporting and analysis access">
+            </label>
+          </section>
+
+          <section class="ps-role-editor-section">
+            <div class="ui-label">Tool access</div>
+            <div class="ps-tool-grid-wrap">
+              <table class="ui-table" id="toolGrid">
+                <thead>
+                  <tr>
+                    <th>Domain</th>
+                    <th class="ps-tg-col">Read <label class="tg-all" title="Select all read"><input type="checkbox" id="toolAllRead"> all</label></th>
+                    <th class="ps-tg-col">Write <label class="tg-all" title="Select all write"><input type="checkbox" id="toolAllWrite"> all</label></th>
+                  </tr>
+                </thead>
+                <tbody id="toolGridBody">
+                  {# populated by JS #}
+                </tbody>
+              </table>
+            </div>
+            <p class="set-hint">Write implies read.</p>
+          </section>
+
+          <section class="ps-role-editor-section">
+            <div class="ui-label">Providers</div>
+            <div class="prov-select" id="provSelect">
+              <div class="prov-control" id="provControl" tabindex="0">
+                <div class="prov-chips" id="provChips"></div>
+                <input type="text" class="prov-search" id="provSearch" placeholder="Search or add providers…" autocomplete="off">
+              </div>
+              <div class="prov-dropdown" id="provDropdown" hidden>
+                <label class="prov-opt prov-opt-all">
+                  <input type="checkbox" id="provAll"><span>Select all</span>
+                </label>
+                <div class="prov-opt-list" id="provOptList">
+                  {# checkboxes [data-provider] populated by JS — source of truth #}
+                </div>
+                <div class="prov-empty" id="provEmpty" hidden>No matching providers</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="ps-role-editor-section" data-variant="advanced">
+            <div class="ui-label">Advanced</div>
+            <label class="ps-check">
+              <input type="checkbox" name="adv_scripting">
+              <span><b>Run scripts</b><small>Allow executing custom scripts.</small></span>
+            </label>
+            <label class="ps-check">
+              <input type="checkbox" name="adv_generic">
+              <span><b>Generic platform tools</b><small>Allow the generic read and write tools.</small></span>
+            </label>
+          </section>
+        </div>
+        <div class="ui-drawer-f">
+          <div id="roleMsg" class="ps-msg" style="display:none"></div>
+          <button type="button" class="ui-btn" id="roleCancelBtn" style="display:none">Cancel</button>
+          <button type="submit" class="ui-btn is-primary" id="roleSaveBtn">Create role</button>
+        </div>
+      </form>
+    </aside>
+  </section>
+  {% endif %}
+
+  {# ── Member roles popover (shared) ── #}
+  <div id="rolesPopover" class="roles-popover" hidden>
+    <div class="roles-popover-head">
+      <span>Assign custom roles</span>
+      <button type="button" class="roles-popover-close" onclick="closeRolesPopover()" aria-label="Close">×</button>
+    </div>
+    <label class="roles-popover-all"><input type="checkbox" id="rpAll"><span>Select all</span></label>
+    <div class="roles-popover-list" id="rpList"></div>
+    <div class="roles-popover-empty" id="rpEmpty" hidden>No custom roles yet. Create one under Custom roles.</div>
+  </div>
+
+  {# ════════════════════════ API LIMITS (+ project connections) ════════════════════════ #}
+  <section id="connections" class="ui-panel" data-ps-tab="limits">
+    <div class="ui-panel-h">
+      <div class="set-grow"><h2>Connected in this project</h2><div class="ui-sub">Platforms whose calls count towards the limits below</div></div>
+      <div class="ui-right"><a href="/settings/connections" class="ui-btn is-quiet is-sm">Manage connections</a></div>
+    </div>
+    {% if connections %}
+    {% for c in connections %}
+    <div class="ui-row">
+      <span class="ps-mono-mark" aria-hidden="true">{{ c.provider[:2] | upper }}</span>
+      <div class="ui-grow">
+        <b>{{ c.provider | replace('_', ' ') | capitalize }}</b>
+        <div class="ps-email">{{ c.google_email or '' }}{% if c.connected_by_count and c.connected_by_count > 1 %} · connected by {{ c.connected_by_count }} members{% endif %}</div>
+        {% if c.status == 'disconnected' %}
+        <div class="ps-warn-line">The member who connected this platform was removed — an admin needs to reconnect it.</div>
+        {% endif %}
+      </div>
+      <span class="ui-chip{% if c.status == 'active' %} is-good{% elif c.status == 'disconnected' %} is-warn{% endif %}">{{ c.status | capitalize }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="ui-empty"><b>No connections yet</b>Connect a platform to start pulling data into this project. <a href="/settings/connections">Connect a platform →</a></div>
+    {% endif %}
+  </section>
+
+  <section id="limits" class="ui-panel" data-ps-tab="limits">
+    <div class="ui-panel-h">
+      <div class="set-grow">
+        <h2>API limits</h2>
+        <div class="ui-sub">Published limits per connector and the tool calls your team made through Fluxito in the last {{ rate_limits_usage_days | default(30) }} days, with headroom measured against each connector's busiest window. Limits checked {{ rate_limits_reviewed }}.</div>
+      </div>
+      <div class="ui-right">
+        <div class="ui-seg" role="tablist" aria-label="Which connectors">
+          <button type="button" data-rl-view="connected" role="tab">Connected <span class="ui-muted">{{ rate_limits_connected | length }}</span></button>
+          <button type="button" data-rl-view="catalog" role="tab">Full catalog <span class="ui-muted">{{ rate_limits_available | length }}</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="rl-head" aria-hidden="true"><span>Connector</span><span>Calls · 30d</span><span></span></div>
+    <div data-rl-list="connected">
+      {% if rate_limits_connected %}
+      <div class="rl-list">
+        {% for c in rate_limits_connected %}{{ rlcards.rl_card(c) }}{% endfor %}
+      </div>
+      {% else %}
+      <div class="ui-empty"><b>No tools connected yet</b>Connect a platform to see its limits here — the full catalog lists every connector. <a href="/settings/connections">Connect a platform →</a></div>
+      {% endif %}
+    </div>
+    <div data-rl-list="catalog" hidden>
+      {% if rate_limits_available %}
+      <div class="rl-list">
+        {% for c in rate_limits_available %}{{ rlcards.rl_card(c, muted=true) }}{% endfor %}
+      </div>
+      {% else %}
+      <div class="ui-empty">Every supported connector is already connected.</div>
+      {% endif %}
+    </div>
+    {{ rlcards.rl_assets() }}
+  </section>
+
+  {# ════════════════════════ NOTIFICATION CHANNELS (owner/admin) ════════════════════════ #}
+  {% if can_admin %}
+  <section id="notifications" class="ps-section-block" data-ps-tab="notifications">
+    <div class="ui-note">Scheduled reports and shared dashboards go out through your own channels — bring your own SMTP, Amazon SES or Slack webhook. Credentials are encrypted at rest and never leave the server.</div>
+
+    <div class="ui-panel" id="emailSenders">
+      <div class="ui-panel-h">
+        <div class="set-grow"><h2>Email senders</h2><div class="ui-sub">Used by scheduled reports and alerts</div></div>
+        <div class="ui-right"><button type="button" class="ui-btn is-sm" onclick="SettingsUI.open('senderLayer')">+ Add sender</button></div>
+      </div>
+      {% if email_senders %}
+      {% for s in email_senders %}
+      <div class="ui-row ps-channel" data-sender-id="{{ s.id }}">
+        <span class="ps-mono-mark" aria-hidden="true">✉</span>
+        <div class="ui-grow">
+          <b>{{ s.label or s.from_address or 'Unnamed sender' }}</b>
+          <div class="ps-email">{% if s.from_name %}{{ s.from_name }} &lt;{{ s.from_address }}&gt;{% else %}{{ s.from_address }}{% endif %} · {{ s.type | upper }}</div>
+        </div>
+        {% if s.is_default %}<span class="ui-chip is-good no-dot">Default</span>{% endif %}
+        {% if s.last_test_status == 'ok' %}
+        <span class="ui-chip is-good" title="{{ (s.last_tested_at or '')[:16] | replace('T', ' ') }}">Test OK</span>
+        {% elif s.last_test_status == 'error' %}
+        <span class="ui-chip is-bad" title="{{ s.last_test_error }}">Test failed</span>
+        {% else %}
+        <span class="ui-chip">Not tested</span>
+        {% endif %}
+        <div class="ps-channel-acts">
+          <button type="button" class="ui-btn is-quiet is-sm" onclick="testSender({{ s.id | string | tojson | forceescape }}, false)">Test</button>
+          {% if not s.is_default %}
+          <button type="button" class="ui-btn is-quiet is-sm" onclick="setDefaultSender({{ s.id | string | tojson | forceescape }})">Make default</button>
+          {% endif %}
+          <button type="button" class="ui-btn is-quiet is-sm is-danger" onclick="deleteSender({{ s.id | string | tojson | forceescape }}, {{ (s.label or s.from_address or 'this sender') | tojson | forceescape }})">Delete</button>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="ui-empty">No email senders yet. Add one to enable scheduled email reports.</div>
+      {% endif %}
+    </div>
+
+    <div class="ui-panel" id="slackWebhooks">
+      <div class="ui-panel-h">
+        <div class="set-grow"><h2>Slack webhooks</h2><div class="ui-sub">Incoming webhooks for reports and test-flow alerts — one per channel</div></div>
+        <div class="ui-right"><button type="button" class="ui-btn is-sm" onclick="SettingsUI.open('slackLayer')">+ Add webhook</button></div>
+      </div>
+      {% if slack_webhooks %}
+      {% for w in slack_webhooks %}
+      <div class="ui-row ps-channel" data-webhook-id="{{ w.id }}">
+        <span class="ps-mono-mark" aria-hidden="true">#</span>
+        <div class="ui-grow">
+          <b>{{ w.label or 'Unnamed webhook' }}</b>
+          <div class="ps-email">Added {{ (w.created_at or '')[:10] }}</div>
+        </div>
+        {% if w.last_test_status == 'ok' %}
+        <span class="ui-chip is-good" title="{{ (w.last_tested_at or '')[:16] | replace('T', ' ') }}">Test OK</span>
+        {% elif w.last_test_status == 'error' %}
+        <span class="ui-chip is-bad" title="{{ w.last_test_error }}">Test failed</span>
+        {% else %}
+        <span class="ui-chip">Not tested</span>
+        {% endif %}
+        <div class="ps-channel-acts">
+          <button type="button" class="ui-btn is-quiet is-sm" onclick="testSlackWebhook({{ w.id | string | tojson | forceescape }})">Test</button>
+          <button type="button" class="ui-btn is-quiet is-sm is-danger" onclick="deleteSlackWebhook({{ w.id | string | tojson | forceescape }}, {{ (w.label or 'this webhook') | tojson | forceescape }})">Delete</button>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="ui-empty">No Slack webhooks yet. Add one to deliver scheduled reports to a channel.</div>
+      {% endif %}
+    </div>
+
+    {# Add email sender — modal layer #}
+    <div class="set-layer" id="senderLayer" hidden>
+      <div class="ui-scrim"></div>
+      <div class="ui-modal ps-modal-wide" role="dialog" aria-modal="true" aria-labelledby="senderTitle">
+        <div class="ui-modal-b">
+          <h3 id="senderTitle">Add email sender</h3>
+          <div class="ui-seg ps-subtabs">
+            <button type="button" class="ps-subtab is-active" data-subtab="smtp" onclick="switchSenderTab('smtp')">SMTP</button>
+            <button type="button" class="ps-subtab" data-subtab="ses" onclick="switchSenderTab('ses')">Amazon SES</button>
+          </div>
+          <form id="senderForm">
+            <input type="hidden" name="type" id="senderType" value="smtp">
+            <div class="ui-grid is-2 ps-form-grid">
+              <label class="ui-field"><span>Label</span><input type="text" name="label" class="ui-input" placeholder="e.g. Gmail reports"></label>
+              <label class="ui-field"><span>From address *</span><input type="email" name="from_address" class="ui-input" placeholder="reports@example.com" required></label>
+              <label class="ui-field"><span>From name</span><input type="text" name="from_name" class="ui-input" placeholder="Analytics Reports"></label>
+              <label class="ps-check ps-check-inline">
+                <input type="checkbox" name="is_default" id="senderIsDefault" {% if not email_senders %}checked disabled{% endif %}>
+                <span>Use as default sender{% if not email_senders %} (the first sender is always default){% endif %}</span>
+              </label>
+            </div>
+
+            <div id="smtpFields" class="sender-fields">
+              <div class="ui-grid is-3 ps-form-grid">
+                <label class="ui-field ps-span-2"><span>SMTP host *</span><input type="text" name="smtp_host" class="ui-input" placeholder="smtp.gmail.com"></label>
+                <label class="ui-field"><span>Port *</span><input type="number" name="smtp_port" class="ui-input" value="587"></label>
+                <label class="ui-field"><span>TLS</span>
+                  <select name="smtp_tls_mode" class="ui-input">
+                    <option value="starttls" selected>STARTTLS (587)</option>
+                    <option value="ssl">SSL/TLS (465)</option>
+                    <option value="none">None (not recommended)</option>
+                  </select>
+                </label>
+                <label class="ui-field"><span>Username</span><input type="text" name="smtp_username" class="ui-input" autocomplete="off" placeholder="optional"></label>
+                <label class="ui-field"><span>Password</span><input type="password" name="smtp_password" class="ui-input" autocomplete="new-password" placeholder="optional"></label>
+              </div>
+              <p class="set-hint">Gmail: create an App Password at myaccount.google.com/apppasswords — your regular password won't work.</p>
+            </div>
+
+            <div id="sesFields" class="sender-fields" style="display:none">
+              <div class="ui-grid is-2 ps-form-grid">
+                <label class="ui-field"><span>Region *</span><input type="text" name="ses_region" class="ui-input" placeholder="us-east-1"></label>
+                <label class="ui-field"><span>Configuration set</span><input type="text" name="ses_configuration_set" class="ui-input" placeholder="optional — for bounce tracking"></label>
+                <label class="ui-field"><span>Access key ID *</span><input type="text" name="ses_access_key_id" class="ui-input" autocomplete="off" placeholder="AKIA…"></label>
+                <label class="ui-field"><span>Secret access key *</span><input type="password" name="ses_secret_access_key" class="ui-input" autocomplete="new-password"></label>
+              </div>
+              <p class="set-hint">The IAM user needs <code>ses:SendRawEmail</code> and <code>ses:GetSendQuota</code>; the from address must be a verified identity in this region.</p>
+            </div>
+
+            <div id="senderMsg" class="ps-msg" style="display:none"></div>
+            <div class="ui-modal-f">
+              <button type="button" class="ui-btn is-quiet" id="senderVerifyBtn">Save &amp; test connection</button>
+              <span class="set-grow"></span>
+              <button type="button" class="ui-btn" data-layer-close>Cancel</button>
+              <button type="submit" class="ui-btn is-primary" id="senderSaveBtn">Save sender</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {# Add Slack webhook — modal layer #}
+    <div class="set-layer" id="slackLayer" hidden>
+      <div class="ui-scrim"></div>
+      <div class="ui-modal" role="dialog" aria-modal="true" aria-labelledby="slackTitle">
+        <div class="ui-modal-b">
+          <h3 id="slackTitle">Add Slack webhook</h3>
+          <p class="set-hint">Create an incoming webhook at <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener">api.slack.com/messaging/webhooks</a> and paste its URL.</p>
+          <form id="slackWebhookForm" class="ps-slack-form">
+            <label class="ui-field"><span>Label *</span><input type="text" name="label" class="ui-input" placeholder="#marketing-daily" required></label>
+            <label class="ui-field"><span>Webhook URL *</span><input type="url" name="webhook_url" class="ui-input ui-mono" placeholder="https://hooks.slack.com/services/…" required autocomplete="off"></label>
+            <div id="slackWebhookMsg" class="ps-msg" style="display:none"></div>
+            <div class="ui-modal-f">
+              <button type="button" class="ui-btn" data-layer-close>Cancel</button>
+              <button type="submit" class="ui-btn is-primary" id="slackWebhookBtn">Save webhook</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ════════════════════════ OAUTH APPS (owner/admin) ════════════════════════ #}
+  {% if can_admin %}
+  <section id="oauth-apps" class="ui-panel intg-panel" data-ps-tab="oauth" data-intg-mode="project" data-intg-api="/api/project/{{ project.slug }}/oauth-apps">
+    <div class="ui-panel-h">
+      <div class="set-grow">
+        <h2>OAuth apps</h2>
+        <div class="ui-sub">Connect platforms in this project through your own developer app — your own approval, branding and API limits. Platforms without one use Fluxito's app. Credentials are encrypted at rest and never leave the server.</div>
+      </div>
+      {% set own_apps = oauth_apps | selectattr('source', 'equalto', 'project') | list %}
+      <div class="ui-right"><span class="ui-muted">{{ own_apps | length }} of {{ oauth_apps | length }} using your app</span></div>
+    </div>
+    {% set platform_meta = {
+      'google':    {'name': 'Google',          'caps': 'GA4, GTM, Ads, Search Console, BigQuery', 'logo': 'ga4.svg'},
+      'meta':      {'name': 'Meta',            'caps': 'Meta Ads',                                'logo': 'meta.svg'},
+      'tiktok':    {'name': 'TikTok',          'caps': 'TikTok Ads',                              'logo': 'tiktok.svg'},
+      'snap':      {'name': 'Snapchat',        'caps': 'Snapchat Ads',                            'logo': 'snapchat.svg'},
+      'linkedin':  {'name': 'LinkedIn',        'caps': 'LinkedIn Ads',                            'logo': 'linkedin.svg'},
+      'pinterest': {'name': 'Pinterest',       'caps': 'Pinterest Ads',                           'logo': 'pinterest.svg'},
+      'x':         {'name': 'X',               'caps': 'X Ads (OAuth 1.0a)',                      'logo': 'x.svg'},
+      'reddit':    {'name': 'Reddit',          'caps': 'Reddit Ads',                              'logo': 'reddit.svg'},
+      'bing':      {'name': 'Microsoft',       'caps': 'Bing Webmaster, Microsoft Ads',           'logo': 'microsoft.svg'},
+      'apple':     {'name': 'Apple Search Ads','caps': 'Apple Ads',                               'logo': 'apple.svg'},
+    } %}
+    <div class="intg-rows">
+      {% for p in oauth_apps %}
+      {% set slug = p.platform %}
+      {% set meta = platform_meta.get(slug, {'name': slug | capitalize, 'caps': '', 'logo': ''}) %}
+      <div class="ui-row intg-row" id="intg-card-{{ slug }}" data-platform="{{ slug }}" data-source="{{ p.source }}">
+        <span class="intg-row-icon" aria-hidden="true">{% if meta.logo %}<img src="/static/img/logos/{{ meta.logo }}" alt="" width="20" height="20">{% else %}{{ slug[:2] | upper }}{% endif %}</span>
+        <div class="ui-grow intg-row-main">
+          <div class="intg-row-name">{{ meta.name }}</div>
+          <div class="intg-row-meta">
+            <span class="intg-id-row" {% if not p.client_id_masked %}style="display:none"{% endif %}>
+              <span class="intg-id-label">Client ID</span><span class="intg-id-value">{{ p.client_id_masked or '' }}</span>
+            </span>{% if meta.caps %}<span class="intg-row-caps"> · {{ meta.caps }}</span>{% endif %}
+          </div>
+          <div class="intg-updated">{% if p.source == 'project' and p.updated_at %}Updated {{ p.updated_at | fmt_datetime }}{% endif %}</div>
+        </div>
+        <div class="intg-status-row">
+          {% if p.source == 'project' %}<span class="ui-chip is-good intg-badge">Your app</span>
+          {% elif p.source == 'db' %}<span class="ui-chip is-info intg-badge">Fluxito's app</span>
+          {% else %}<span class="ui-chip intg-badge intg-badge-none">Not available</span>{% endif %}
+        </div>
+        <div class="intg-actions">
+          <button type="button" class="ui-btn is-sm{% if p.source == 'project' %} is-quiet{% endif %} intg-edit-btn" onclick="IntgUI.openModal('{{ slug }}')">{% if p.source == 'project' %}Edit{% else %}Use your own app{% endif %}</button>
+          <button type="button" class="ui-btn is-quiet is-danger is-sm intg-remove-btn" {% if p.source != 'project' %}style="display:none"{% endif %} onclick="IntgUI.removeCredentials('{{ slug }}')">Remove</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="ui-panel-b"><p class="ui-muted" style="margin:0">Switching a platform to a different app means its existing connections in this project must be reconnected — Fluxito flags them for you. Signing in to Fluxito is not affected.</p></div>
+  </section>
+  <link rel="stylesheet" href="/static/css/integrations.css?v={{ asset_hash('css/integrations.css') }}"/>
+  {% include "settings/_integration_modal.html" %}
+  <script src="/static/js/integrations.js?v={{ asset_hash('js/integrations.js') }}"></script>
+  {% endif %}
+
+</div>
+
+<script>
+// ── Tab controller ──
+// Sections carry data-ps-tab; only the active tab's sections are visible.
+// The URL hash is the source of truth (the settings rail sets it), so deep
+// links keep working:
+//   #members / #roles / #rbac          → Members & roles, scrolled to the card
+//   #limits / #connections             → API limits (project connections on top)
+//   #notifications                     → Notification channels (owner/admin)
+//   #oauth / #oauth-apps               → OAuth apps (owner/admin)
+//   #danger / #transfer / #dashboardStyleCard → General, scrolled to the card
+(function() {
+  var TABS = ['general', 'members', 'limits', 'notifications', 'oauth'];
+  var ALIAS = {
+    'flux-permissions': 'general', transfer: 'general', danger: 'general',
+    dashboardStyleCard: 'general', roles: 'members', rbac: 'members',
+    connections: 'limits', emailSenders: 'notifications', slackWebhooks: 'notifications',
+    channels: 'notifications', 'oauth-apps': 'oauth',
+  };
+  function tabFor(id) {
+    var tab = TABS.indexOf(id) !== -1 ? id : ALIAS[id];
+    if (!tab) {
+      // A hash pointing inside a tabbed section (e.g. a sender row) still opens
+      // the right tab.
+      var el = id && document.getElementById(id);
+      var host = el && el.closest('[data-ps-tab]');
+      tab = host ? host.getAttribute('data-ps-tab') : 'general';
+    }
+    // Tabs the viewer can't see (e.g. notifications for members) fall back.
+    return document.querySelector('[data-ps-tab="' + tab + '"]') ? tab : 'general';
+  }
+  function activate() {
+    var id = (location.hash || '').replace('#', '');
+    var tab = tabFor(id);
+    document.querySelectorAll('[data-ps-tab]').forEach(function(el) {
+      el.hidden = el.getAttribute('data-ps-tab') !== tab;
+    });
+    document.dispatchEvent(new CustomEvent('settings:tab', { detail: { tab: tab } }));
+    if (id && id !== tab && TABS.indexOf(id) === -1) {
+      // Wait a beat so the just-unhidden section has laid out.
+      window.setTimeout(function() {
+        var el = document.getElementById(id);
+        if (el) el.scrollIntoView({block: 'start'});
+      }, 40);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }
+  window.addEventListener('hashchange', activate);
+  activate();
+})();
+
+// ── API limits: Connected / Full catalog toggle ──
+(function() {
+  var btns = document.querySelectorAll('[data-rl-view]');
+  if (!btns.length) return;
+  function show(view) {
+    btns.forEach(function(b) {
+      var on = b.getAttribute('data-rl-view') === view;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-rl-list]').forEach(function(l) {
+      l.hidden = l.getAttribute('data-rl-list') !== view;
+    });
+  }
+  btns.forEach(function(b) { b.addEventListener('click', function() { show(b.getAttribute('data-rl-view')); }); });
+  show({{ ('connected' if (rate_limits_connected or not rate_limits_available) else 'catalog') | tojson }});
+})();
+
+// ── Members — invite modal ──
+var _inviteDone = false;
+function toggleInviteForm() {
+  var wrap = document.getElementById('inviteFormWrap');
+  if (!wrap) return;
+  _inviteDone = false;
+  var msg = document.getElementById('inviteMsg');
+  if (msg) msg.style.display = 'none';
+  SettingsUI.open(wrap);
+}
+(function() {
+  var wrap = document.getElementById('inviteFormWrap');
+  // After a successful invite, closing the modal refreshes the member list.
+  if (wrap) wrap.addEventListener('layer:close', function() { if (_inviteDone) window.location.reload(); });
+})();
+
+// ── Invite member ──
+async function revokeInvite(slug, inviteId, email) {
+  if (!confirm('Revoke the invitation for ' + email + '? Their link stops working.')) return;
+  var res = await fetch('/api/project/' + slug + '/invites/' + inviteId, {method: 'DELETE'});
+  if (res.ok) { var row = document.querySelector('[data-invite-id="' + inviteId + '"]'); if (row) row.remove(); Fluxito.toast('Invitation revoked'); }
+  else { Fluxito.toast('Could not revoke the invitation', 'error'); }
+}
+function reinviteMember(email, role) {
+  // Re-inviting issues a fresh link and retires the old one.
+  toggleInviteForm();
+  var f = document.getElementById('inviteForm');
+  if (f) { f.email.value = email; if (f.role) f.role.value = role; }
+}
+var inviteForm = document.getElementById('inviteForm');
+if (inviteForm) {
+  inviteForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('inviteBtn');
+    var msg = document.getElementById('inviteMsg');
+    btn.disabled = true; btn.textContent = 'Inviting…';
+    msg.style.display = 'none';
+    var emailVal = (this.email.value || '').trim();
+    if (!emailVal) {
+      msg.textContent = 'Enter an email address.';
+      msg.style.background = 'color-mix(in srgb, var(--bad) 10%, transparent)';
+      msg.style.color = 'var(--bad)';
+      msg.style.borderColor = 'color-mix(in srgb, var(--bad) 25%, var(--line))';
+      msg.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Send invite';
+      return;
+    }
+    var fd = new FormData(this);
+    try {
+      var res = await fetch('/api/project/{{ project.slug }}/members', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: fd.get('email'), role: fd.get('role')}),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+      msg.textContent = '';
+      var h = document.createElement('div');
+      h.style.fontWeight = '600'; h.style.marginBottom = '6px';
+      h.textContent = data.message || ('Invited ' + emailVal + '.');
+      msg.appendChild(h);
+      if (data.invite_url) {
+        var info = document.createElement('div');
+        info.style.marginBottom = '6px';
+        info.textContent = 'Invite link (one-time, expires in 14 days) — it\'s also emailed if email is set up:';
+        var link = document.createElement('div');
+        link.style.fontFamily = 'var(--font-mono,monospace)'; link.style.fontSize = '12px'; link.style.wordBreak = 'break-all';
+        link.textContent = data.invite_url;
+        var copyBtn = document.createElement('button');
+        copyBtn.type = 'button'; copyBtn.className = 'ui-btn is-sm';
+        copyBtn.style.marginTop = '8px';
+        copyBtn.textContent = 'Copy link';
+        copyBtn.onclick = function(){ Fluxito.copy(data.invite_url, 'Invite link'); };
+        msg.appendChild(info); msg.appendChild(link); msg.appendChild(copyBtn);
+      }
+      _inviteDone = true;
+      inviteForm.reset();
+      msg.style.background = 'color-mix(in srgb, var(--good) 10%, transparent)';
+      msg.style.color = 'var(--ink)';
+      msg.style.borderColor = 'color-mix(in srgb, var(--good) 25%, var(--line))';
+      msg.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Send invite';
+    } catch(err) {
+      msg.textContent = err.message;
+      msg.style.background = 'color-mix(in srgb, var(--bad) 10%, transparent)';
+      msg.style.color = 'var(--bad)';
+      msg.style.borderColor = 'color-mix(in srgb, var(--bad) 25%, var(--line))';
+      msg.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Send invite';
+    }
+  });
+}
+
+// ── Remove member ──
+async function removeMember(slug, memberId, email) {
+  if (!confirm('Remove ' + email + ' from this project? Their connections will be marked as disconnected.')) return;
+  try {
+    var res = await fetch('/api/project/' + slug + '/members/' + memberId, {method: 'DELETE'});
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+    Fluxito.toast('Removed ' + email);
+    setTimeout(function() { window.location.reload(); }, 600);
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+// ── Reset member password ──
+async function resetMemberPassword(slug, memberId, email) {
+  if (!confirm('Reset password for ' + email + '? A new temporary password will be shown once.')) return;
+  try {
+    var res = await fetch('/api/project/' + slug + '/members/' + memberId + '/reset-password', {method: 'POST'});
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+    var m = Fluxito.ui.modal(
+      '<div class="ui-modal-b"><h3>New password</h3>' +
+      '<p class="set-hint">For <b></b> — copy it now, it is shown only once.</p>' +
+      '<div class="ui-code"><span></span><button type="button">Copy</button></div>' +
+      '<div class="ui-modal-f"><button type="button" class="ui-btn is-primary" data-ui-close>Done</button></div></div>'
+    );
+    m.querySelector('.set-hint b').textContent = email;
+    m.querySelector('.ui-code span').textContent = data.temp_password || '';
+    m.querySelector('.ui-code button').addEventListener('click', function() { Fluxito.copy(data.temp_password || '', 'Password'); });
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+// ── Change role ──
+async function changeRole(slug, memberId, newRole) {
+  try {
+    var res = await fetch('/api/project/' + slug + '/members/' + memberId + '/role', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({role: newRole}),
+    });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+    Fluxito.toast('Role updated to ' + newRole);
+  } catch(err) {
+    Fluxito.toast(err.message, 'error');
+    setTimeout(function() { window.location.reload(); }, 900);
+  }
+}
+
+// ── Transfer ownership ──
+var transferForm = document.getElementById('transferForm');
+if (transferForm) {
+  transferForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (!confirm('Transfer ownership? You will be demoted to Admin.')) return;
+    var btn = document.getElementById('transferBtn');
+    var msg = document.getElementById('transferMsg');
+    btn.disabled = true;
+    var fd = new FormData(this);
+    try {
+      var res = await fetch('/api/project/{{ project.slug }}/transfer-ownership', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: fd.get('user_id')}),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+      msg.textContent = data.message || 'Ownership transferred!';
+      msg.style.color = 'var(--good)';
+      msg.style.background = 'color-mix(in srgb, var(--good) 8%, transparent)';
+      msg.style.borderColor = 'color-mix(in srgb, var(--good) 25%, var(--line))';
+      msg.style.display = 'inline-block';
+      setTimeout(function(){ window.location.reload(); }, 1500);
+    } catch(err) {
+      msg.textContent = err.message;
+      msg.style.color = 'var(--bad)';
+      msg.style.background = 'color-mix(in srgb, var(--bad) 8%, transparent)';
+      msg.style.borderColor = 'color-mix(in srgb, var(--bad) 25%, var(--line))';
+      msg.style.display = 'inline-block';
+      btn.disabled = false;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOTIFICATIONS — email senders
+// ═══════════════════════════════════════════════════════════════════
+var SENDER_API = '/api/project/{{ project.slug }}/email-senders';
+
+function switchSenderTab(kind) {
+  document.querySelectorAll('[data-subtab]').forEach(function(b) { b.classList.remove('is-active'); });
+  var btn = document.querySelector('[data-subtab="' + kind + '"]');
+  if (btn) btn.classList.add('is-active');
+  document.getElementById('smtpFields').style.display = (kind === 'smtp') ? '' : 'none';
+  document.getElementById('sesFields').style.display = (kind === 'ses') ? '' : 'none';
+  document.getElementById('senderType').value = kind;
+}
+
+function _senderMsg(text, kind) {
+  var el = document.getElementById('senderMsg');
+  if (!el) return;
+  el.textContent = text;
+  var color, bg, bd;
+  if (kind === 'error') {
+    color = 'var(--bad)';
+    bg = 'color-mix(in srgb, var(--bad) 8%, transparent)';
+    bd = 'color-mix(in srgb, var(--bad) 25%, var(--line))';
+  } else if (kind === 'success') {
+    color = 'var(--good)';
+    bg = 'color-mix(in srgb, var(--good) 8%, transparent)';
+    bd = 'color-mix(in srgb, var(--good) 25%, var(--line))';
+  } else {
+    color = 'var(--ink-soft)';
+    bg = 'var(--bg-2)';
+    bd = 'var(--line-2)';
+  }
+  el.style.color = color; el.style.background = bg; el.style.borderColor = bd;
+  el.style.display = 'inline-block';
+}
+
+function _collectSenderBody() {
+  var form = document.getElementById('senderForm');
+  var fd = new FormData(form);
+  var type = fd.get('type') || 'smtp';
+  var body = {
+    type: type,
+    label: (fd.get('label') || '').trim(),
+    from_address: (fd.get('from_address') || '').trim(),
+    from_name: (fd.get('from_name') || '').trim(),
+    is_default: !!form.querySelector('[name="is_default"]').checked,
+    config: {},
+  };
+  if (type === 'smtp') {
+    body.config = {
+      host: (fd.get('smtp_host') || '').trim(),
+      port: parseInt(fd.get('smtp_port') || '587', 10),
+      username: (fd.get('smtp_username') || '').trim() || null,
+      password: fd.get('smtp_password') || null,
+      tls_mode: fd.get('smtp_tls_mode') || 'starttls',
+    };
+  } else if (type === 'ses') {
+    body.config = {
+      region: (fd.get('ses_region') || '').trim(),
+      access_key_id: (fd.get('ses_access_key_id') || '').trim(),
+      secret_access_key: fd.get('ses_secret_access_key') || '',
+      configuration_set: (fd.get('ses_configuration_set') || '').trim() || null,
+    };
+  }
+  return body;
+}
+
+var senderForm = document.getElementById('senderForm');
+if (senderForm) {
+  senderForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('senderSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    _senderMsg('Saving…', 'info');
+    try {
+      var res = await fetch(SENDER_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(_collectSenderBody()),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || 'Failed to save sender');
+      _senderMsg('Saved — reloading…', 'success');
+      setTimeout(function(){ window.location.reload(); }, 700);
+    } catch(err) {
+      _senderMsg(err.message, 'error');
+      btn.disabled = false; btn.textContent = 'Save sender';
+    }
+  });
+}
+
+var verifyBtn = document.getElementById('senderVerifyBtn');
+if (verifyBtn) {
+  verifyBtn.addEventListener('click', async function() {
+    verifyBtn.disabled = true; var oldText = verifyBtn.textContent;
+    verifyBtn.textContent = 'Testing…';
+    _senderMsg('Contacting server — this may take a few seconds…', 'info');
+    try {
+      // Save first, then immediately verify the saved row. UX matches the per-row
+      // "Test" button and avoids a separate in-memory verify endpoint.
+      var saveRes = await fetch(SENDER_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(_collectSenderBody()),
+      });
+      var saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.message || saveData.detail || 'Failed to save before test');
+      var id = saveData.id || (saveData.sender && saveData.sender.id);
+      if (!id) { _senderMsg('Saved. Use the Test button on the row above.', 'success'); setTimeout(function(){ window.location.reload(); }, 900); return; }
+      var testRes = await fetch(SENDER_API + '/' + id + '/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({verify_only: true}),
+      });
+      var testData = await testRes.json();
+      if (!testRes.ok || testData.ok === false) {
+        _senderMsg('Saved but connection check failed: ' + (testData.message || testData.detail || 'unknown'), 'error');
+      } else {
+        _senderMsg('Connection OK — reloading…', 'success');
+      }
+      setTimeout(function(){ window.location.reload(); }, 1200);
+    } catch(err) {
+      _senderMsg(err.message, 'error');
+      verifyBtn.disabled = false; verifyBtn.textContent = oldText;
+    }
+  });
+}
+
+async function testSender(senderId, sendReal) {
+  var to = null;
+  if (sendReal) {
+    to = prompt('Send a test email to which address?');
+    if (!to) return;
+  }
+  try {
+    var res = await fetch(SENDER_API + '/' + senderId + '/test', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(sendReal ? {to: to} : {verify_only: true}),
+    });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok || data.ok === false) {
+      Fluxito.toast('Test failed: ' + (data.message || data.detail || 'unknown error'), 'error');
+    } else {
+      Fluxito.toast(sendReal ? 'Test email sent' : 'Connection check OK');
+    }
+    setTimeout(function() { window.location.reload(); }, 1400);
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+async function setDefaultSender(senderId) {
+  try {
+    var res = await fetch(SENDER_API + '/' + senderId, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({is_default: true}),
+    });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+    window.location.reload();
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+async function deleteSender(senderId, label) {
+  if (!confirm('Delete sender "' + label + '"? Any scheduled reports using it will need to be reassigned.')) return;
+  try {
+    var res = await fetch(SENDER_API + '/' + senderId, { method: 'DELETE' });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+    window.location.reload();
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOTIFICATIONS — Slack webhooks
+// ═══════════════════════════════════════════════════════════════════
+var SLACK_API = '/api/project/{{ project.slug }}/slack-webhooks';
+
+function _slackMsg(text, kind) {
+  var el = document.getElementById('slackWebhookMsg');
+  if (!el) return;
+  el.textContent = text;
+  var color, bg, bd;
+  if (kind === 'error') {
+    color = 'var(--bad)';
+    bg = 'color-mix(in srgb, var(--bad) 8%, transparent)';
+    bd = 'color-mix(in srgb, var(--bad) 25%, var(--line))';
+  } else if (kind === 'success') {
+    color = 'var(--good)';
+    bg = 'color-mix(in srgb, var(--good) 8%, transparent)';
+    bd = 'color-mix(in srgb, var(--good) 25%, var(--line))';
+  } else {
+    color = 'var(--ink-soft)';
+    bg = 'var(--bg-2)';
+    bd = 'var(--line-2)';
+  }
+  el.style.color = color; el.style.background = bg; el.style.borderColor = bd;
+  el.style.display = 'inline-block';
+}
+
+var slackForm = document.getElementById('slackWebhookForm');
+if (slackForm) {
+  slackForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('slackWebhookBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    _slackMsg('Saving…', 'info');
+    var fd = new FormData(this);
+    try {
+      var res = await fetch(SLACK_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          label: (fd.get('label') || '').trim(),
+          webhook_url: (fd.get('webhook_url') || '').trim(),
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || data.detail || 'Failed');
+      _slackMsg('Saved — reloading…', 'success');
+      setTimeout(function(){ window.location.reload(); }, 600);
+    } catch(err) {
+      _slackMsg(err.message, 'error');
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+}
+
+async function testSlackWebhook(webhookId) {
+  if (!confirm('Send a test message to this Slack webhook? A small connection-check message will be posted to the channel.')) return;
+  try {
+    var res = await fetch(SLACK_API + '/' + webhookId + '/test', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({}),
+    });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok || data.success === false) {
+      Fluxito.toast('Test failed: ' + (data.error || data.message || data.detail || 'unknown error'), 'error');
+    } else {
+      Fluxito.toast('Test message posted to Slack');
+    }
+    setTimeout(function() { window.location.reload(); }, 1400);
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+async function deleteSlackWebhook(webhookId, label) {
+  if (!confirm('Delete Slack webhook "' + label + '"? Any schedules using it will need to be reassigned.')) return;
+  try {
+    var res = await fetch(SLACK_API + '/' + webhookId, { method: 'DELETE' });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok) throw new Error(data.error || data.message || data.detail || 'Failed');
+    window.location.reload();
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+// ── Dashboard Style Configuration ──
+(function() {
+  function syncStylePanels() {
+    var mode = document.querySelector('input[name="styleMode"]:checked')?.value;
+    var presetEl = document.getElementById('presetPicker');
+    var customEl = document.getElementById('customConfig');
+    if (presetEl) presetEl.style.display = mode === 'preset' ? '' : 'none';
+    if (customEl) customEl.style.display = mode === 'custom' ? '' : 'none';
+    document.querySelectorAll('input[name="styleMode"]').forEach(function(r) {
+      var pill = r.closest('.ui-pill-opt');
+      if (pill) pill.classList.toggle('is-on', r.checked);
+    });
+  }
+  document.querySelectorAll('input[name="styleMode"]').forEach(function(r) { r.addEventListener('change', syncStylePanels); });
+  syncStylePanels();
+})();
+
+async function saveDashStyleConfig() {
+  var mode = document.querySelector('input[name="styleMode"]:checked')?.value;
+  var style_config = null;
+  if (mode === 'preset') {
+    var preset = document.querySelector('input[name="stylePreset"]:checked')?.value;
+    if (!preset) { Fluxito.toast('Pick a preset first', 'error'); return; }
+    style_config = { preset: preset };
+  } else if (mode === 'custom') {
+    var palette = [0,1,2,3].map(function(i) { return document.querySelector('input[name="cfgPalette' + i + '"]')?.value; }).filter(Boolean);
+    style_config = {
+      preset: 'custom',
+      background: document.querySelector('input[name="cfgBackground"]').value,
+      primary: document.querySelector('input[name="cfgPrimary"]').value,
+      accent: document.querySelector('input[name="cfgAccent"]').value,
+      font_heading: document.querySelector('select[name="cfgFontHeading"]').value,
+      font_body: document.querySelector('select[name="cfgFontBody"]').value,
+      chart_palette: palette,
+    };
+  }
+  var statusEl = document.getElementById('styleConfigStatus');
+  statusEl.textContent = 'Saving…';
+  var slug = {{ project.slug | tojson }};
+  var resp = await fetch('/api/project/' + slug + '/dashboard-settings', {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ style_config: style_config }),
+  });
+  statusEl.textContent = resp.ok ? 'Saved.' : 'Error saving.';
+  setTimeout(function() { statusEl.textContent = ''; }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ROLES
+// ═══════════════════════════════════════════════════════════════════
+var ROLES_API = '/api/project/{{ project.slug }}/roles';
+
+var DOMAINS = ['analytics','audience','tagmanager','marketing','seo','warehouse','knowledge','analysis'];
+var PROVIDERS = ['ga4','gtm','google_ads','data_manager','gsc','bing','meta','tiktok','snap','linkedin','pinterest','x','reddit','apple','amplitude','mixpanel','posthog','adobe_analytics','adobe_launch','adobe_marketo','bigquery','redshift','snowflake'];
+
+// Cache of fetched roles — shared with member multi-select population
+var _rolesCache = [];
+
+function serializeRole(form) {
+  var tools = {};
+  DOMAINS.forEach(function(d) {
+    var r = form.querySelector('[data-tool="' + d + '"][data-lvl="read"]');
+    var w = form.querySelector('[data-tool="' + d + '"][data-lvl="write"]');
+    var rChecked = r ? r.checked : false;
+    var wChecked = w ? w.checked : false;
+    var lv = [];
+    if (rChecked || wChecked) lv.push('read');
+    if (wChecked) lv.push('write');
+    if (lv.length) tools[d] = lv;
+  });
+  var providers = PROVIDERS.filter(function(p) {
+    var el = form.querySelector('[data-provider="' + p + '"]');
+    return el ? el.checked : false;
+  });
+  return {
+    name: form.name.value.trim(),
+    description: (form.description.value.trim() || null),
+    permissions: {
+      tools: tools,
+      providers: providers,
+      advanced: {
+        scripting: form.adv_scripting.checked,
+        generic_tools: form.adv_generic.checked,
+      },
+    },
+  };
+}
+
+function buildToolGrid() {
+  var tbody = document.getElementById('toolGridBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  DOMAINS.forEach(function(d) {
+    var tr = document.createElement('tr');
+    var label = d.replace(/_/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+    tr.innerHTML =
+      '<td style="font-size:13.5px">' + label + '</td>' +
+      '<td style="text-align:center"><input type="checkbox" data-tool="' + d + '" data-lvl="read" style="accent-color:var(--ink)"></td>' +
+      '<td style="text-align:center"><input type="checkbox" data-tool="' + d + '" data-lvl="write" style="accent-color:var(--ink)"></td>';
+    tbody.appendChild(tr);
+    // write auto-checks read
+    var writeEl = tr.querySelector('[data-lvl="write"]');
+    var readEl  = tr.querySelector('[data-lvl="read"]');
+    writeEl.addEventListener('change', function() {
+      if (writeEl.checked) readEl.checked = true;
+      syncToolHeaderChecks();
+    });
+    readEl.addEventListener('change', function() {
+      if (!readEl.checked) writeEl.checked = false;
+      syncToolHeaderChecks();
+    });
+  });
+}
+
+// Keep the column "all" header checkboxes in sync with the rows
+function syncToolHeaderChecks() {
+  var reads = Array.prototype.slice.call(document.querySelectorAll('#toolGridBody [data-lvl="read"]'));
+  var writes = Array.prototype.slice.call(document.querySelectorAll('#toolGridBody [data-lvl="write"]'));
+  var ar = document.getElementById('toolAllRead');
+  var aw = document.getElementById('toolAllWrite');
+  if (ar && reads.length) {
+    ar.checked = reads.every(function(c){ return c.checked; });
+    ar.indeterminate = !ar.checked && reads.some(function(c){ return c.checked; });
+  }
+  if (aw && writes.length) {
+    aw.checked = writes.every(function(c){ return c.checked; });
+    aw.indeterminate = !aw.checked && writes.some(function(c){ return c.checked; });
+  }
+}
+
+// Wire the column "all" header checkboxes (write implies read)
+function initToolSelectAll() {
+  var ar = document.getElementById('toolAllRead');
+  var aw = document.getElementById('toolAllWrite');
+  if (ar) ar.addEventListener('change', function() {
+    document.querySelectorAll('#toolGridBody [data-lvl="read"]').forEach(function(c){ c.checked = ar.checked; });
+    if (!ar.checked) document.querySelectorAll('#toolGridBody [data-lvl="write"]').forEach(function(c){ c.checked = false; });
+    syncToolHeaderChecks();
+  });
+  if (aw) aw.addEventListener('change', function() {
+    document.querySelectorAll('#toolGridBody [data-lvl="write"]').forEach(function(c){ c.checked = aw.checked; });
+    if (aw.checked) document.querySelectorAll('#toolGridBody [data-lvl="read"]').forEach(function(c){ c.checked = true; });
+    syncToolHeaderChecks();
+  });
+}
+
+function _provLabel(p) { return p.replace(/_/g, ' '); }
+
+function buildProviderGrid() {
+  var list = document.getElementById('provOptList');
+  if (!list) return;
+  list.innerHTML = '';
+  PROVIDERS.forEach(function(p) {
+    var label = document.createElement('label');
+    label.className = 'prov-opt';
+    label.setAttribute('data-prov-opt', p);
+    label.innerHTML = '<input type="checkbox" data-provider="' + p + '"><span>' + _provLabel(p) + '</span>';
+    label.querySelector('input').addEventListener('change', function() { renderProviderChips(); });
+    list.appendChild(label);
+  });
+  initProviderSelect();
+  renderProviderChips();
+}
+
+function _provInputs() {
+  return Array.prototype.slice.call(document.querySelectorAll('#provOptList [data-provider]'));
+}
+
+// Render the selected-provider chips from the checkbox source-of-truth
+function renderProviderChips() {
+  var wrap = document.getElementById('provChips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  _provInputs().filter(function(c){ return c.checked; }).forEach(function(c) {
+    var p = c.getAttribute('data-provider');
+    var chip = document.createElement('span');
+    chip.className = 'prov-chip';
+    chip.innerHTML = '<span>' + _provLabel(p) + '</span><button type="button" aria-label="Remove ' + _provLabel(p) + '" data-rm="' + p + '">×</button>';
+    chip.querySelector('button').addEventListener('click', function(e) {
+      e.stopPropagation();
+      var box = document.querySelector('#provOptList [data-provider="' + p + '"]');
+      if (box) box.checked = false;
+      renderProviderChips();
+    });
+    wrap.appendChild(chip);
+  });
+  _syncProvAll();
+}
+
+function _syncProvAll() {
+  var all = document.getElementById('provAll');
+  if (!all) return;
+  var boxes = _provInputs();
+  var checked = boxes.filter(function(c){ return c.checked; }).length;
+  all.checked = boxes.length > 0 && checked === boxes.length;
+  all.indeterminate = checked > 0 && checked < boxes.length;
+}
+
+function _provFilter(q) {
+  q = (q || '').trim().toLowerCase();
+  var any = false;
+  document.querySelectorAll('#provOptList .prov-opt').forEach(function(opt) {
+    var p = (opt.getAttribute('data-prov-opt') || '');
+    var match = !q || p.replace(/_/g, ' ').indexOf(q) !== -1;
+    opt.hidden = !match;
+    if (match) any = true;
+  });
+  var empty = document.getElementById('provEmpty');
+  if (empty) empty.hidden = any;
+}
+
+function _provOpen(open) {
+  var dd = document.getElementById('provDropdown');
+  var sel = document.getElementById('provSelect');
+  if (!dd || !sel) return;
+  dd.hidden = !open;
+  sel.classList.toggle('is-open', open);
+}
+
+var _provInited = false;
+function initProviderSelect() {
+  if (_provInited) return;
+  _provInited = true;
+  var control = document.getElementById('provControl');
+  var search = document.getElementById('provSearch');
+  var all = document.getElementById('provAll');
+  var sel = document.getElementById('provSelect');
+  if (control) control.addEventListener('click', function() { _provOpen(true); if (search) search.focus(); });
+  if (search) {
+    search.addEventListener('focus', function() { _provOpen(true); });
+    search.addEventListener('input', function() { _provFilter(search.value); _provOpen(true); });
+  }
+  if (all) all.addEventListener('change', function() {
+    _provInputs().forEach(function(c){ c.checked = all.checked; });
+    renderProviderChips();
+  });
+  document.addEventListener('click', function(e) {
+    if (sel && !sel.contains(e.target)) _provOpen(false);
+  });
+}
+
+function _roleMsg(text, kind) {
+  var el = document.getElementById('roleMsg');
+  if (!el) return;
+  el.textContent = text;
+  if (kind === 'error') {
+    el.style.color = 'var(--bad)';
+    el.style.background = 'color-mix(in srgb, var(--bad) 8%, transparent)';
+    el.style.borderColor = 'color-mix(in srgb, var(--bad) 25%, var(--line))';
+  } else if (kind === 'success') {
+    el.style.color = 'var(--good)';
+    el.style.background = 'color-mix(in srgb, var(--good) 8%, transparent)';
+    el.style.borderColor = 'color-mix(in srgb, var(--good) 25%, var(--line))';
+  } else {
+    el.style.color = 'var(--ink-soft)';
+    el.style.background = 'var(--bg-2)';
+    el.style.borderColor = 'var(--line-2)';
+  }
+  el.style.display = 'inline-block';
+}
+
+var _roleDrawerTrigger = null;
+
+function openRoleDrawer(mode, trigger, role) {
+  var drawer = document.getElementById('roleDrawer');
+  var backdrop = document.getElementById('roleDrawerBackdrop');
+  if (!drawer || !backdrop) return;
+  _roleDrawerTrigger = trigger || document.activeElement;
+  if (mode === 'edit' && role) {
+    loadRoleIntoForm(role);
+  } else {
+    resetRoleForm();
+  }
+  backdrop.hidden = false;
+  drawer.classList.add('is-open');
+  drawer.setAttribute('aria-hidden', 'false');
+  drawer.inert = false;
+  document.documentElement.classList.add('ui-locked');
+  window.setTimeout(function() {
+    var nameInput = drawer.querySelector('input[name="name"]');
+    if (nameInput) nameInput.focus();
+  }, 80);
+}
+
+function closeRoleDrawer() {
+  var drawer = document.getElementById('roleDrawer');
+  var backdrop = document.getElementById('roleDrawerBackdrop');
+  if (!drawer || !backdrop) return;
+  drawer.classList.remove('is-open');
+  drawer.setAttribute('aria-hidden', 'true');
+  drawer.inert = true;
+  backdrop.hidden = true;
+  document.documentElement.classList.remove('ui-locked');
+  resetRoleForm();
+  if (_roleDrawerTrigger && typeof _roleDrawerTrigger.focus === 'function') {
+    _roleDrawerTrigger.focus();
+  }
+  _roleDrawerTrigger = null;
+}
+
+function loadRoleIntoForm(role) {
+  var form = document.getElementById('roleForm');
+  if (!form) return;
+  document.getElementById('roleId').value = role.id;
+  form.name.value = role.name || '';
+  form.description.value = role.description || '';
+  // reset all checkboxes
+  DOMAINS.forEach(function(d) {
+    var r = form.querySelector('[data-tool="' + d + '"][data-lvl="read"]');
+    var w = form.querySelector('[data-tool="' + d + '"][data-lvl="write"]');
+    if (r) r.checked = false;
+    if (w) w.checked = false;
+  });
+  PROVIDERS.forEach(function(p) {
+    var el = form.querySelector('[data-provider="' + p + '"]');
+    if (el) el.checked = false;
+  });
+  form.adv_scripting.checked = false;
+  form.adv_generic.checked = false;
+  // apply saved values
+  var perms = role.permissions || {};
+  var tools = perms.tools || {};
+  Object.keys(tools).forEach(function(d) {
+    var levels = tools[d] || [];
+    if (levels.indexOf('read') !== -1) {
+      var r = form.querySelector('[data-tool="' + d + '"][data-lvl="read"]');
+      if (r) r.checked = true;
+    }
+    if (levels.indexOf('write') !== -1) {
+      var w = form.querySelector('[data-tool="' + d + '"][data-lvl="write"]');
+      if (w) w.checked = true;
+    }
+  });
+  (perms.providers || []).forEach(function(p) {
+    var el = form.querySelector('[data-provider="' + p + '"]');
+    if (el) el.checked = true;
+  });
+  var adv = perms.advanced || {};
+  form.adv_scripting.checked = !!(adv.scripting);
+  form.adv_generic.checked   = !!(adv.generic_tools);
+  renderProviderChips();
+  syncToolHeaderChecks();
+  // UI labels
+  var title = document.getElementById('roleFormTitle');
+  if (title) title.textContent = 'Edit role';
+  var state = document.getElementById('roleFormState');
+  if (state) state.textContent = 'Editing role';
+  var saveBtn = document.getElementById('roleSaveBtn');
+  if (saveBtn) saveBtn.textContent = 'Save changes';
+  var cancelBtn = document.getElementById('roleCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = '';
+  var msg = document.getElementById('roleMsg');
+  if (msg) msg.style.display = 'none';
+}
+
+function resetRoleForm() {
+  var form = document.getElementById('roleForm');
+  if (!form) return;
+  form.reset();
+  document.getElementById('roleId').value = '';
+  renderProviderChips();
+  syncToolHeaderChecks();
+  var title = document.getElementById('roleFormTitle');
+  if (title) title.textContent = 'Create role';
+  var state = document.getElementById('roleFormState');
+  if (state) state.textContent = 'New role';
+  var saveBtn = document.getElementById('roleSaveBtn');
+  if (saveBtn) saveBtn.textContent = 'Create role';
+  var cancelBtn = document.getElementById('roleCancelBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  var msg = document.getElementById('roleMsg');
+  if (msg) msg.style.display = 'none';
+}
+
+async function deleteRole(roleId, roleName) {
+  if (!confirm('Delete role "' + roleName + '"? Members assigned only this role will lose their permissions.')) return;
+  try {
+    var res = await fetch(ROLES_API + '/' + roleId, {method: 'DELETE'});
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed');
+    Fluxito.toast('Role deleted');
+    await loadRoles();
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+async function loadRoles() {
+  var listEl = document.getElementById('rolesList');
+  if (!listEl) return;
+  try {
+    var res = await fetch(ROLES_API);
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed to load roles');
+    var roles = Array.isArray(data) ? data : (data.roles || []);
+    _rolesCache = roles;
+    if (roles.length === 0) {
+      listEl.innerHTML = '<div class="ui-empty ps-roles-empty">' +
+        '<b>No custom roles yet</b>' +
+        'Create an access profile for a specific team or workflow. ' +
+        '<button type="button" class="ui-btn is-sm" onclick="openRoleDrawer(\'create\', this)">+ Create role</button>' +
+      '</div>';
+    } else {
+      // Members per role, from the member rows' data-role-ids.
+      var counts = {};
+      document.querySelectorAll('.mbr-roles').forEach(function(c) {
+        (c.getAttribute('data-role-ids') || '').split(',').filter(Boolean).forEach(function(id) { counts[id] = (counts[id] || 0) + 1; });
+      });
+      var html = '';
+      roles.forEach(function(r) {
+        var n = counts[r.id] || 0;
+        html += '<div class="ui-row role-row">' +
+          '<div class="ui-grow">' +
+            '<b class="role-row-name">' + _esc(r.name) + '</b>' +
+            '<div class="role-row-desc">' + _esc(_roleSummary(r)) + '</div>' +
+          '</div>' +
+          '<span class="ui-chip no-dot">' + n + ' member' + (n === 1 ? '' : 's') + '</span>' +
+          '<button type="button" class="ui-btn is-quiet is-sm" onclick="openRoleDrawer(\'edit\', this, ' + _esc(JSON.stringify(r)) + ')">Edit</button>' +
+          '<button type="button" class="ui-btn is-quiet is-sm is-danger" onclick="deleteRole(\'' + _esc(r.id) + '\',\'' + _esc(r.name) + '\')">Delete</button>' +
+        '</div>';
+      });
+      listEl.innerHTML = html;
+    }
+    // also refresh member role chips
+    renderAllMemberRoleChips();
+  } catch(err) {
+    listEl.innerHTML = '<div style="padding:20px;color:var(--bad);font-size:13px">Error loading roles: ' + _esc(err.message) + '</div>';
+  }
+}
+
+// One-line human summary of a role's real permissions (description first).
+function _roleSummary(r) {
+  var p = r.permissions || {}, tools = p.tools || {};
+  var read = [], write = [];
+  Object.keys(tools).forEach(function(d) {
+    var label = d.replace(/_/g, ' ');
+    if ((tools[d] || []).indexOf('write') !== -1) write.push(label);
+    else if ((tools[d] || []).indexOf('read') !== -1) read.push(label);
+  });
+  var parts = [];
+  if (write.length) parts.push('Read/Write: ' + write.join(', '));
+  if (read.length) parts.push('Read: ' + read.join(', '));
+  if (!parts.length) parts.push('No tool access');
+  var prov = p.providers || [];
+  parts.push(prov.length ? (prov.length === PROVIDERS.length ? 'all providers' : prov.map(_provLabel).join(', ')) : 'no providers');
+  var s = parts.join(' · ');
+  return r.description ? r.description + ' — ' + s : s;
+}
+
+function _esc(s) {
+  if (typeof s !== 'string') return s;
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Member custom-role chips + popover ──
+function renderMemberRoleChips(container) {
+  var chipsEl = container.querySelector('.mbr-role-chips');
+  if (!chipsEl) return;
+  var ids = (container.getAttribute('data-role-ids') || '').split(',').filter(Boolean);
+  chipsEl.innerHTML = '';
+  if (!ids.length) {
+    chipsEl.innerHTML = '<span class="mbr-role-none">No roles</span>';
+    return;
+  }
+  ids.forEach(function(id) {
+    var role = (_rolesCache || []).find(function(r){ return r.id === id; });
+    if (!role) return;
+    var chip = document.createElement('span');
+    chip.className = 'mbr-role-chip';
+    chip.textContent = role.name;
+    chipsEl.appendChild(chip);
+  });
+}
+
+function renderAllMemberRoleChips() {
+  document.querySelectorAll('.mbr-roles').forEach(renderMemberRoleChips);
+}
+
+var _rpMemberId = null;
+
+function openRolesPopover(btn, memberId) {
+  var pop = document.getElementById('rolesPopover');
+  if (!pop) return;
+  // toggle off if same member's popover already open
+  if (!pop.hidden && _rpMemberId === memberId) { closeRolesPopover(); return; }
+  _rpMemberId = memberId;
+  var container = document.querySelector('.mbr-roles[data-member-id="' + memberId + '"]');
+  var current = (container && container.getAttribute('data-role-ids'))
+    ? container.getAttribute('data-role-ids').split(',').filter(Boolean) : [];
+  var list = document.getElementById('rpList');
+  var empty = document.getElementById('rpEmpty');
+  list.innerHTML = '';
+  if (!_rolesCache || !_rolesCache.length) {
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+    _rolesCache.forEach(function(r) {
+      var row = document.createElement('label');
+      row.className = 'roles-popover-opt';
+      var checked = current.indexOf(r.id) !== -1 ? ' checked' : '';
+      row.innerHTML = '<input type="checkbox" value="' + _esc(r.id) + '"' + checked + '><span>' + _esc(r.name) + '</span>';
+      row.querySelector('input').addEventListener('change', function(){ saveMemberRoles(memberId); });
+      list.appendChild(row);
+    });
+  }
+  _syncRpAll();
+  pop.hidden = false;
+  // position under the button (fixed — closes on scroll, see below)
+  var rect = btn.getBoundingClientRect();
+  var top = rect.bottom + 6;
+  if (top + pop.offsetHeight > window.innerHeight - 8) top = Math.max(8, rect.top - pop.offsetHeight - 6);
+  var left = Math.max(8, Math.min(rect.left, window.innerWidth - pop.offsetWidth - 8));
+  pop.style.top = top + 'px';
+  pop.style.left = left + 'px';
+}
+window.addEventListener('scroll', function() { var pop = document.getElementById('rolesPopover'); if (pop && !pop.hidden) closeRolesPopover(); }, { passive: true });
+
+function closeRolesPopover() {
+  var pop = document.getElementById('rolesPopover');
+  if (pop) pop.hidden = true;
+  _rpMemberId = null;
+}
+
+function _syncRpAll() {
+  var all = document.getElementById('rpAll');
+  if (!all) return;
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('#rpList input[type=checkbox]'));
+  var checked = boxes.filter(function(c){ return c.checked; }).length;
+  all.checked = boxes.length > 0 && checked === boxes.length;
+  all.indeterminate = checked > 0 && checked < boxes.length;
+}
+
+async function saveMemberRoles(memberId) {
+  var ids = Array.prototype.slice.call(document.querySelectorAll('#rpList input[type=checkbox]:checked'))
+    .map(function(c){ return c.value; });
+  _syncRpAll();
+  try {
+    var res = await fetch('/api/project/{{ project.slug }}/members/' + memberId + '/roles', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({role_ids: ids}),
+    });
+    var d = await res.json();
+    if (!res.ok) throw new Error(d.message || d.detail || 'Failed to update roles');
+    var container = document.querySelector('.mbr-roles[data-member-id="' + memberId + '"]');
+    if (container) {
+      container.setAttribute('data-role-ids', ids.join(','));
+      renderMemberRoleChips(container);
+    }
+    if (document.getElementById('rolesList')) loadRoles();
+  } catch(err) { Fluxito.toast(err.message, 'error'); }
+}
+
+// "Select all" inside the popover + outside-click close
+(function() {
+  var all = document.getElementById('rpAll');
+  if (all) all.addEventListener('change', function() {
+    document.querySelectorAll('#rpList input[type=checkbox]').forEach(function(c){ c.checked = all.checked; });
+    if (_rpMemberId) saveMemberRoles(_rpMemberId);
+  });
+  document.addEventListener('click', function(e) {
+    var pop = document.getElementById('rolesPopover');
+    if (!pop || pop.hidden) return;
+    if (pop.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.mbr-roles-edit')) return;
+    closeRolesPopover();
+  });
+})();
+
+// Role form submit
+(function() {
+  var form = document.getElementById('roleForm');
+  if (!form) return;
+
+  // Build grids on first load
+  buildToolGrid();
+  initToolSelectAll();
+  buildProviderGrid();
+  syncToolHeaderChecks();
+
+  // Cancel button
+  var cancelBtn = document.getElementById('roleCancelBtn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', closeRoleDrawer);
+  }
+  var closeBtn = document.getElementById('roleDrawerClose');
+  if (closeBtn) closeBtn.addEventListener('click', closeRoleDrawer);
+  var backdrop = document.getElementById('roleDrawerBackdrop');
+  if (backdrop) backdrop.addEventListener('click', closeRoleDrawer);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var drawer = document.getElementById('roleDrawer');
+      if (drawer && drawer.classList.contains('is-open')) closeRoleDrawer();
+    }
+  });
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('roleSaveBtn');
+    var roleId = document.getElementById('roleId').value;
+    var body = serializeRole(form);
+    if (!body.name) { _roleMsg('Name is required.', 'error'); return; }
+    btn.disabled = true;
+    var oldText = btn.textContent;
+    btn.textContent = 'Saving…';
+    _roleMsg('Saving…', 'info');
+    try {
+      var method, url;
+      if (roleId) {
+        method = 'PATCH'; url = ROLES_API + '/' + roleId;
+      } else {
+        method = 'POST'; url = ROLES_API;
+      }
+      var res = await fetch(url, {
+        method: method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.detail || 'Failed to save role');
+      _roleMsg(roleId ? 'Role updated.' : 'Role created.', 'success');
+      await loadRoles();
+      closeRoleDrawer();
+    } catch(err) {
+      _roleMsg(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+  });
+})();
+
+// Roles are always visible now (no lazy tab load) — fetch once on page load
+// whenever the roles section (or member role-chip widgets) is present.
+(function() {
+  var hasRolesSection = !!document.getElementById('rolesList');
+  var hasMemberRoleWidgets = !!document.querySelector('.mbr-roles');
+  if (!hasRolesSection && !hasMemberRoleWidgets) return;
+  if (hasRolesSection) {
+    loadRoles();
+  } else {
+    // Only member role-chip widgets on the page (no owner/admin roles card) —
+    // still need role names to render the chips.
+    fetch(ROLES_API).then(function(res) {
+      return res.json();
+    }).then(function(data) {
+      var roles = Array.isArray(data) ? data : (data.roles || []);
+      _rolesCache = roles;
+      renderAllMemberRoleChips();
+    }).catch(function() {
+      // non-fatal — member role chips stay empty
+    });
+  }
+})();
+
+// ── General — Project name / Slug  ──
+// Save project name/slug — PATCH /api/project/{slug}; a slug change redirects.
+async function saveGeneralDetails() {
+  var btn = document.getElementById('generalSaveBtn');
+  var msg = document.getElementById('generalMsg');
+  var nameInput = document.getElementById('generalNameInput');
+  var slugInput = document.getElementById('generalSlugInput');
+  if (!btn || !nameInput || !slugInput) return;
+  var name = nameInput.value.trim();
+  var slug = slugInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+  btn.disabled = true;
+  var origLabel = btn.textContent;
+  btn.textContent = 'Saving…';
+  if (msg) { msg.style.display = 'none'; }
+  try {
+    var res = await fetch('/api/project/{{ project.slug }}', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, slug: slug }),
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.message || data.detail || data.error || ('Failed (' + res.status + ')'));
+    Fluxito.toast('Project saved');
+    if (data.redirect_url && data.redirect_url !== location.pathname) {
+      window.location.href = data.redirect_url;
+    } else if (slug && slug !== '{{ project.slug }}') {
+      window.location.href = '/project/' + slug + '/settings';
+    } else if (name !== {{ project.name | tojson }}) {
+      // Rail, page head and sidebar show the name — refresh them.
+      setTimeout(function () { window.location.reload(); }, 700);
+    }
+  } catch (err) {
+    Fluxito.toast(err.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = origLabel;
+}
+
+// ── Delete project ──
+async function deleteProject() {
+  if (!confirm('Are you sure you want to delete "{{ project.name }}"? This will deactivate all connections, dashboards, and member access.')) return;
+  if (!confirm('This cannot be undone. Are you absolutely sure?')) return;
+  try {
+    var res = await fetch('/api/project/{{ project.slug }}', { method: 'DELETE' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.detail || 'Failed to delete project');
+    if (data.redirect_url) {
+      window.location.href = data.redirect_url;
+    } else {
+      window.location.href = '/projects';
+    }
+  } catch(err) {
+    Fluxito.toast(err.message, 'error');
+  }
+}
+</script>
+{% endblock settings_main %}

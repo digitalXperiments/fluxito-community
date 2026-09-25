@@ -1,0 +1,489 @@
+[
+  {
+    "tool": "seo_read",
+    "action": "bing_get_crawl_stats",
+    "summary": "Bing crawl statistics for a site. Requires site_url.",
+    "group": "BING WEBMASTER TOOLS",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/",
+        "doc": "Bing-verified site URL."
+      }
+    ],
+    "platforms": [
+      "bing"
+    ],
+    "returns": "await connector.get_crawl_stats(access_token, site_url) \u2192 connector dict | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "bing_get_index_coverage",
+    "summary": "Bing index coverage data for a site. Requires site_url.",
+    "group": "BING WEBMASTER TOOLS",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/",
+        "doc": "Bing-verified site URL."
+      }
+    ],
+    "platforms": [
+      "bing"
+    ],
+    "returns": "await connector.get_index_coverage(access_token, site_url) \u2192 connector dict | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "bing_get_link_counts",
+    "summary": "Bing inbound link counts for a site. Requires site_url.",
+    "group": "BING WEBMASTER TOOLS",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/",
+        "doc": "Bing-verified site URL."
+      }
+    ],
+    "platforms": [
+      "bing"
+    ],
+    "returns": "await connector.get_link_counts(access_token, site_url) \u2192 connector dict | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "bing_get_query_stats",
+    "summary": "Bing keyword/query performance stats. Requires site_url; date range + paging optional.",
+    "group": "BING WEBMASTER TOOLS",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/",
+        "doc": "Bing-verified site URL (full URL form; Bing has no sc-domain: notation)."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": false,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD. Mapped to connector arg date_from."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": false,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD. Mapped to connector arg date_to."
+      },
+      {
+        "name": "search_type",
+        "type": "string",
+        "required": false,
+        "example": "web",
+        "doc": "Free-form string, not enum-validated."
+      },
+      {
+        "name": "page",
+        "type": "integer",
+        "required": false,
+        "example": 0,
+        "doc": "Page index for pagination (default 0)."
+      },
+      {
+        "name": "page_size",
+        "type": "integer",
+        "required": false,
+        "example": 100,
+        "doc": "Rows per page (default 100)."
+      }
+    ],
+    "platforms": [
+      "bing"
+    ],
+    "returns": "await connector.get_query_stats(...) \u2192 connector dict | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "bing_list_sites",
+    "summary": "Enumerate verified Bing Webmaster sites. No params beyond the Bing (Microsoft) connection.",
+    "group": "BING WEBMASTER TOOLS",
+    "params": [],
+    "platforms": [
+      "bing"
+    ],
+    "returns": "{ sites: [...] } | _no_bing() connection_missing error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "get_sitemap",
+    "summary": "Details for one sitemap. Requires site_url + feedpath.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property identifier."
+      },
+      {
+        "name": "feedpath",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/sitemap.xml",
+        "doc": "Full URL of the submitted sitemap."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.get_sitemap(conn_id, site_url, feedpath) \u2192 { sitemap details } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "gsc_get_sitemap",
+    "summary": "Alias of `get_sitemap`.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property identifier."
+      },
+      {
+        "name": "feedpath",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/sitemap.xml",
+        "doc": "Full sitemap URL."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.get_sitemap(conn_id, site_url, feedpath) \u2192 { sitemap details } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "gsc_inspect_url",
+    "summary": "Alias of `inspect_url`.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property."
+      },
+      {
+        "name": "inspection_url",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/page",
+        "doc": "Full URL to inspect."
+      },
+      {
+        "name": "language_code",
+        "type": "string",
+        "required": false,
+        "example": "en-US",
+        "doc": "BCP-47 language code."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.inspect_url(...) \u2192 { inspectionResult } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "gsc_list_sitemaps",
+    "summary": "Alias of `list_sitemaps`.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property identifier."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.list_sitemaps(conn_id, site_url) \u2192 { sitemaps: [...] } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "gsc_list_sites",
+    "summary": "Alias of `list_sites` \u2014 identical (search_console_read, list_sites) handler with explicit gsc_ prefix.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.list_sites(conn_id) \u2192 { siteEntry/sites: [...] } | _no_gsc() error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "gsc_search_analytics",
+    "summary": "Alias of `search_analytics` \u2014 identical handler with explicit gsc_ prefix.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "Same as search_analytics."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD."
+      },
+      {
+        "name": "dimensions",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "query"
+        ],
+        "doc": "Same as search_analytics."
+      },
+      {
+        "name": "search_type",
+        "type": "string",
+        "required": false,
+        "example": "web",
+        "doc": "Same as search_analytics."
+      },
+      {
+        "name": "row_limit",
+        "type": "integer",
+        "required": false,
+        "example": 1000,
+        "doc": "Same as search_analytics (default 1000)."
+      },
+      {
+        "name": "start_row",
+        "type": "integer",
+        "required": false,
+        "example": 0,
+        "doc": "Same as search_analytics."
+      },
+      {
+        "name": "dimension_filter_groups",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [],
+        "doc": "Same as search_analytics."
+      },
+      {
+        "name": "aggregation_type",
+        "type": "string",
+        "required": false,
+        "example": "auto",
+        "doc": "Same as search_analytics."
+      },
+      {
+        "name": "data_state",
+        "type": "string",
+        "required": false,
+        "example": "final",
+        "doc": "Same as search_analytics."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.search_analytics_query(...) \u2192 { rows: [...] } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "inspect_url",
+    "summary": "URL Inspection API \u2014 index + mobile + rich-result status for one URL. Requires site_url + inspection_url.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property the URL belongs to."
+      },
+      {
+        "name": "inspection_url",
+        "type": "string",
+        "required": true,
+        "example": "https://example.com/page",
+        "doc": "Full URL to inspect (must be under site_url's property)."
+      },
+      {
+        "name": "language_code",
+        "type": "string",
+        "required": false,
+        "example": "en-US",
+        "doc": "BCP-47 language for the inspection result; passed through to sc.inspect_url."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.inspect_url(conn_id, site_url, inspection_url, language_code) \u2192 { inspectionResult } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "list_sitemaps",
+    "summary": "List sitemaps submitted for a GSC site. Requires site_url.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property identifier."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.list_sitemaps(conn_id, site_url) \u2192 { sitemaps: [...] } | bad_request error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "list_sites",
+    "summary": "Enumerate verified Google Search Console properties for the active project. No params beyond the GSC connection.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.list_sites(conn_id) \u2192 { siteEntry/sites: [...] } | _no_gsc() connection_missing error",
+    "scope": "seo_read"
+  },
+  {
+    "tool": "seo_read",
+    "action": "search_analytics",
+    "summary": "Query GSC Search Analytics (impressions/clicks/CTR/position). Requires site_url + date range; dimensions/filters optional.",
+    "group": "GOOGLE SEARCH CONSOLE",
+    "params": [
+      {
+        "name": "site_url",
+        "type": "string",
+        "required": true,
+        "example": "sc-domain:example.com",
+        "doc": "GSC property \u2014 either a domain property `sc-domain:example.com` or a URL-prefix property `https://example.com/`. No format validation in this layer."
+      },
+      {
+        "name": "start_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-01",
+        "doc": "YYYY-MM-DD. Required."
+      },
+      {
+        "name": "end_date",
+        "type": "string",
+        "required": true,
+        "example": "2026-05-31",
+        "doc": "YYYY-MM-DD. Required."
+      },
+      {
+        "name": "dimensions",
+        "type": "array",
+        "required": false,
+        "item_type": "string",
+        "example": [
+          "query"
+        ],
+        "doc": "Array of strings; subset of query|page|country|device|date|searchAppearance. Element type coerced to str via BeforeValidator(str). No enum enforcement here."
+      },
+      {
+        "name": "search_type",
+        "type": "string",
+        "required": false,
+        "example": "web",
+        "doc": "web|image|video|news|discover|googleNews per docstring, but NOT enum-validated in code (plain CoercedStr)."
+      },
+      {
+        "name": "row_limit",
+        "type": "integer",
+        "required": false,
+        "example": 1000,
+        "doc": "Default 1000. Docstring/SEO_READ_DOC claim 'max 25000' but no cap is enforced in this layer \u2014 passed straight to the connector."
+      },
+      {
+        "name": "start_row",
+        "type": "integer",
+        "required": false,
+        "example": 0,
+        "doc": "Pagination offset."
+      },
+      {
+        "name": "dimension_filter_groups",
+        "type": "array",
+        "required": false,
+        "item_type": "object",
+        "example": [],
+        "doc": "Array of GSC dimensionFilterGroups objects; passed through unvalidated."
+      },
+      {
+        "name": "aggregation_type",
+        "type": "string",
+        "required": false,
+        "example": "auto",
+        "doc": "GSC aggregationType (auto|byPage|byProperty); passed through unvalidated."
+      },
+      {
+        "name": "data_state",
+        "type": "string",
+        "required": false,
+        "example": "final",
+        "doc": "Docstring says 'final'|'all'; not enum-validated."
+      }
+    ],
+    "platforms": [
+      "gsc"
+    ],
+    "returns": "await sc.search_analytics_query(...) \u2192 { rows: [{<dims>, clicks, impressions, ctr, position}], ... } | bad_request error",
+    "scope": "seo_read"
+  }
+]

@@ -1,0 +1,172 @@
+# ── Secrets — never commit ────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+credentials/
+service-account*.json
+google-credentials*.json
+client_secret*.json
+*.token
+*.session
+
+# ── Python bytecode / build artifacts ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+build/
+dist/
+sdist/
+wheels/
+*.whl
+.installed.cfg
+pip-log.txt
+pip-delete-this-directory.txt
+MANIFEST
+prototype/
+# Public documentation tracked. Internal brainstorm/plan/spec scratchpad
+# at docs/superpowers/ stays local-only.
+docs/superpowers/
+docs/context/
+docs/sessions/
+docs/plans/
+docs/marketing
+.superpowers
+test_results
+.benchmarks
+.claude
+.agents/
+.cloudcli/
+.gemini/
+.kimi-code/
+.omp/
+.pi/
+.qwen/
+# Marketing site material lives in parked/ until it moves to its own static-site repo
+parked/
+# Local design / marketing site revamp mockups (not shipped with the app)
+fluxito_site_revamp/
+
+.commandcode
+.gstack
+~/.codex/*
+
+# ── Virtual environments ──────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.python-version
+pipenv/
+poetry.lock.bak
+
+# ── Test / coverage / type-check artifacts ───────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+pytest.xml
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.hypothesis/
+nosetests.xml
+.cache/
+
+# ── Jupyter / notebooks ──────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── IDE / editor / OS ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Claude / AI assistants (local-only) ──────────────────────────────────
+.claude/
+.aider*
+.cursor/
+.codex/
+
+# ── Docker / local data volumes ──────────────────────────────────────────
+postgres_data/
+redis_data/
+pgdata/
+data/
+# The MCP spec registry (app/tools/specs/data/) is shipped code, not a local
+# data volume — the spec engine loads it at runtime. Keep it tracked despite the
+# broad data/ rule above.
+!app/tools/specs/data/
+!app/tools/specs/data/**
+*.sqlite
+*.sqlite3
+*.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────
+*.log
+logs/
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Fly.io ───────────────────────────────────────────────────────────────
+.fly/
+fly.toml
+
+# ── Uploads / user-generated / temp ──────────────────────────────────────
+uploads/
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+*.orig
+
+# ── Node (in case of tooling / frontend assets) ──────────────────────────
+node_modules/
+.npm/
+.yarn/
+.pnp.*
+package-lock.json.bak
+
+# ── Removed / redundant files ────────────────────────────────────────────
+scripts/
+fluxito-assistant/
+markiq-assistant.skill
+FLUXITO_PRD.md
+TEST_PLAN.md
+
+# ── Misc ─────────────────────────────────────────────────────────────────
+*.pid
+*.seed
+*.pid.lock
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

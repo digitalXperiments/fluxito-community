@@ -1,0 +1,236 @@
+name: CI
+
+# Runs on every push and PR. Must be green before merging to main.
+#
+# Stages:
+#   lint       — ruff lint + format check (fast, fails fast)
+#   typecheck  — mypy on the opt-in set configured in pyproject.toml
+#   test       — pytest with coverage, against real Postgres + Redis
+#   build      — Docker image builds cleanly (smoke check, no push)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install ruff
+        run: pip install ruff==0.8.4
+
+      - name: ruff check
+        run: ruff check app tests
+
+      - name: ruff format --check
+        run: ruff format --check app tests
+
+  # ---------------------------------------------------------------------------
+  typecheck:
+    name: Type check (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: mypy
+        run: |
+          mypy app/sql_safety.py app/auth/scopes.py app/config.py app/utils
+
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test (pytest + coverage)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: fluxito_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+
+    env:
+      APP_ENV: test
+      APP_SECRET_KEY: test-secret-key-must-be-at-least-32-chars-long!!
+      TOKEN_ENCRYPTION_KEY: zH6kDqPzv-LJh3Ke2m2jWkYqPzO8uqG8cXkG7sN8Zf4=
+      GOOGLE_CLIENT_ID: ci-dummy-client-id.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: ci-dummy-client-secret
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/fluxito_test
+      REDIS_URL: redis://localhost:6379/0
+      MCP_ALLOWED_REDIRECT_URIS: https://claude.ai/api/mcp/auth_callback,http://localhost/callback
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run alembic migrations (integration test DB)
+        run: alembic upgrade head
+
+      - name: Run pytest
+        run: |
+          pytest \
+            --cov=app \
+            --cov-branch \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=xml:coverage.xml \
+            --junitxml=pytest.xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 14
+
+      - name: Upload junit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-junit
+          path: pytest.xml
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push, use GHA cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: fluxito:ci-${{ github.sha }}
+          # GHA cache is faster than rebuilding, especially for build-essential
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test — verify app boots
+        run: |
+          docker run --rm \
+            -e APP_ENV=ci \
+            -e APP_SECRET_KEY=ci-smoke-secret-key-must-be-at-least-32-chars \
+            -e TOKEN_ENCRYPTION_KEY=zH6kDqPzv-LJh3Ke2m2jWkYqPzO8uqG8cXkG7sN8Zf4= \
+            -e GOOGLE_CLIENT_ID=ci-dummy-client-id.apps.googleusercontent.com \
+            -e GOOGLE_CLIENT_SECRET=ci-dummy-client-secret \
+            --entrypoint python fluxito:ci-${{ github.sha }} \
+            -c "import app.main; print('✓ app imports successfully')"
+
+  # ---------------------------------------------------------------------------
+  notify-telegram:
+    name: Notify Telegram
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build]
+    # Run on pushes to main only, skip PR noise.
+    if: always() && github.event_name == 'push'
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          if ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}; then
+            echo "emoji=🚨" >> "$GITHUB_OUTPUT"
+            echo "verb=failed" >> "$GITHUB_OUTPUT"
+          else
+            echo "emoji=✅" >> "$GITHUB_OUTPUT"
+            echo "verb=passed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Telegram notification
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EMOJI: ${{ steps.status.outputs.emoji }}
+          VERB: ${{ steps.status.outputs.verb }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          short_sha="${SHA:0:7}"
+          # First line of the commit message only
+          first_line="$(printf '%s' "$COMMIT_MSG" | head -n1)"
+          # HTML-escape user-controlled fields so arbitrary commit/author text
+          # can't break Telegram's HTML parser (& < > are the only specials).
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+          }
+          first_line_esc="$(html_escape "$first_line")"
+          actor_esc="$(html_escape "$ACTOR")"
+          text="${EMOJI} <b>CI ${VERB}</b> on <code>${REPO}</code> (${REF})
+          commit: <code>${short_sha}</code> — ${first_line_esc}
+          author: ${actor_esc}
+          <a href=\"${RUN_URL}\">view run</a>"
+          curl -sS --fail-with-body -X POST \
+            "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${text}" \
+            --data-urlencode "parse_mode=HTML" \
+            --data-urlencode "disable_web_page_preview=true"

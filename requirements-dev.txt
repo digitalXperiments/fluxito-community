@@ -1,0 +1,34 @@
+# Development & test-only dependencies.
+# Production images should NOT install this file.
+#
+# Install locally with:
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+# ── Testing ────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.25.3
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+pytest-env==1.1.5
+pytest-timeout==2.3.1
+pytest-xdist==3.6.1            # parallel execution with -n auto
+
+# ── Test utilities & mocking ──────────────────────────────────────────────
+freezegun==1.5.1               # time travel in tests
+respx==0.21.1                  # httpx mocking for Google/Stripe/OAuth
+fakeredis==2.26.1              # in-memory Redis for unit tests
+factory-boy==3.3.1             # test data factories
+aiosqlite==0.20.0              # async SQLite for in-memory tests
+asgi-lifespan==2.1.0           # FastAPI lifespan in test client
+anyio==4.6.2.post1             # structured concurrency
+
+# ── Code quality & linting ────────────────────────────────────────────────
+ruff==0.8.4                    # linter + formatter
+mypy==1.13.0                   # static type checking
+tox==4.23.2                    # test automation
+
+# ── Type stubs for third-party libraries ──────────────────────────────────
+types-redis==4.6.0.20241004
+types-requests==2.32.0.20241016
